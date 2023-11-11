@@ -1,0 +1,96 @@
+package controllers
+
+import (
+	"fmt"
+	"net/http"
+	"strconv"
+
+	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type TicketTypeController struct {
+	DB *gorm.DB
+}
+
+func NewTicketTypeController(db *gorm.DB) *TicketTypeController {
+	return &TicketTypeController{DB: db}
+}
+
+func (ttc *TicketTypeController) ListAllTicketTypes(c *gin.Context) {
+	var ticketTypes []models.TicketType
+
+	if err := ttc.DB.Find(&ticketTypes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the ticket types"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ticketTypes)
+}
+
+// Check that event exists before creating ticket release
+
+func (ttc *TicketTypeController) CreateTicketTypes(c *gin.Context) {
+	var ticketTypes []models.TicketType
+
+	if err := c.ShouldBindJSON(&ticketTypes); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tx := ttc.DB.Begin()
+	for idx, ticketType := range ticketTypes {
+		// Check that event exists
+		if !checkEventExists(ttc, ticketType.EventID) {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID for ticket type at index " + strconv.Itoa(idx)})
+			return
+		}
+
+		// Check that ticket release exists
+		if !checkTicketReleaseExists(ttc, ticketType.TicketReleaseID) {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release ID for ticket type at index " + strconv.Itoa(idx)})
+			return
+		}
+
+		if err := tx.Create(&ticketType).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	tx.Commit()
+
+	c.JSON(http.StatusCreated, ticketTypes)
+}
+
+func checkEventExists(ttc *TicketTypeController, eventID uint) bool {
+	var event models.Event
+
+	if err := ttc.DB.First(&event, eventID).Error; err != nil {
+		return false
+	}
+
+	return true
+}
+
+func checkTicketReleaseExists(ttc *TicketTypeController, ticketReleaseID uint) bool {
+	var ticketRelease models.TicketRelease
+
+	if err := ttc.DB.First(&ticketRelease, ticketReleaseID).Error; err != nil {
+		return false
+	}
+
+	return true
+}
+
+func parseIntParam(param string, paramName string) (int, error) {
+	value, err := strconv.Atoi(param)
+	if err != nil {
+		return 0, fmt.Errorf("Invalid %s: %s", paramName, param)
+	}
+
+	return value, nil
+}

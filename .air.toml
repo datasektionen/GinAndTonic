@@ -1,0 +1,18 @@
+# .air.toml
+[build]
+  cmd = "go build -o ./tmp/main ./pkg/server/main.go"
+  bin = "./tmp/main"
+  log = "air.log"
+
+[watch]
+  delay = 1000 # delay in ms
+  includes = [
+    "pkg/**/*"
+  ]
+  excludes = [
+    "assets",
+    "tmp"
+  ]
+
+[log]
+  level = "debug"

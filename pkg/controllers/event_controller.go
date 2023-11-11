@@ -1,0 +1,147 @@
+package controllers
+
+import (
+	"log"
+	"net/http"
+	"strconv"
+
+	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type EventController struct {
+	DB *gorm.DB
+}
+
+// NewEventController creates a new controller with the given database client
+func NewEventController(db *gorm.DB) *EventController {
+	return &EventController{DB: db}
+}
+
+// CreateEvent handles the creation of an event
+func (ec *EventController) CreateEvent(c *gin.Context) {
+	// Use types.EventRequest instead of models.Event
+	var eventRequest types.EventRequest
+
+	if err := c.ShouldBindJSON(&eventRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ugkthid, exists := c.Get("ugkthid")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	// Check that organization exists
+	var organization models.Organization
+	if err := ec.DB.First(&organization, eventRequest.OrganizationID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organization ID"})
+		return
+	}
+
+	event := models.Event{
+		Name:           eventRequest.Name,
+		Description:    eventRequest.Description,
+		Location:       eventRequest.Location,
+		OrganizationID: eventRequest.OrganizationID,
+		CreatedBy:      ugkthid.(string),
+	}
+
+	if err := ec.DB.Create(&event).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error creating the event"})
+		return
+	}
+
+	log.Printf("Event created: %v", event)
+
+	c.JSON(http.StatusCreated, gin.H{"event": event})
+}
+
+func (ec *EventController) ListEvents(c *gin.Context) {
+	var events []models.Event
+
+	// Pagination
+	limitStr := c.DefaultQuery("limit", "10")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit value"})
+		return
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid offset value"})
+		return
+	}
+
+	// Filtering
+	name := c.Query("name")
+
+	// Sorting
+	sort := c.DefaultQuery("sort", "created_at desc")
+
+	query := ec.DB.Limit(limit).Offset(offset).Order(sort)
+
+	// Apply filtering if a name is provided
+	if name != "" {
+		query = query.Where("name = ?", name)
+	}
+
+	query.Find(&events)
+	c.JSON(http.StatusOK, events)
+}
+
+// GetEvent handles retrieving an event by ID
+func (ec *EventController) GetEvent(c *gin.Context) {
+	var event models.Event
+	id := c.Param("eventID")
+
+	if err := ec.DB.First(&event, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"event": event})
+}
+
+// UpdateEvent handles updating an event by ID
+func (ec *EventController) UpdateEvent(c *gin.Context) {
+	var event models.Event
+	id := c.Param("eventID")
+
+	if err := ec.DB.First(&event, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&event); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := ec.DB.Save(&event).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"event": event})
+}
+
+// DeleteEvent handles deleting an event by ID
+func (ec *EventController) DeleteEvent(c *gin.Context) {
+	var event models.Event
+	id := c.Param("eventID")
+
+	if err := ec.DB.Delete(&event, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully"})
+}

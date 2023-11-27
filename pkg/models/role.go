@@ -27,12 +27,9 @@ func InitializeRoles(db *gorm.DB) error {
 	// Check each role and create it if it doesn't exist
 	for _, role := range roles {
 		var existingRole Role
-		if err := db.Where("name = ?", role.Name).First(&existingRole).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				if err := db.Create(&role).Error; err != nil {
-					return err
-				}
-			} else {
+		db.Where("name = ?", role.Name).FirstOrInit(&existingRole)
+		if existingRole.ID == 0 {
+			if err := db.Create(&role).Error; err != nil {
 				return err
 			}
 		}

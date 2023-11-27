@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -24,25 +25,34 @@ func NewTicketRequestService(db *gorm.DB) *TicketRequestService {
 
 func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.TicketRequest) *ErrorResponse {
 	if !trs.isTicketReleaseOpen(ticketRequest.TicketReleaseID) {
+		log.Println("Ticket release is not open")
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release is not open"}
 	}
 
 	if !trs.isTicketTypeValid(ticketRequest.TicketTypeID, ticketRequest.TicketReleaseID) {
+		log.Println("Ticket type is not valid for ticket release")
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket type is not valid for ticket release"}
 	}
 
 	var ticketRelease models.TicketRelease
 	if err := trs.DB.Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
+		log.Println("Error getting ticket release")
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
 
-	ticketReleaseMethodDetail := ticketRelease.TicketReleaseMethodDetail
+	var ticketReleaseMethodDetail models.TicketReleaseMethodDetail
+	if err := trs.DB.Where("id = ?", ticketRelease.TicketReleaseMethodDetailID).First(&ticketReleaseMethodDetail).Error; err != nil {
+		log.Println("Error getting ticket release method detail")
+		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release method detail"}
+	}
 
 	if trs.userAlreadyHasATicketToEvent(ticketRequest.UserUGKthID, ticketRequest.TicketReleaseID, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
+		log.Println("User cannot request more tickets to this event")
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
 	}
 
 	if err := trs.DB.Create(ticketRequest).Error; err != nil {
+		log.Println("Error creating ticket request")
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
 	}
 

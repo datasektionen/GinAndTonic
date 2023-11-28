@@ -98,7 +98,6 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"ticket_release": ticketRelease})
 }
 
-
 func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	var ticketReleases []models.TicketRelease
 
@@ -202,7 +201,12 @@ func (trmc *TicketReleaseController) DeleteTicketRelease(c *gin.Context) {
 }
 
 func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
-	var ticketRelease models.TicketRelease
+	var req TicketReleaseRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	ticketReleaseID := c.Param("ticketReleaseID")
 	eventID := c.Param("eventID")
@@ -215,23 +219,51 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 		return
 	}
 
+	// start transaction
+	tx := trmc.DB.Begin()
+
 	// Convert the ticketRelease ID to an integer
 	ticketReleaseIDInt, err := strconv.Atoi(ticketReleaseID)
+	var ticketRelease models.TicketRelease
 
-	if err := trmc.DB.First(&ticketRelease, "event_id = ? AND id = ?", eventIDInt, ticketReleaseIDInt).Error; err != nil {
+	if err := tx.First(&ticketRelease, "event_id = ? AND id = ?", eventIDInt, ticketReleaseIDInt).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket release not found"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&ticketRelease); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// update
+	ticketRelease.Open = int64(req.Open)
+	ticketRelease.Close = int64(req.Close)
+
+	// Update ticket release method details
+	var ticketReleaseMethodDetails models.TicketReleaseMethodDetail
+	if err := tx.First(&ticketReleaseMethodDetails, "id = ?", ticketRelease.TicketReleaseMethodDetailID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release method details ID"})
 		return
 	}
 
-	if err := trmc.DB.Save(&ticketRelease).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	ticketReleaseMethodDetails.OpenWindowDuration = int64(req.OpenWindowDuration)
+	ticketReleaseMethodDetails.NotificationMethod = req.NotificationMethod
+	ticketReleaseMethodDetails.CancellationPolicy = req.CancellationPolicy
+
+	if err := ticketReleaseMethodDetails.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cancellation policy"})
 		return
 	}
+
+	if err := tx.Save(&ticketReleaseMethodDetails).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error updating the ticket release method details"})
+		return
+	}
+
+	if err := tx.Save(&ticketRelease).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error updating the ticket release"})
+		return
+	}
+
+	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{"ticket_release": ticketRelease})
 }

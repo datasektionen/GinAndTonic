@@ -53,7 +53,6 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 
 		claims, _ := token.Claims.(*jwt.RegisteredClaims)
 		c.Set("ugkthid", claims.Subject)
-		println(claims.ID)
 		c.Set("role", claims.ID)
 
 		c.Next()

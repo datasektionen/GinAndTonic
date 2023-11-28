@@ -13,18 +13,29 @@ type TicketReleaseMethodDetail struct {
 	NotificationMethod string `json:"notification_method"`
 	CancellationPolicy string `json:"cancellation_policy"`
 
-	OpenWindowDuration uint `gorm:"open_window_duration" json:"open_window_duration"` // Specific to FCFS_Lottery
+	OpenWindowDuration int64 `gorm:"open_window_duration" json:"open_window_duration"` // Specific to FCFS_Lottery
 
 	TicketReleaseMethodID uint                `json:"ticket_release_method_id"`
 	TicketReleaseMethod   TicketReleaseMethod `json:"ticket_release_method"`
 }
+
+// Create enum of cancellation policies
+const (
+	FULL_REFUND = "FULL_REFUND"
+	NO_REFUND   = "NO_REFUND"
+)
+
+// Notification methods
+const (
+	EMAIL = "EMAIL"
+)
 
 type TicketReleaseConfig interface {
 	Validate() error
 }
 
 type FCFSLotteryConfig struct {
-	OpenWindowDuration uint // In seconds
+	OpenWindowDuration int64 // In seconds
 }
 
 func (f *FCFSLotteryConfig) Validate() error {
@@ -34,8 +45,38 @@ func (f *FCFSLotteryConfig) Validate() error {
 	return nil
 }
 
+func (trmd *TicketReleaseMethodDetail) ValidateCancellationPolicy() error {
+	switch trmd.CancellationPolicy {
+	case FULL_REFUND, NO_REFUND:
+		return nil
+	default:
+		return fmt.Errorf("invalid CancellationPolicy: %v", trmd.CancellationPolicy)
+	}
+}
+
+func (trmd *TicketReleaseMethodDetail) ValidateNotificationMethod() error {
+	switch trmd.NotificationMethod {
+	case EMAIL:
+		return nil
+	default:
+		return fmt.Errorf("invalid NotificationMethod: %v", trmd.NotificationMethod)
+	}
+}
+
+// Validate the ticket release method detail
+func (trmd *TicketReleaseMethodDetail) Validate() error {
+	if err := trmd.ValidateCancellationPolicy(); err != nil {
+		return err
+	}
+
+	if err := trmd.ValidateNotificationMethod(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func NewTicketReleaseConfig(methodName string, detail *TicketReleaseMethodDetail) (TicketReleaseConfig, error) {
-	println(string(FCFS_LOTTERY))
 	switch methodName {
 	case string(FCFS_LOTTERY):
 		return &FCFSLotteryConfig{

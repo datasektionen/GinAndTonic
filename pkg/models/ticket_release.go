@@ -8,8 +8,8 @@ type TicketRelease struct {
 	gorm.Model
 	EventID        int             `gorm:"index" json:"event_id"`
 	Event          Event           `json:"event"`
-	Open           uint            `json:"open"`
-	Close          uint            `json:"close"`
+	Open           int64           `json:"open"`
+	Close          int64           `json:"close"`
 	TicketTypes    []TicketType    `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests []TicketRequest `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
 

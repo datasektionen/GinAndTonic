@@ -40,9 +40,9 @@ func (suite *AllocateTicketsTestSuite) createTicketRelease(totalTickets int, met
 			TicketReleaseMethod: models.TicketReleaseMethod{
 				MethodName: string(methodName),
 			},
-			OpenWindowDuration: uint(openWindowDuration),
+			OpenWindowDuration: openWindowDuration,
 		},
-		Open: uint(openTime),
+		Open: openTime,
 	}
 }
 

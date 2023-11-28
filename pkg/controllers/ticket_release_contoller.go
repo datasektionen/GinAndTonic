@@ -19,8 +19,14 @@ func NewTicketReleaseController(db *gorm.DB) *TicketReleaseController {
 }
 
 type TicketReleaseRequest struct {
-	TicketRelease              models.TicketRelease             `json:"ticket_release"`
-	TicketReleaseMethodDetails models.TicketReleaseMethodDetail `json:"ticket_release_method_details"`
+	EventID               int    `json:"event_id"`
+	Open                  int    `json:"open"`
+	Close                 int    `json:"close"`
+	TicketReleaseMethodID int    `json:"ticket_release_method_id"`
+	OpenWindowDuration    int    `json:"open_window_duration"`
+	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
+	NotificationMethod    string `json:"notification_method"`
+	CancellationPolicy    string `json:"cancellation_policy"`
 }
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
@@ -31,13 +37,33 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	ticketRelease := req.TicketRelease
-	ticketReleaseMethodDetails := req.TicketReleaseMethodDetails
+	println(req.TicketReleaseMethodID)
 
 	// Get ticket release method from id
 	var ticketReleaseMethod models.TicketReleaseMethod
-	if err := trmc.DB.First(&ticketReleaseMethod, ticketReleaseMethodDetails.TicketReleaseMethodID).Error; err != nil {
+	if err := trmc.DB.First(&ticketReleaseMethod, "id = ?", req.TicketReleaseMethodID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release method ID"})
+		return
+	}
+
+	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
+		TicketReleaseMethodID: ticketReleaseMethod.ID,
+		OpenWindowDuration:    int64(req.OpenWindowDuration),
+		NotificationMethod:    req.NotificationMethod,
+		CancellationPolicy:    req.CancellationPolicy,
+	}
+
+	if err := ticketReleaseMethodDetails.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cancellation policy"})
+		return
+	}
+
+	// Start transaction
+	tx := trmc.DB.Begin()
+
+	if err := tx.Create(&ticketReleaseMethodDetails).Error; err != nil {
+		tx.Rollback()
+		utils.HandleDBError(c, err, "creating the ticket release method details")
 		return
 	}
 
@@ -52,17 +78,13 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	// Start transaction
-	tx := trmc.DB.Begin()
-
-	// Create ticket release method details
-	if err := tx.Create(&ticketReleaseMethodDetails).Error; err != nil {
-		tx.Rollback()
-		utils.HandleDBError(c, err, "creating the ticket release method details")
-		return
+	ticketRelease := models.TicketRelease{
+		EventID:                     req.EventID,
+		Open:                        int64(req.Open),
+		Close:                       int64(req.Close),
+		HasAllocatedTickets:         false,
+		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 	}
-
-	ticketRelease.TicketReleaseMethodDetailID = ticketReleaseMethodDetails.ID
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
 		tx.Rollback()
@@ -75,6 +97,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"ticket_release": ticketRelease})
 }
+
 
 func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	var ticketReleases []models.TicketRelease

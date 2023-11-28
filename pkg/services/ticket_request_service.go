@@ -87,7 +87,7 @@ func (trs *TicketRequestService) Get(c *gin.Context) {
 
 func (trs *TicketRequestService) isTicketReleaseOpen(ticketReleaseID uint) bool {
 	var ticketRelease models.TicketRelease
-	now := uint(time.Now().Unix())
+	now := time.Now().Unix()
 
 	if err := trs.DB.Where("id = ?", ticketReleaseID).First(&ticketRelease).Error; err != nil {
 		return false

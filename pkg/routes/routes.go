@@ -30,6 +30,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketRequestController := controllers.NewTicketRequestController(db)
 	allocateTicketsController := controllers.NewAllocateTicketsController(db, allocateTicketsService)
 
+	constantOptionsController := controllers.NewConstantOptionsController(db)
+	constantOptionsGroup := r.Group("/")
+	{
+		constantOptionsGroup.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
+	}
+
 	// Group event-related routes together
 	eventGroup := r.Group("/events")
 	{

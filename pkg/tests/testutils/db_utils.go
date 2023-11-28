@@ -79,9 +79,9 @@ func CreateTicketRelease(totalTickets int, methodName models.TRM, openWindowDura
 			TicketReleaseMethod: models.TicketReleaseMethod{
 				MethodName: string(methodName),
 			},
-			OpenWindowDuration: uint(openWindowDuration),
+			OpenWindowDuration: openWindowDuration,
 		},
-		Open: uint(openTime),
+		Open: openTime,
 	}
 }
 
@@ -165,8 +165,8 @@ func CreateTicketReleaseMethodDetailWorkflow(db *gorm.DB) *models.TicketReleaseM
 func CreateTicketReleaseWorkflow(db *gorm.DB, event models.Event, ticketReleaseMethodDetail *models.TicketReleaseMethodDetail) models.TicketRelease {
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
-		Open:                        uint(time.Now().Unix()) - 1000,
-		Close:                       uint(time.Now().Unix()) + 1000,
+		Open:                        time.Now().Unix() - 1000,
+		Close:                       time.Now().Unix() + 1000,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
 	}
 

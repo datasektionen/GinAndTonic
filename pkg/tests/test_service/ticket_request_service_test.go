@@ -57,8 +57,8 @@ func SetupTicketRequestDB(db *gorm.DB) {
 	// Create a TicketRelease
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
-		Open:                        uint(time.Now().Unix()) - 1000,
-		Close:                       uint(time.Now().Unix()) + 1000,
+		Open:                        time.Now().Unix() - 1000,
+		Close:                       time.Now().Unix() + 1000,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
 	}
 
@@ -148,8 +148,8 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterOpenWindowDurat
 
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
-		Open:                        uint(time.Now().Unix()) - 11, // Ticket is created 1 second after open window duration has passed which means it is a reserve ticket
-		Close:                       uint(time.Now().Unix()) + 20,
+		Open:                        time.Now().Unix() - 11, // Ticket is created 1 second after open window duration has passed which means it is a reserve ticket
+		Close:                       time.Now().Unix() + 20,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
 	}
 
@@ -203,8 +203,8 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterClose() {
 
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
-		Open:                        uint(time.Now().Unix()) - 20,
-		Close:                       uint(time.Now().Unix()) - 10,
+		Open:                        time.Now().Unix() - 20,
+		Close:                       time.Now().Unix() - 10,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
 	}
 
@@ -246,8 +246,8 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestBeforeOpen() {
 
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
-		Open:                        uint(time.Now().Unix()) + 10,
-		Close:                       uint(time.Now().Unix()) + 20,
+		Open:                        time.Now().Unix() + 10,
+		Close:                       time.Now().Unix() + 20,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
 	}
 
@@ -287,8 +287,8 @@ func (suite *TicketRequestTestSuite) TestUserMakesTwoTicketRequestUnderMaxTicket
 
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
-		Open:                        uint(time.Now().Unix()) - 10,
-		Close:                       uint(time.Now().Unix()) + 20,
+		Open:                        time.Now().Unix() - 10,
+		Close:                       time.Now().Unix() + 20,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
 	}
 

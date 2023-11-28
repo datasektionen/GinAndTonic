@@ -36,7 +36,7 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		return
 	}
 
-	err := atc.AllocateTicketsService.AllocateTickets(ticketRelease)
+	err := atc.AllocateTicketsService.AllocateTickets(&ticketRelease)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

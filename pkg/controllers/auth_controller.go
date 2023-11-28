@@ -56,6 +56,7 @@ func LoginComplete(c *gin.Context) {
 	client := &http.Client{}
 
 	url := os.Getenv("LOGIN_BASE_URL") + "/verify/" + token + ".json?api_key=" + os.Getenv("LOGIN_API_KEY")
+	println(url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

@@ -17,10 +17,10 @@ var jwtKey = []byte(os.Getenv("JWT_KEY"))
 func GenerateToken(ugkthid string, role string) (string, error) {
 	log.Println("Generating token for user", ugkthid, "with role", role)
 	expirationTime := time.Now().Add(7 * time.Hour * 24)
-	claims := &jwt.StandardClaims{
+	claims := &jwt.RegisteredClaims{
 		Subject:   ugkthid,
-		ExpiresAt: expirationTime.Unix(),
-		Id:        role,
+		ExpiresAt: jwt.NewNumericDate(expirationTime),
+		ID:        role,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtKey)
@@ -41,7 +41,7 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 			return jwtKey, nil
 		})
 
@@ -51,10 +51,10 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		claims, _ := token.Claims.(*jwt.StandardClaims)
+		claims, _ := token.Claims.(*jwt.RegisteredClaims)
 		c.Set("ugkthid", claims.Subject)
-		println(claims.Id)
-		c.Set("role", claims.Id)
+		println(claims.ID)
+		c.Set("role", claims.ID)
 
 		c.Next()
 	}

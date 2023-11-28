@@ -35,7 +35,7 @@ func createDefaultOrganization(db *gorm.DB) {
 func (suite *OrganizationServiceTestSuite) SetupTest() {
 	println("SetupTest")
 	var err error
-	suite.db, err = testutils.SetupTestDatabase()
+	suite.db, err = testutils.SetupTestDatabase(false)
 	suite.Require().NoError(err)
 
 	createDefaultRole(suite.db)

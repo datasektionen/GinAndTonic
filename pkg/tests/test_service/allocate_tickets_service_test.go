@@ -18,7 +18,7 @@ type AllocateTicketsTestSuite struct {
 }
 
 func (suite *AllocateTicketsTestSuite) SetupTest() {
-	db, err := testutils.SetupTestDatabase()
+	db, err := testutils.SetupTestDatabase(false)
 	suite.Require().NoError(err)
 
 	suite.db = db
@@ -78,23 +78,35 @@ func (suite *AllocateTicketsTestSuite) TestAllocateTickets() {
 
 	totalTickets := 1000
 	requests := 1200
-	ticketRelease := suite.createTicketRelease(totalTickets, models.FCFS_LOTTERY, time.Now().Unix()-1000, time.Now().Unix()-2000)
+	tr := suite.createTicketRelease(totalTickets, models.FCFS_LOTTERY, time.Now().Unix()-1000, time.Now().Unix()-2000)
+
+	if err := suite.db.Create(&tr).Error; err != nil {
+		panic(err)
+	}
 
 	// Mock ticket requests
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
-			TicketReleaseID: ticketRelease.ID,
+			TicketReleaseID: tr.ID,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}
-		suite.db.Create(&req)
+		err := suite.db.Create(&req)
+		suite.NoError(err.Error)
 	}
 
-	err = service.AllocateTickets(ticketRelease)
+	// Check that we have 1200 ticket requests
+	var ticketRequests []models.TicketRequest
+	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
+	suite.Equal(requests, len(ticketRequests))
+
+	err = service.AllocateTickets(&tr)
 	suite.NoError(err)
 
 	// Validate
 	suite.validateTicketAllocation(totalTickets, requests-totalTickets, 0)
+
+	suite.Equal(tr.HasAllocatedTickets, true)
 }
 
 func (suite *AllocateTicketsTestSuite) TestAllocateTicketsNoRequestsDuringOpenWindow() {
@@ -108,17 +120,23 @@ func (suite *AllocateTicketsTestSuite) TestAllocateTicketsNoRequestsDuringOpenWi
 	// Create a TicketRelease with OpenWindowDuration
 	tr := suite.createTicketRelease(totalTickets, models.FCFS_LOTTERY, 30, time.Now().Unix()-1000)
 
+	if err := suite.db.Create(&tr).Error; err != nil {
+		panic(err)
+	}
+
 	requests := 1000
 
 	suite.createAndSaveTicketRequests(tr, requests, 100)
 
 	// Allocate tickets
-	err = ats.AllocateTickets(tr)
+	err = ats.AllocateTickets(&tr)
 
 	// Validate
 	suite.NoError(err)
 
 	suite.validateTicketAllocation(totalTickets, requests-totalTickets, 0)
+
+	suite.Equal(tr.HasAllocatedTickets, true)
 }
 
 func (suite *AllocateTicketsTestSuite) TestAllocateTicketsNoRequestsAfterOpenWindow() {
@@ -132,18 +150,56 @@ func (suite *AllocateTicketsTestSuite) TestAllocateTicketsNoRequestsAfterOpenWin
 	// Create a TicketRelease with OpenWindowDuration
 	tr := suite.createTicketRelease(totalTickets, models.FCFS_LOTTERY, 30, time.Now().Unix()-1000)
 
+	if err := suite.db.Create(&tr).Error; err != nil {
+		panic(err)
+	}
+
 	requests := 1000
 
 	suite.createAndSaveTicketRequests(tr, requests, -100)
 
 	// Allocate tickets
-	err = ats.AllocateTickets(tr)
+	err = ats.AllocateTickets(&tr)
 
 	// Validate
 	suite.NoError(err)
 
 	// We should have 100 tickets allocated
 	suite.validateTicketAllocation(totalTickets, requests-totalTickets, 0)
+
+	suite.Equal(tr.HasAllocatedTickets, true)
+}
+
+func (suite *AllocateTicketsTestSuite) TestCannotAllocateTicketsTwice() {
+	var err error
+
+	// Create AllocateTicketsService
+	ats := services.NewAllocateTicketsService(suite.db)
+
+	var totalTickets int = 1
+
+	// Create a TicketRelease with OpenWindowDuration
+	tr := suite.createTicketRelease(totalTickets, models.FCFS_LOTTERY, 30, time.Now().Unix()-1000)
+
+	if err := suite.db.Create(&tr).Error; err != nil {
+		panic(err)
+	}
+
+	requests := 1
+
+	suite.createAndSaveTicketRequests(tr, requests, -100)
+
+	err = ats.AllocateTickets(&tr)
+	suite.NoError(err)
+
+	// We should have 100 tickets allocated
+	suite.validateTicketAllocation(totalTickets, requests-totalTickets, 0)
+
+	suite.Equal(tr.HasAllocatedTickets, true)
+
+	// Try to allocate tickets again
+	err = ats.AllocateTickets(&tr)
+	suite.Error(err)
 }
 
 func TestAllocateTicketsTestSuite(t *testing.T) {

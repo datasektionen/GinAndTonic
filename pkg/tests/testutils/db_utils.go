@@ -28,7 +28,7 @@ var modelslist = []interface{}{
 	&tr_methods.LotteryConfig{},
 }
 
-func SetupTestDatabase() (*gorm.DB, error) {
+func SetupTestDatabase(useForeignKeys bool) (*gorm.DB, error) {
 	// Connect to an in-memory SQLite database
 
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
@@ -36,7 +36,10 @@ func SetupTestDatabase() (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	db.Exec("PRAGMA foreign_keys = ON")
+	if useForeignKeys {
+		// Enable foreign keys
+		db.Exec("PRAGMA foreign_keys = ON")
+	}
 
 	// Run migrations
 	err = db.AutoMigrate(modelslist...)
@@ -119,15 +122,11 @@ func SetupOrganizationWorkflow(db *gorm.DB) {
 	db.Model(&organization).Association("Users").Append(&user)
 }
 
-func SetupEventWorkflow(db *gorm.DB) {
-	// Seed the database with necessary data for testing
-	// For example, create TicketRelease, TicketType, User, etc.
-	// Create a Event
+func CreateEventWorkflow(db *gorm.DB) models.Event {
 	event := models.Event{
-		Name:        "validEventName",
-		Description: "validEventDescription",
-		Location:    "validEventLocation",
-		// Date is a time.Time type
+		Name:           "validEventName",
+		Description:    "validEventDescription",
+		Location:       "validEventLocation",
 		Date:           time.Now(),
 		OrganizationID: 1,
 		CreatedBy:      "validUserUGKthID",
@@ -135,7 +134,10 @@ func SetupEventWorkflow(db *gorm.DB) {
 
 	db.Create(&event)
 
-	// Create ticket release method
+	return event
+}
+
+func CreateTicketReleaseMethodWorkflow(db *gorm.DB) *models.TicketReleaseMethod {
 	ticketReleaseMethod := factory.NewTicketReleaseMethod(
 		string(models.FCFS_LOTTERY),
 		"validTicketReleaseMethodDescription",
@@ -143,6 +145,10 @@ func SetupEventWorkflow(db *gorm.DB) {
 
 	db.Create(ticketReleaseMethod)
 
+	return ticketReleaseMethod
+}
+
+func CreateTicketReleaseMethodDetailWorkflow(db *gorm.DB) *models.TicketReleaseMethodDetail {
 	ticketReleaseMethodDetail := factory.NewTicketReleaseMethodDetail(
 		10,
 		"Email",
@@ -153,9 +159,10 @@ func SetupEventWorkflow(db *gorm.DB) {
 
 	db.Create(ticketReleaseMethodDetail)
 
-	// Create ticket types
+	return ticketReleaseMethodDetail
+}
 
-	// Create a TicketRelease
+func CreateTicketReleaseWorkflow(db *gorm.DB, event models.Event, ticketReleaseMethodDetail *models.TicketReleaseMethodDetail) models.TicketRelease {
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
 		Open:                        uint(time.Now().Unix()) - 1000,
@@ -163,8 +170,23 @@ func SetupEventWorkflow(db *gorm.DB) {
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
 	}
 
+	db.Create(&ticketRelease)
+
+	return ticketRelease
+}
+
+func CreateTicketTypeWorkflow(db *gorm.DB, event models.Event) *models.TicketType {
 	ticketType := factory.NewTicketType(event.ID, "validTicketTypeName", "validTicketTypeDescription", 100, 100, false, 1)
 
-	db.Create(&ticketRelease)
 	db.Create(ticketType)
+
+	return ticketType
+}
+
+func SetupEventWorkflow(db *gorm.DB) {
+	event := CreateEventWorkflow(db)
+	CreateTicketReleaseMethodWorkflow(db)
+	ticketReleaseMethodDetail := CreateTicketReleaseMethodDetailWorkflow(db)
+	CreateTicketReleaseWorkflow(db, event, ticketReleaseMethodDetail)
+	CreateTicketTypeWorkflow(db, event)
 }

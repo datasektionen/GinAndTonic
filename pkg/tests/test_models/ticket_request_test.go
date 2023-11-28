@@ -17,7 +17,7 @@ type TicketRequestTestSuite struct {
 
 // SetupTest runs before each test in the suite.
 func (suite *TicketRequestTestSuite) SetupTest() {
-	db, err := testutils.SetupTestDatabase()
+	db, err := testutils.SetupTestDatabase(true)
 	suite.Require().NoError(err)
 
 	suite.db = db

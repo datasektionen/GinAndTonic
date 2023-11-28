@@ -19,8 +19,11 @@ func InitDB() (*gorm.DB, error) {
 
 	dsn := "user=" + os.Getenv("DB_USER") + " password=" + os.Getenv("DB_PASSWORD") + " dbname=" + os.Getenv("DB_NAME") + " sslmode=disable"
 
+	println(dsn)
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
+		log.Fatalf("Error connecting to database: %v", err)
 		return nil, err
 	}
 

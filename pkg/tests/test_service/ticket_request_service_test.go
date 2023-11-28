@@ -22,7 +22,7 @@ type TicketRequestTestSuite struct {
 
 func (suite *TicketRequestTestSuite) SetupTest() {
 	var err error
-	db, err := testutils.SetupTestDatabase()
+	db, err := testutils.SetupTestDatabase(false)
 	suite.Require().NoError(err)
 
 	suite.db = db
@@ -37,25 +37,10 @@ func SetupTicketRequestDB(db *gorm.DB) {
 	// Seed the database with necessary data for testing
 	// For example, create TicketRelease, TicketType, User, etc.
 	// Create a Event
-	event := models.Event{
-		Name:        "validEventName",
-		Description: "validEventDescription",
-		Location:    "validEventLocation",
-		// Date is a time.Time type
-		Date:           time.Now(),
-		OrganizationID: 1,
-		CreatedBy:      "validUserUGKthID",
-	}
-
-	db.Create(&event)
+	event := testutils.CreateEventWorkflow(db)
 
 	// Create ticket release method
-	ticketReleaseMethod := factory.NewTicketReleaseMethod(
-		string(models.FCFS_LOTTERY),
-		"validTicketReleaseMethodDescription",
-	)
-
-	db.Create(ticketReleaseMethod)
+	testutils.CreateTicketReleaseMethodWorkflow(db)
 
 	ticketReleaseMethodDetail := factory.NewTicketReleaseMethodDetail(
 		10,
@@ -146,25 +131,10 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterOpenWindowDurationIsReserveTicket() {
 	// Create event with ticket release method detail with open window duration of 1 second
 
-	event := models.Event{
-		Name:        "validEventName",
-		Description: "validEventDescription",
-		Location:    "validEventLocation",
-		// Date is a time.Time type
-		Date:           time.Now(),
-		OrganizationID: 1,
-		CreatedBy:      "validUserUGKthID",
-	}
-
-	suite.db.Create(&event)
+	event := testutils.CreateEventWorkflow(suite.db)
 
 	// Create ticket release method
-	ticketReleaseMethod := factory.NewTicketReleaseMethod(
-		string(models.FCFS_LOTTERY),
-		"validTicketReleaseMethodDescription",
-	)
-
-	suite.db.Create(ticketReleaseMethod)
+	testutils.CreateTicketReleaseMethodWorkflow(suite.db)
 
 	ticketReleaseMethodDetail := factory.NewTicketReleaseMethodDetail(
 		10,
@@ -215,6 +185,150 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterOpenWindowDurat
 	fmt.Printf("Window close time: %s\n", window_close_time.Format(time.RFC3339))
 
 	suite.Equal(true, requested_time.After(window_close_time))
+}
+
+func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterClose() {
+	// Create event with ticket release method detail with open window duration of 1 second
+
+	event := testutils.CreateEventWorkflow(suite.db)
+
+	suite.db.Create(&event)
+
+	// Create ticket release method
+	ticketReleaseMethod := testutils.CreateTicketReleaseMethodWorkflow(suite.db)
+
+	suite.db.Create(ticketReleaseMethod)
+
+	ticketReleaseMethodDetail := testutils.CreateTicketReleaseMethodDetailWorkflow(suite.db)
+
+	ticketRelease := models.TicketRelease{
+		EventID:                     int(event.ID),
+		Open:                        uint(time.Now().Unix()) - 20,
+		Close:                       uint(time.Now().Unix()) - 10,
+		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
+	}
+
+	suite.db.Create(&ticketRelease)
+
+	ticketType := factory.NewTicketType(event.ID, "validTicketTypeName", "validTicketTypeDescription", 100, 100, false, 1)
+
+	suite.db.Create(ticketType)
+
+	// Create ticket request
+	ticketRequest := factory.NewTicketRequest(
+		1,
+		1,
+		1,
+		"validUserUGKthID",
+		false,
+	)
+
+	err := suite.ticketRequestService.CreateTicketRequest(ticketRequest)
+	suite.NotNil(err)
+
+	// Check that it is a reserve ticket
+	var ticketRequestFromDB []models.TicketRequest
+	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequests("validUserUGKthID")
+
+	suite.Nil(err)
+	suite.Equal(0, len(ticketRequestFromDB))
+}
+
+func (suite *TicketRequestTestSuite) TestCreateTicketRequestBeforeOpen() {
+	// Create event with ticket release method detail with open window duration of 1 second
+
+	event := testutils.CreateEventWorkflow(suite.db)
+
+	// Create ticket release method
+	testutils.CreateTicketReleaseMethodWorkflow(suite.db)
+
+	ticketReleaseMethodDetail := testutils.CreateTicketReleaseMethodDetailWorkflow(suite.db)
+
+	ticketRelease := models.TicketRelease{
+		EventID:                     int(event.ID),
+		Open:                        uint(time.Now().Unix()) + 10,
+		Close:                       uint(time.Now().Unix()) + 20,
+		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
+	}
+
+	suite.db.Create(&ticketRelease)
+
+	ticketType := factory.NewTicketType(event.ID, "validTicketTypeName", "validTicketTypeDescription", 100, 100, false, 1)
+
+	suite.db.Create(ticketType)
+
+	// Create ticket request
+	ticketRequest := factory.NewTicketRequest(
+		1,
+		1,
+		1,
+		"validUserUGKthID",
+		false,
+	)
+
+	err := suite.ticketRequestService.CreateTicketRequest(ticketRequest)
+	suite.NotNil(err)
+
+	// Check that it is a reserve ticket
+	var ticketRequestFromDB []models.TicketRequest
+	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequests("validUserUGKthID")
+
+	suite.Nil(err)
+	suite.Equal(0, len(ticketRequestFromDB))
+}
+
+func (suite *TicketRequestTestSuite) TestUserMakesTwoTicketRequestUnderMaxTicketAmount() {
+	event := testutils.CreateEventWorkflow(suite.db)
+
+	// Create ticket release method
+	testutils.CreateTicketReleaseMethodWorkflow(suite.db)
+
+	ticketReleaseMethodDetail := testutils.CreateTicketReleaseMethodDetailWorkflow(suite.db)
+
+	ticketRelease := models.TicketRelease{
+		EventID:                     int(event.ID),
+		Open:                        uint(time.Now().Unix()) - 10,
+		Close:                       uint(time.Now().Unix()) + 20,
+		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
+	}
+
+	suite.db.Create(&ticketRelease)
+
+	ticketType := factory.NewTicketType(event.ID, "validTicketTypeName", "validTicketTypeDescription", 100, 100, false, 1)
+
+	suite.db.Create(ticketType)
+
+	for i := 0; i < 2; i++ {
+		// Create ticket request
+		ticketRequest := factory.NewTicketRequest(
+			5,
+			1,
+			1,
+			"validUserUGKthID",
+			false,
+		)
+
+		err := suite.ticketRequestService.CreateTicketRequest(ticketRequest)
+		suite.Nil(err)
+	}
+
+	ticketRequest := factory.NewTicketRequest(
+		1,
+		1,
+		1,
+		"validUserUGKthID",
+		false,
+	)
+
+	err := suite.ticketRequestService.CreateTicketRequest(ticketRequest)
+	suite.NotNil(err)
+
+	// Check that it is a reserve ticket
+	var ticketRequestFromDB []models.TicketRequest
+	ticketRequestFromDB, err2 := suite.ticketRequestService.GetTicketRequests("validUserUGKthID")
+
+	suite.Nil(err2)
+	suite.Equal(2, len(ticketRequestFromDB))
 }
 
 func TestTicketRequestTestSuite(t *testing.T) {

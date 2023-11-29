@@ -18,16 +18,14 @@ type TicketsTestSuite struct {
 	ats *services.AllocateTicketsService
 }
 
-func (suite *TicketsTestSuite) SetupSuite() {
+func (suite *TicketsTestSuite) SetupTest() {
 	db, err := testutils.SetupTestDatabase(false)
 	suite.Require().NoError(err)
 
 	suite.ts = services.NewTicketService(db)
 	suite.ats = services.NewAllocateTicketsService(db)
-	suite.db = db
-}
 
-func (suite *TicketsTestSuite) SetupTest() {
+	suite.db = db
 	testutils.SetupEventWorkflow(suite.db)
 }
 
@@ -38,8 +36,8 @@ func (suite *TicketsTestSuite) TearDownTest() {
 func (suite *TicketsTestSuite) TestGetAllTickets() {
 	// Get ticket release
 	var ticketRelease models.TicketRelease
-	if err := suite.db.First(&ticketRelease).Error; err != nil {
-		suite.FailNow(err.Error())
+	if err := suite.db.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").First(&ticketRelease).Error; err != nil {
+		suite.Fail("Failed to get ticket release")
 	}
 
 	// Create ticket requests
@@ -49,14 +47,73 @@ func (suite *TicketsTestSuite) TestGetAllTickets() {
 		testutils.CreateTicketRequestWorkflow(suite.db, ticketRelease.ID, time.Now())
 	}
 
-	// Allocate
-	suite.ats.AllocateTickets(&ticketRelease)
+	// Allocate tickets
+	err := suite.ats.AllocateTickets(&ticketRelease)
+	suite.Require().NoError(err)
 
-	// Get tickets
-	tickets, err := suite.ts.GetAllTickets(int(ticketRelease.EventID))
-	suite.NoError(err)
+	// Get all tickets
+	tickets, err := suite.ts.GetAllTicketsToEvent(int(ticketRelease.EventID))
+	suite.Require().NoError(err)
 
-	println("len(tickets): ", len(tickets))
+	suite.Equal(requests, len(tickets))
+}
+
+func (suite *TicketsTestSuite) TestGetTicketOfEvent() {
+	// Get ticket release
+	var ticketRelease models.TicketRelease
+	if err := suite.db.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").First(&ticketRelease).Error; err != nil {
+		suite.Fail("Failed to get ticket release")
+	}
+
+	// Create ticket requests
+	requests := 1000
+
+	for i := 0; i < requests; i++ {
+		testutils.CreateTicketRequestWorkflow(suite.db, ticketRelease.ID, time.Now())
+	}
+
+	// Allocate tickets
+	err := suite.ats.AllocateTickets(&ticketRelease)
+	suite.Require().NoError(err)
+
+	// Get ticket
+	ticket, err := suite.ts.GetTicketToEvent(int(ticketRelease.EventID), 1)
+
+	suite.Equal(ticket.ID, uint(1))
+}
+
+func (suite *TicketsTestSuite) TestEditTicket() {
+	var ticketRelease models.TicketRelease
+	if err := suite.db.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").First(&ticketRelease).Error; err != nil {
+		suite.Fail("Failed to get ticket release")
+	}
+
+	// Create ticket requests
+	ticketRequest := testutils.CreateTicketRequestWorkflow(suite.db, ticketRelease.ID, time.Now())
+
+	// Create the ticket
+	ticket := testutils.CreateTicketWorkflow(suite.db, ticketRequest.ID, false)
+
+	// Check the default values
+	suite.Equal(ticket.IsPaid, false)
+	suite.Equal(ticket.IsReserve, false)
+	suite.Equal(ticket.Refunded, false)
+
+	// Edit the ticket
+	updatedTicket := models.Ticket{
+		IsPaid:    true,
+		IsReserve: true,
+		Refunded:  true,
+	}
+
+	ticket, err := suite.ts.EditTicket(1, int(ticket.ID), updatedTicket)
+	suite.Require().NoError(err)
+	suite.Require().GreaterOrEqual(ticket.ID, uint(1))
+
+	// Check the updated values
+	suite.Equal(ticket.IsPaid, true)
+	suite.Equal(ticket.IsReserve, true)
+	suite.Equal(ticket.Refunded, true)
 }
 
 func TestTicketsTestSuite(t *testing.T) {

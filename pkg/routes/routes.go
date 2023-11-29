@@ -29,6 +29,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	userFoodPreferenceController := controllers.NewUserFoodPreferenceController(db)
 	ticketRequestController := controllers.NewTicketRequestController(db)
 	allocateTicketsController := controllers.NewAllocateTicketsController(db, allocateTicketsService)
+	ticketsController := controllers.NewTicketController(db)
 
 	constantOptionsController := controllers.NewConstantOptionsController(db)
 	constantOptionsGroup := r.Group("/")
@@ -68,6 +69,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			ticketRequests.Use(authentication.ValidateTokenMiddleware())
 			ticketRequests.GET("/", ticketRequestController.Get)
 			ticketRequests.POST("/", ticketRequestController.Create)
+		}
+
+		tickets := eventGroup.Group("/:eventID/tickets")
+		{
+			tickets.Use(authentication.ValidateTokenMiddleware())
+			tickets.Use(middleware.AuthorizeEventAccess(db))
+			tickets.GET("/:ticketID", ticketsController.GetTicket)
+			tickets.PUT("/:ticketID", ticketsController.EditTicket)
 		}
 	}
 

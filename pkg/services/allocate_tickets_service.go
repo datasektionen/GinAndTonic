@@ -146,7 +146,6 @@ func (ats *AllocateTicketsService) allocateTicket(ticketRequest models.TicketReq
 
 	ticket := models.Ticket{
 		TicketRequestID: ticketRequest.ID,
-		IsPaid:          false,
 		IsReserve:       false,
 		UserUGKthID:     ticketRequest.UserUGKthID,
 	}
@@ -166,7 +165,6 @@ func (ats *AllocateTicketsService) allocateReserveTicket(ticketRequest models.Ti
 
 	ticket := models.Ticket{
 		TicketRequestID: ticketRequest.ID,
-		IsPaid:          false,
 		IsReserve:       true,
 		UserUGKthID:     ticketRequest.UserUGKthID,
 	}

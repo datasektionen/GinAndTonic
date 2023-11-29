@@ -183,6 +183,31 @@ func CreateTicketTypeWorkflow(db *gorm.DB, event models.Event) *models.TicketTyp
 	return ticketType
 }
 
+func CreateTicketRequestWorkflow(db *gorm.DB, trid uint, createdAt time.Time) models.TicketRequest {
+	treq := models.TicketRequest{
+		TicketReleaseID: trid,
+		Model: gorm.Model{
+			CreatedAt: createdAt,
+		}}
+
+	if err := db.Create(&treq).Error; err != nil {
+		panic(err)
+	}
+
+	return treq
+}
+
+func CreateTicketWorkflow(db *gorm.DB, trid uint, isReserve bool) models.Ticket {
+	ticket := models.Ticket{
+		TicketRequestID: trid,
+		IsReserve:       isReserve,
+	}
+
+	db.Create(&ticket)
+
+	return ticket
+}
+
 func SetupEventWorkflow(db *gorm.DB) {
 	event := CreateEventWorkflow(db)
 	CreateTicketReleaseMethodWorkflow(db)

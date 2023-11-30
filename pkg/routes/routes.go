@@ -6,21 +6,36 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:5000"}
+	config.AllowCredentials = true
+
+	r.Use(cors.New(config))
+
+	r.GET("/postman-login", controllers.LoginPostman)
+	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)
 
 	r.GET("/login", controllers.Login)
 	r.GET("/login-complete/:token", controllers.LoginComplete)
+	r.GET("/current-user", authentication.ValidateTokenMiddleware(), controllers.CurrentUser)
 	r.GET("/logout", authentication.ValidateTokenMiddleware(), controllers.Logout)
+	r.GET("/event", gin.HandlerFunc(func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	}))
+	eventController := controllers.NewEventController(db)
 
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
 
-	eventController := controllers.NewEventController(db)
 	organizationController := controllers.NewOrganizationController(db, organizationService)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
 	ticketReleaseController := controllers.NewTicketReleaseController(db)
@@ -32,90 +47,58 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketsController := controllers.NewTicketController(db)
 
 	constantOptionsController := controllers.NewConstantOptionsController(db)
-	constantOptionsGroup := r.Group("/")
-	{
-		constantOptionsGroup.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
-	}
+	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 
-	// Group event-related routes together
-	eventGroup := r.Group("/events")
-	{
-		eventGroup.Use(authentication.ValidateTokenMiddleware())
-		eventGroup.GET("/", eventController.ListEvents)                                                  // List all events
-		eventGroup.POST("/", eventController.CreateEvent)                                                // Create a new event
-		eventGroup.GET("/:eventID", middleware.AuthorizeEventAccess(db), eventController.GetEvent)       // Get an event by ID
-		eventGroup.PUT("/:eventID", middleware.AuthorizeEventAccess(db), eventController.UpdateEvent)    // Update an event by ID
-		eventGroup.DELETE("/:eventID", middleware.AuthorizeEventAccess(db), eventController.DeleteEvent) // Delete an event by ID
+	r.Use(authentication.ValidateTokenMiddleware())
 
-		ticketRelease := eventGroup.Group("/:eventID/ticket-release")
-		{
-			ticketRelease.Use(authentication.ValidateTokenMiddleware())
-			ticketRelease.GET("/", ticketReleaseController.ListEventTicketReleases)
-			ticketRelease.POST("/", ticketReleaseController.CreateTicketRelease)
-			ticketRelease.GET("/:ticketReleaseID", ticketReleaseController.GetTicketRelease)
-			ticketRelease.PUT("/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.UpdateTicketRelease)
-			ticketRelease.DELETE("/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.DeleteTicketRelease)
+	//Event routes
+	r.POST("/events", eventController.CreateEvent)
+	r.GET("/events", eventController.ListEvents)
+	r.GET("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.GetEvent)
+	r.PUT("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.UpdateEvent)
+	r.DELETE("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.DeleteEvent)
 
-			allocateTickets := ticketRelease.Group("/:ticketReleaseID/allocate-tickets")
-			{
-				allocateTickets.Use(authentication.ValidateTokenMiddleware())
-				allocateTickets.POST("/", middleware.AuthorizeEventAccess(db), allocateTicketsController.AllocateTickets)
-				allocateTickets.GET("/", middleware.AuthorizeEventAccess(db), allocateTicketsController.ListAllocatedTickets)
-			}
-		}
+	// Ticket release routes
+	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)
+	r.POST("/events/:eventID/ticket-release", ticketReleaseController.CreateTicketRelease)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", ticketReleaseController.GetTicketRelease)
+	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.UpdateTicketRelease)
+	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.DeleteTicketRelease)
 
-		ticketRequests := eventGroup.Group("/:eventID/ticket-requests")
-		{
-			ticketRequests.Use(authentication.ValidateTokenMiddleware())
-			ticketRequests.GET("/", ticketRequestController.Get)
-			ticketRequests.POST("/", ticketRequestController.Create)
-		}
+	// Allocate tickets routes
+	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.AllocateTickets)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.ListAllocatedTickets)
 
-		tickets := eventGroup.Group("/:eventID/tickets")
-		{
-			tickets.Use(authentication.ValidateTokenMiddleware())
-			tickets.Use(middleware.AuthorizeEventAccess(db))
-			tickets.GET("/:ticketID", ticketsController.GetTicket)
-			tickets.PUT("/:ticketID", ticketsController.EditTicket)
-		}
-	}
+	// Ticket request routes
+	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)
+	r.POST("/events/:eventID/ticket-requests", ticketRequestController.Create)
 
-	organizations := r.Group("/organizations")
-	{
-		organizations.Use(authentication.ValidateTokenMiddleware())
-		organizations.POST("", organizationController.CreateOrganization)
-		organizations.GET("", organizationController.ListOrganizations)
-		organizations.GET("/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.GetOrganization)
-		organizations.PUT("/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.UpdateOrganization)
-		organizations.DELETE("/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.DeleteOrganization)
+	// Ticket routes
+	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)
+	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.EditTicket)
 
-		organizationUsers := organizations.Group("/:organizationID/users")
-		{
-			organizationUsers.GET("/", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), organizationUsersController.GetOrganizationUsers)
-			organizationUsers.POST("/:ugkthid", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.AddUserToOrganization)
-			organizationUsers.DELETE("/:ugkthid", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.RemoveUserFromOrganization)
-		}
-	}
+	r.POST("/organizations", organizationController.CreateOrganization)
+	r.GET("/organizations", organizationController.ListOrganizations)
+	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.GetOrganization)
+	r.PUT("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.UpdateOrganization)
+	r.DELETE("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.DeleteOrganization)
 
-	ticketReleaseMethods := r.Group("/ticket-release-methods")
-	{
-		ticketReleaseMethods.Use(authentication.ValidateTokenMiddleware())
-		ticketReleaseMethods.GET("/", ticketReleaseMethodsController.ListTicketReleaseMethods)
-		ticketReleaseMethods.POST("/", authentication.RequireRole("super_admin"), ticketReleaseMethodsController.CreateTicketReleaseMethod)
-	}
+	// Organization Users routes
+	r.GET("/organizations/:organizationID/users", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), organizationUsersController.GetOrganizationUsers)
+	r.POST("/organizations/:organizationID/users/:ugkthid", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.AddUserToOrganization)
+	r.DELETE("/organizations/:organizationID/users/:ugkthid", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.RemoveUserFromOrganization)
 
-	ticketTypes := r.Group("/ticket-types")
-	{
-		ticketTypes.GET("/", authentication.ValidateTokenMiddleware(), ticketTypeController.ListAllTicketTypes)
-		ticketTypes.POST("/", authentication.ValidateTokenMiddleware(), ticketTypeController.CreateTicketTypes)
-	}
+	// Ticket Release Methods routes
+	r.GET("/ticket-release-methods", ticketReleaseMethodsController.ListTicketReleaseMethods)
+	r.POST("/ticket-release-methods", authentication.RequireRole("super_admin"), ticketReleaseMethodsController.CreateTicketReleaseMethod)
 
-	userFoodPreference := r.Group("/user-food-preferences")
-	{
-		userFoodPreference.Use(authentication.ValidateTokenMiddleware())
-		userFoodPreference.PUT("/", userFoodPreferenceController.Update)
-		userFoodPreference.GET("/", userFoodPreferenceController.Get)
-	}
+	// Ticket Types routes
+	r.GET("/ticket-types", authentication.ValidateTokenMiddleware(), ticketTypeController.ListAllTicketTypes)
+	r.POST("/ticket-types", authentication.ValidateTokenMiddleware(), ticketTypeController.CreateTicketTypes)
+
+	// User Food Preference routes
+	r.PUT("/user-food-preferences", userFoodPreferenceController.Update)
+	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
 
 	return r
 }

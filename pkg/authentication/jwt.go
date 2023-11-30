@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -32,8 +31,16 @@ func GenerateToken(ugkthid string, role string) (string, error) {
 
 func ValidateTokenMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		// Print cookie
+		cookie, err := c.Request.Cookie("auth_token")
+		// View cookie error
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
+			c.Abort()
+		}
+
+		// Print cookie
+		tokenString := cookie.Value
 
 		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})

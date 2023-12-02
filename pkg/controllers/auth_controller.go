@@ -248,6 +248,15 @@ func LoginCompletePostman(c *gin.Context) {
 				return
 			}
 
+			http.SetCookie(c.Writer, &http.Cookie{
+				Name:     "auth_token",
+				Value:    tokenString,
+				HttpOnly: true,
+				Path:     "/",
+				// Secure: true, // Uncomment this line if you are using HTTPS
+				// Domain: "yourfrontenddomain.com", // Set your domain here
+			})
+
 			c.JSON(http.StatusOK, gin.H{
 				"token": tokenString,
 				"user":  user,
@@ -295,6 +304,15 @@ func LoginCompletePostman(c *gin.Context) {
 			})
 			return
 		}
+
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "auth_token",
+			Value:    tokenString,
+			HttpOnly: true,
+			Path:     "/",
+			// Secure: true, // Uncomment this line if you are using HTTPS
+			// Domain: "yourfrontenddomain.com", // Set your domain here
+		})
 
 		// Set the JWT token in an HTTP-only cookie
 		c.JSON(http.StatusOK, gin.H{

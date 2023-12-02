@@ -102,7 +102,15 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	var event models.Event
 	id := c.Param("eventID")
 
-	if err := ec.DB.First(&event, id).Error; err != nil {
+	err := ec.DB.
+		Preload("Organization").
+		Preload("TicketReleases").
+		Preload("TicketReleases.TicketTypes").
+		Preload("TicketReleases.TicketReleaseMethodDetail").
+		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
+		First(&event, id).Error
+
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
 		return
 	}

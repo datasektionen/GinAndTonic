@@ -63,6 +63,18 @@ func (trmd *TicketReleaseMethodDetail) ValidateNotificationMethod() error {
 	}
 }
 
+func (trmd *TicketReleaseMethodDetail) ValidateMaxTicketsPerUser() error {
+	if trmd.MaxTicketsPerUser <= 0 {
+		return fmt.Errorf("MaxTicketsPerUser must be greater than zero")
+	}
+
+	if trmd.MaxTicketsPerUser > 10 {
+		return fmt.Errorf("MaxTicketsPerUser must be less than or equal to 10")
+	}
+
+	return nil
+}
+
 // Validate the ticket release method detail
 func (trmd *TicketReleaseMethodDetail) Validate() error {
 	if err := trmd.ValidateCancellationPolicy(); err != nil {
@@ -70,6 +82,10 @@ func (trmd *TicketReleaseMethodDetail) Validate() error {
 	}
 
 	if err := trmd.ValidateNotificationMethod(); err != nil {
+		return err
+	}
+
+	if err := trmd.ValidateMaxTicketsPerUser(); err != nil {
 		return err
 	}
 

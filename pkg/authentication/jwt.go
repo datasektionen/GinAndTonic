@@ -37,6 +37,7 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
+			return
 		}
 
 		// Print cookie

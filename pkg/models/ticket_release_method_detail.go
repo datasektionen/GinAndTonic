@@ -46,10 +46,12 @@ func (f *FCFSLotteryConfig) Validate() error {
 }
 
 func (trmd *TicketReleaseMethodDetail) ValidateCancellationPolicy() error {
+	println("trmd", trmd.CancellationPolicy)
 	switch trmd.CancellationPolicy {
 	case FULL_REFUND, NO_REFUND:
 		return nil
 	default:
+		println("trmd", trmd.CancellationPolicy)
 		return fmt.Errorf("invalid CancellationPolicy: %v", trmd.CancellationPolicy)
 	}
 }
@@ -64,6 +66,7 @@ func (trmd *TicketReleaseMethodDetail) ValidateNotificationMethod() error {
 }
 
 func (trmd *TicketReleaseMethodDetail) ValidateMaxTicketsPerUser() error {
+	println("trmd", trmd.MaxTicketsPerUser)
 	if trmd.MaxTicketsPerUser <= 0 {
 		return fmt.Errorf("MaxTicketsPerUser must be greater than zero")
 	}

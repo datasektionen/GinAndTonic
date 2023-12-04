@@ -65,9 +65,18 @@ func CurrentUser(c *gin.Context) {
 	user, err := models.GetUserByUGKthIDIfExist(db, UGKthID)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Error fetching user",
+		// Remove the cookie
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "auth_token",
+			Value:    "",
+			HttpOnly: true,
+			Path:     "/",
+			MaxAge:   -1,
+			// Secure: true, // Uncomment this line if you are using HTTPS
+			// Domain: "yourfrontenddomain.com", // Set your domain here
 		})
+
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 

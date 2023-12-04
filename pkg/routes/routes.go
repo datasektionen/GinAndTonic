@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
@@ -8,8 +10,20 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
+
+var limiter = rate.NewLimiter(1, 5)
+
+func rateLimitMiddleware(c *gin.Context) {
+	if !limiter.Allow() {
+		c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Too many requests"})
+		return
+	}
+
+	c.Next()
+}
 
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
@@ -71,7 +85,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket request routes
 	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)
-	r.POST("/events/:eventID/ticket-requests", ticketRequestController.Create)
+	r.POST("/events/:eventID/ticket-requests", rateLimitMiddleware, ticketRequestController.Create)
 
 	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)

@@ -250,6 +250,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketReleaseMethodDetails.OpenWindowDuration = int64(req.OpenWindowDuration)
 	ticketReleaseMethodDetails.NotificationMethod = req.NotificationMethod
 	ticketReleaseMethodDetails.CancellationPolicy = req.CancellationPolicy
+	ticketReleaseMethodDetails.MaxTicketsPerUser = uint(req.MaxTicketsPerUser)
 
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cancellation policy"})

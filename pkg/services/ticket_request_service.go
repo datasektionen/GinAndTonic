@@ -23,7 +23,23 @@ func NewTicketRequestService(db *gorm.DB) *TicketRequestService {
 	return &TicketRequestService{DB: db}
 }
 
-func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.TicketRequest) *ErrorResponse {
+func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.TicketRequest) *ErrorResponse {
+	// Start transaction
+	trx := trs.DB.Begin()
+
+	for _, ticketRequest := range ticketRequests {
+		err := trs.CreateTicketRequest(&ticketRequest, trx)
+		if err != nil {
+			trx.Rollback()
+			return err
+		}
+	}
+
+	trx.Commit()
+	return nil
+}
+
+func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.TicketRequest, transaction *gorm.DB) *ErrorResponse {
 	if !trs.isTicketReleaseOpen(ticketRequest.TicketReleaseID) {
 		log.Println("Ticket release is not open")
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release is not open"}
@@ -35,13 +51,13 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 	}
 
 	var ticketRelease models.TicketRelease
-	if err := trs.DB.Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
+	if err := transaction.Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
 
 	var ticketReleaseMethodDetail models.TicketReleaseMethodDetail
-	if err := trs.DB.Where("id = ?", ticketRelease.TicketReleaseMethodDetailID).First(&ticketReleaseMethodDetail).Error; err != nil {
+	if err := transaction.Where("id = ?", ticketRelease.TicketReleaseMethodDetailID).First(&ticketReleaseMethodDetail).Error; err != nil {
 		log.Println("Error getting ticket release method detail")
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release method detail"}
 	}
@@ -51,7 +67,14 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
 	}
 
-	if err := trs.DB.Create(ticketRequest).Error; err != nil {
+	created_ticket_request := models.TicketRequest{
+		UserUGKthID:     ticketRequest.UserUGKthID,
+		TicketTypeID:    ticketRequest.TicketTypeID,
+		TicketReleaseID: ticketRequest.TicketReleaseID,
+		TicketAmount:    ticketRequest.TicketAmount,
+	}
+
+	if err := transaction.Create(&created_ticket_request).Error; err != nil {
 		log.Println("Error creating ticket request")
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
 	}
@@ -118,6 +141,8 @@ func (trs *TicketRequestService) userAlreadyHasATicketToEvent(userUGKthID string
 		Where("ticket_requests.user_ug_kth_id = ? AND events.id = ?", userUGKthID, ticketRelease.EventID).
 		Select("SUM(ticket_requests.ticket_amount)").
 		Row().Scan(&totalRequestedAmount)
+
+	println(totalRequestedAmount)
 
 	newRequestedTicketsAmount := int64(ticketReleaseMethodDetail.MaxTicketsPerUser) - int64(requestedAmount)
 

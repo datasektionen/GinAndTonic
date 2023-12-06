@@ -113,6 +113,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// User Food Preference routes
 	r.PUT("/user-food-preferences", userFoodPreferenceController.Update)
 	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
+	r.GET("food-preferences", userFoodPreferenceController.ListFoodPreferences)
 
 	return r
 }

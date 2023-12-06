@@ -16,3 +16,16 @@ type UserFoodPreference struct {
 
 	AdditionalInfo string `json:"additional_info" gorm:"default:''"`
 }
+
+// Function retrieving the Food preferences field of the UserFoodPreference struct
+func GetFoodPreferencesAlternatives() []string {
+	return []string{
+		"gluten_intolerant",
+		"lactose_intolerant",
+		"vegetarian",
+		"vegan",
+		"nut_allergy",
+		"shellfish_allergy",
+		"additional_info",
+	}
+}

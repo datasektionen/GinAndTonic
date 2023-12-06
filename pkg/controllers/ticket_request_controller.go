@@ -19,25 +19,27 @@ func NewTicketRequestController(db *gorm.DB) *TicketRequestController {
 }
 
 func (trc *TicketRequestController) Create(c *gin.Context) {
-	var ticketRequest models.TicketRequest
+	var ticketRequests []models.TicketRequest
 
 	UGKthID, _ := c.Get("ugkthid")
-	ticketRequest.UserUGKthID = UGKthID.(string)
 
-	if err := c.ShouldBindJSON(&ticketRequest); err != nil {
+	if err := c.ShouldBindJSON(&ticketRequests); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := trc.Service.CreateTicketRequest(&ticketRequest)
+	for i := range ticketRequests {
+		ticketRequests[i].UserUGKthID = UGKthID.(string)
+	}
+
+	err := trc.Service.CreateTicketRequests(ticketRequests)
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
 		return
 	}
 
-	c.JSON(http.StatusCreated, ticketRequest)
+	c.JSON(http.StatusCreated, ticketRequests)
 }
-
 func (trc *TicketRequestController) Get(c *gin.Context) {
 	UGKthID, _ := c.Get("ugkthid")
 	ticketRequests, err := trc.Service.GetTicketRequests(UGKthID.(string))

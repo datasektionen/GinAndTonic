@@ -12,6 +12,8 @@ type TicketRelease struct {
 	Description    string          `json:"description"`
 	Open           int64           `json:"open"`
 	Close          int64           `json:"close"`
+	IsPrivate      bool            `json:"is_private" default:"false"`
+	SecretToken    string          `json:"secret_token" default:""`
 	TicketTypes    []TicketType    `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests []TicketRequest `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
 

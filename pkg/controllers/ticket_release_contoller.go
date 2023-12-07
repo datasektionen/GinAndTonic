@@ -46,8 +46,6 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	println(req.MaxTicketsPerUser)
-
 	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
 		TicketReleaseMethodID: ticketReleaseMethod.ID,
 		OpenWindowDuration:    int64(req.OpenWindowDuration),
@@ -118,7 +116,11 @@ func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 
 	// Find the event with the given ID
 	// Preload
-	if err := trmc.DB.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").Preload("TicketTypes").Where("event_id = ?", eventIDInt).Find(&ticketReleases).Error; err != nil {
+	if err := trmc.DB.
+		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketTypes").
+		Where("event_id = ? and is_private = ?", eventIDInt, false).
+		Find(&ticketReleases).Error; err != nil {
 		utils.HandleDBError(c, err, "listing the ticket releases")
 		return
 	}

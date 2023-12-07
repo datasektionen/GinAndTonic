@@ -7,6 +7,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -48,7 +49,19 @@ func (ec *EventController) CreateEvent(c *gin.Context) {
 		Description:    eventRequest.Description,
 		Location:       eventRequest.Location,
 		OrganizationID: eventRequest.OrganizationID,
+		IsPrivate:      eventRequest.IsPrivate,
 		CreatedBy:      ugkthid.(string),
+	}
+
+	if event.IsPrivate {
+		token, err := utils.GenerateSecretToken()
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error generating the secret token"})
+			return
+		}
+
+		event.SecretToken = token
 	}
 
 	if err := ec.DB.Create(&event).Error; err != nil {
@@ -93,7 +106,7 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 		query = query.Where("name = ?", name)
 	}
 
-	query.Find(&events)
+	query.Where("is_private = ?", false).Find(&events)
 	c.JSON(http.StatusOK, events)
 }
 
@@ -113,6 +126,18 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
 		return
+	}
+
+	// Check if the event is private
+	if event.IsPrivate {
+		// Get the secret token from the request
+		secretToken := c.Query("secret_token")
+
+		// Check the secret token
+		if secretToken != event.SecretToken {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid secret token"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"event": event})

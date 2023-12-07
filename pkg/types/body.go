@@ -28,4 +28,5 @@ type EventRequest struct {
 	Date           uint   `json:"date"`
 	Location       string `json:"location"`
 	OrganizationID int    `json:"organization_id"`
+	IsPrivate      bool   `json:"is_private"`
 }

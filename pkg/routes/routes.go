@@ -46,6 +46,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		})
 	}))
 	eventController := controllers.NewEventController(db)
+	userController := controllers.NewUserController(db)
 
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
@@ -100,8 +101,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Organization Users routes
 	r.GET("/organizations/:organizationID/users", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), organizationUsersController.GetOrganizationUsers)
-	r.POST("/organizations/:organizationID/users/:ugkthid", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.AddUserToOrganization)
-	r.DELETE("/organizations/:organizationID/users/:ugkthid", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.RemoveUserFromOrganization)
+	r.POST("/organizations/:organizationID/users/:username", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.AddUserToOrganization)
+	r.DELETE("/organizations/:organizationID/users/:username", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.RemoveUserFromOrganization)
+	r.PUT("/organizations/:organizationID/users/:username", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.ChangeUserOrganizationRole)
 
 	// Ticket Release Methods routes
 	r.GET("/ticket-release-methods", ticketReleaseMethodsController.ListTicketReleaseMethods)
@@ -115,6 +117,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/user-food-preferences", userFoodPreferenceController.Update)
 	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
 	r.GET("food-preferences", userFoodPreferenceController.ListFoodPreferences)
+
+	r.POST("/admin/create-user", authentication.RequireRole("super_admin"), userController.CreateUser)
 
 	return r
 }

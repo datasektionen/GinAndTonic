@@ -15,11 +15,11 @@ func NewOrganizationService(db *gorm.DB) *OrganisationService {
 	return &OrganisationService{DB: db}
 }
 
-func (os *OrganisationService) AddUserToOrganization(userUGKthID string, organizationID uint, organizationRole models.OrgRole) error {
+func (os *OrganisationService) AddUserToOrganization(username string, organizationID uint, organizationRole models.OrgRole) error {
 	var user models.User
 	var organization models.Organization
 
-	if err := os.DB.First(&user, "ug_kth_id = ?", userUGKthID).Error; err != nil {
+	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
 		return fmt.Errorf("User not found")
 	}
 
@@ -36,7 +36,7 @@ func (os *OrganisationService) AddUserToOrganization(userUGKthID string, organiz
 	}
 	// 2. Create organization user role
 	organizationUserRole := models.OrganizationUserRole{
-		UserUGKthID:          userUGKthID,
+		UserUGKthID:          user.UGKthID,
 		OrganizationID:       organization.ID,
 		OrganizationRoleName: string(organizationRole),
 	}
@@ -51,11 +51,11 @@ func (os *OrganisationService) AddUserToOrganization(userUGKthID string, organiz
 	return nil
 }
 
-func (os *OrganisationService) RemoveUserFromOrganization(userUGKthID string, organizationID uint) error {
+func (os *OrganisationService) RemoveUserFromOrganization(username string, organizationID uint) error {
 	var user models.User
 	var organization models.Organization
 
-	if err := os.DB.First(&user, "ug_kth_id = ?", userUGKthID).Error; err != nil {
+	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
 		return fmt.Errorf("User not found")
 	}
 
@@ -63,15 +63,21 @@ func (os *OrganisationService) RemoveUserFromOrganization(userUGKthID string, or
 		return fmt.Errorf("Organization not found")
 	}
 
-	isOwner, err := os.isUserOwnerOfOrganization(userUGKthID, organization)
+	isOwner, err := os.isUserOwnerOfOrganization(user.UGKthID, organization)
 	if err != nil {
 		return err
 	}
-	if isOwner {
-		return fmt.Errorf("User %v is the owner of the organization %v", userUGKthID, organizationID)
+
+	if isOwner && len(organization.Users) == 1 {
+		return fmt.Errorf("User %v is the owner of the organization %v", username, organizationID)
 	}
 
 	if err := os.DB.Model(&organization).Association("Users").Delete(&user); err != nil {
+		return fmt.Errorf("There was an error removing the user from the organization: %w", err)
+	}
+
+	// Remove the user.OrganizationUserRole for this organization
+	if err := os.DB.Unscoped().Where("user_ug_kth_id = ? AND organization_id = ?", user.UGKthID, organization.ID).Delete(&models.OrganizationUserRole{}).Error; err != nil {
 		return fmt.Errorf("There was an error removing the user from the organization: %w", err)
 	}
 
@@ -107,4 +113,39 @@ func (os *OrganisationService) isUserOwnerOfOrganization(userUGKthID string, org
 	}
 
 	return false, nil
+}
+
+func (os *OrganisationService) ChangeUserRoleInOrganization(username string, organizationID uint, newRole models.OrgRole) error {
+	var user models.User
+	var organization models.Organization
+
+	// Find the user
+	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
+		return fmt.Errorf("User not found")
+	}
+
+	// Find the organization
+	if err := os.DB.First(&organization, organizationID).Error; err != nil {
+		return fmt.Errorf("Organization not found")
+	}
+
+	// Find the organization user role
+	var organizationUserRole models.OrganizationUserRole
+	if err := os.DB.Where("user_ug_kth_id = ? AND organization_id = ?", user.UGKthID, organization.ID).First(&organizationUserRole).Error; err != nil {
+		return fmt.Errorf("Organization user role not found")
+	}
+
+	// Start transaction
+	tx := os.DB.Begin()
+
+	// Update the role
+	if err := tx.Model(&organizationUserRole).Update("organization_role_name", string(newRole)).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("There was an error updating the user role: %w", err)
+	}
+
+	// Commit transaction
+	tx.Commit()
+
+	return nil
 }

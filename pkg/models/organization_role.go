@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -10,6 +12,17 @@ const (
 	OrganizationMember OrgRole = "member"
 	OrganizationOwner  OrgRole = "owner"
 )
+
+func StringToOrgRole(s string) (OrgRole, error) {
+	switch s {
+	case string(OrganizationMember):
+		return OrganizationMember, nil
+	case string(OrganizationOwner):
+		return OrganizationOwner, nil
+	default:
+		return "", fmt.Errorf("invalid organization role")
+	}
+}
 
 type OrganizationRole struct {
 	gorm.Model

@@ -51,7 +51,14 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 		return
 	}
 
-	ec.OrganisationService.AddUserToOrganization(createdByUserUGKthID.(string), organization.ID, models.OrganizationOwner)
+	// Get username
+	var user models.User
+	if err := ec.DB.Where("ug_kth_id = ?", createdByUserUGKthID).First(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetDBError(err)})
+		return
+	}
+
+	ec.OrganisationService.AddUserToOrganization(user.Username, organization.ID, models.OrganizationOwner)
 
 	c.JSON(http.StatusCreated, gin.H{"organization": organization})
 }

@@ -12,5 +12,6 @@ type TicketRequest struct {
 	TicketTypeID    uint          `json:"ticket_type_id" gorm:"index" `
 	TicketType      TicketType    `json:"ticket_type"`
 	UserUGKthID     string        `json:"user_ug_kth_id"`
+	User            User          `json:"user"`
 	IsHandled       bool          `json:"is_handled" gorm:"default:false"`
 }

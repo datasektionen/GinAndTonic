@@ -48,7 +48,7 @@ func CreateUserIfNotExist(db *gorm.DB, user User) error {
 
 func GetUserByUGKthIDIfExist(db *gorm.DB, UGKthID string) (User, error) {
 	var user User
-	err := db.Preload("Role").Where("ug_kth_id = ?", UGKthID).First(&user).Error
+	err := db.Preload("Role").Preload("Organizations").Where("ug_kth_id = ?", UGKthID).First(&user).Error
 	return user, err
 }
 

@@ -78,12 +78,17 @@ func (os *OrganisationService) RemoveUserFromOrganization(userUGKthID string, or
 	return nil
 }
 
-func (os *OrganisationService) GetOrganizationUsers(organizationID uint) ([]models.OrganizationUserRole, error) {
-	var users []models.OrganizationUserRole
+func (os *OrganisationService) GetOrganizationUsers(organizationID uint) ([]models.User, error) {
+	var organization models.Organization
 
-	// Use OrganizationRoleUsers and filter where organizationID = organizationID
-	if err := os.DB.Where("organization_id = ?", organizationID).Find(&users).Error; err != nil {
-		return nil, err
+	if err := os.DB.First(&organization, organizationID).Error; err != nil {
+		return nil, fmt.Errorf("Organization not found")
+	}
+
+	users, err := organization.GetUsers(os.DB)
+
+	if err != nil {
+		return nil, fmt.Errorf("There was an error fetching the organization users: %w", err)
 	}
 
 	return users, nil

@@ -6,6 +6,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -28,8 +29,19 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 		return
 	}
 
+	if err := organization.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if organization already exists
+	if ec.DB.Where("name = ?", organization.Name).First(&organization).RowsAffected > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Organization already exists"})
+		return
+	}
+
 	if err := ec.DB.Create(&organization).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error creating the organization"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetDBError(err)})
 		return
 	}
 
@@ -41,7 +53,7 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 
 	ec.OrganisationService.AddUserToOrganization(createdByUserUGKthID.(string), organization.ID, models.OrganizationOwner)
 
-	c.JSON(http.StatusOK, gin.H{"organization": organization})
+	c.JSON(http.StatusCreated, gin.H{"organization": organization})
 }
 
 func (ec *OrganisationController) ListOrganizations(c *gin.Context) {
@@ -51,6 +63,24 @@ func (ec *OrganisationController) ListOrganizations(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{"organizations": organizations})
+}
+
+func (ec *OrganisationController) ListMyOrganizations(c *gin.Context) {
+	ugkthid, exists := c.Get("ugkthid")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	user, err := models.GetUserByUGKthIDIfExist(ec.DB, ugkthid.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	organizations := user.Organizations
 
 	c.JSON(http.StatusOK, gin.H{"organizations": organizations})
 }

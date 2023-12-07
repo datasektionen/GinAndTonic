@@ -92,7 +92,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.EditTicket)
 
 	r.POST("/organizations", organizationController.CreateOrganization)
-	r.GET("/organizations", organizationController.ListOrganizations)
+	r.GET("/organizations", authentication.RequireRole("super_admin"), organizationController.ListOrganizations)
+	r.GET("my-organizations", organizationController.ListMyOrganizations)
 	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.GetOrganization)
 	r.PUT("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.UpdateOrganization)
 	r.DELETE("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.DeleteOrganization)

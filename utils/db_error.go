@@ -24,3 +24,33 @@ func HandleDBError(c *gin.Context, err error, action string) {
 		c.Abort()
 	}
 }
+
+func GetDBError(err error) string {
+	if err == gorm.ErrRecordNotFound {
+		return "Record not found"
+	} else if err == gorm.ErrNotImplemented {
+		return "Not implemented"
+	} else if err == gorm.ErrMissingWhereClause {
+		return "Missing WHERE clause in update"
+	} else if err == gorm.ErrUnsupportedDriver {
+		return "Unsupported driver"
+	} else if err == gorm.ErrPrimaryKeyRequired {
+		return "Primary key required"
+	} else if err == gorm.ErrInvalidTransaction {
+		return "Invalid transaction"
+	} else if err == gorm.ErrInvalidData {
+		return "Invalid data"
+	} else if err == gorm.ErrUnsupportedRelation {
+		return "Unsupported relation"
+	} else if err == gorm.ErrRegistered {
+		return "Already registered"
+	} else if err == gorm.ErrInvalidField {
+		return "Invalid field"
+	} else if err == gorm.ErrEmptySlice {
+		return "Empty slice found"
+	} else if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+		return "Duplicate key value violates unique constraint"
+	} else {
+		return "Unknown database error"
+	}
+}

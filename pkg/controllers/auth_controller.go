@@ -39,6 +39,17 @@ func init() {
 // Logout handles user logout
 func Logout(c *gin.Context) {
 	// Logout logic
+	// Remove the cookie
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		HttpOnly: true,
+		Path:     "/",
+		MaxAge:   -1,
+		// Secure: true, // Uncomment this line if you are using HTTPS
+		// Domain: "yourfrontenddomain.com", // Set your domain here
+	})
+
 	c.Redirect(http.StatusSeeOther, "/")
 }
 

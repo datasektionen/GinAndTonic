@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -68,8 +67,6 @@ func (ec *EventController) CreateEvent(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error creating the event"})
 		return
 	}
-
-	log.Printf("Event created: %v", event)
 
 	c.JSON(http.StatusCreated, gin.H{"event": event})
 }

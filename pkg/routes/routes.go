@@ -46,6 +46,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		})
 	}))
 	eventController := controllers.NewEventController(db)
+
+	eventService := services.NewEventService(db)
+	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db, eventService)
 	userController := controllers.NewUserController(db)
 
 	organizationService := services.NewOrganizationService(db)
@@ -72,6 +75,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.GetEvent)
 	r.PUT("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.UpdateEvent)
 	r.DELETE("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.DeleteEvent)
+
+	r.POST("/complete-event-workflow", eventWorkflowController.CreateEvent)
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)

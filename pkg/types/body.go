@@ -25,8 +25,37 @@ type TicketReleaseRequest struct {
 type EventRequest struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
-	Date           uint   `json:"date"`
+	Date           int64  `json:"date"`
 	Location       string `json:"location"`
 	OrganizationID int    `json:"organization_id"`
 	IsPrivate      bool   `json:"is_private"`
+}
+
+type EventFullWorkflowRequest struct {
+	Event         EventRequest         `json:"event"`
+	TicketRelease TicketReleasePostReq `json:"ticket_release"`
+	TicketTypes   []TicketTypePostReq  `json:"ticket_types"`
+}
+
+type TicketReleasePostReq struct {
+	Name                  string `json:"name"`
+	Description           string `json:"description"`
+	Open                  int64  `json:"open"`
+	Close                 int64  `json:"close"`
+	OpenWindowDuration    int    `json:"open_window_duration,omitempty"`
+	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
+	NotificationMethod    string `json:"notification_method"`
+	CancellationPolicy    string `json:"cancellation_policy"`
+	TicketReleaseMethodID int    `json:"ticket_release_method_id"`
+}
+
+type TicketTypePostReq struct {
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	Price         float64 `json:"price"`
+	QuantityTotal int     `json:"quantity_total"`
+	IsReserved    bool    `json:"is_reserved"`
+}
+
+type CompleteEventWorkflowRequest struct {
 }

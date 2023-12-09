@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
@@ -47,6 +48,7 @@ func (ec *EventController) CreateEvent(c *gin.Context) {
 		Name:           eventRequest.Name,
 		Description:    eventRequest.Description,
 		Location:       eventRequest.Location,
+		Date:           time.Unix(eventRequest.Date, 0),
 		OrganizationID: eventRequest.OrganizationID,
 		IsPrivate:      eventRequest.IsPrivate,
 		CreatedBy:      ugkthid.(string),

@@ -28,6 +28,7 @@ const (
 // Notification methods
 const (
 	EMAIL = "EMAIL"
+	SMS   = "SMS"
 )
 
 type TicketReleaseConfig interface {
@@ -58,7 +59,7 @@ func (trmd *TicketReleaseMethodDetail) ValidateCancellationPolicy() error {
 
 func (trmd *TicketReleaseMethodDetail) ValidateNotificationMethod() error {
 	switch trmd.NotificationMethod {
-	case EMAIL:
+	case EMAIL, SMS:
 		return nil
 	default:
 		return fmt.Errorf("invalid NotificationMethod: %v", trmd.NotificationMethod)

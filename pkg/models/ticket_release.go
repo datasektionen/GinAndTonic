@@ -6,19 +6,17 @@ import (
 
 type TicketRelease struct {
 	gorm.Model
-	EventID        int             `gorm:"index" json:"event_id"`
-	Event          Event           `json:"event"`
-	Name           string          `json:"name"`
-	Description    string          `json:"description"`
-	Open           int64           `json:"open"`
-	Close          int64           `json:"close"`
-	IsPrivate      bool            `json:"is_private" default:"false"`
-	SecretToken    string          `json:"secret_token" default:""`
-	TicketTypes    []TicketType    `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
-	TicketRequests []TicketRequest `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
-
-	HasAllocatedTickets bool `json:"has_allocated_tickets"`
-
+	EventID                     int                       `gorm:"index" json:"event_id"`
+	Event                       Event                     `json:"event"`
+	Name                        string                    `json:"name"`
+	Description                 string                    `json:"description"`
+	Open                        int64                     `json:"open"`
+	Close                       int64                     `json:"close"`
+	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
+	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
+	IsReserved                  bool                      `json:"is_reserved" default:"false"`
+	PromoCode                   string                    `json:"promo_code" default:"" gorm:"unique" gorm:"index"`
+	HasAllocatedTickets         bool                      `json:"has_allocated_tickets"`
 	TicketReleaseMethodDetailID uint                      `gorm:"index" json:"ticket_release_method_detail_id"`
 	TicketReleaseMethodDetail   TicketReleaseMethodDetail `json:"ticket_release_method_detail"`
 }

@@ -47,6 +47,8 @@ type TicketReleasePostReq struct {
 	NotificationMethod    string `json:"notification_method"`
 	CancellationPolicy    string `json:"cancellation_policy"`
 	TicketReleaseMethodID int    `json:"ticket_release_method_id"`
+	IsReserved            bool   `json:"is_reserved"`
+	PromoCode             string `json:"promo_code"`
 }
 
 type TicketTypePostReq struct {
@@ -54,7 +56,6 @@ type TicketTypePostReq struct {
 	Description   string  `json:"description"`
 	Price         float64 `json:"price"`
 	QuantityTotal int     `json:"quantity_total"`
-	IsReserved    bool    `json:"is_reserved"`
 }
 
 type CompleteEventWorkflowRequest struct {

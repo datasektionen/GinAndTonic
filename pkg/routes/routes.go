@@ -57,13 +57,13 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	organizationController := controllers.NewOrganizationController(db, organizationService)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
 	ticketReleaseController := controllers.NewTicketReleaseController(db)
+	ticketReleasePromoCodeController := controllers.NewTicketReleasePromoCodeController(db)
 	ticketTypeController := controllers.NewTicketTypeController(db)
 	organizationUsersController := controllers.NewOrganizationUsersController(db, organizationService)
 	userFoodPreferenceController := controllers.NewUserFoodPreferenceController(db)
 	ticketRequestController := controllers.NewTicketRequestController(db)
 	allocateTicketsController := controllers.NewAllocateTicketsController(db, allocateTicketsService)
 	ticketsController := controllers.NewTicketController(db)
-
 	constantOptionsController := controllers.NewConstantOptionsController(db)
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 
@@ -84,6 +84,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", ticketReleaseController.GetTicketRelease)
 	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.UpdateTicketRelease)
 	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.DeleteTicketRelease)
+
+	// Promo code routes
+	r.POST("/unlock-ticket-release/:eventID/", ticketReleasePromoCodeController.Create)
 
 	// Allocate tickets routes
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.AllocateTickets)

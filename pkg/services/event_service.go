@@ -6,6 +6,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
 )
 
@@ -78,6 +79,15 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		return err
 	}
 
+	var promoCode string = ""
+	if data.TicketRelease.IsReserved {
+		promoCode, err = utils.HashString(data.TicketRelease.PromoCode)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	// Create TicketRelease
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
@@ -85,9 +95,10 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		Description:                 data.TicketRelease.Description,
 		Open:                        data.TicketRelease.Open,
 		Close:                       data.TicketRelease.Close,
-		IsPrivate:                   false,
 		HasAllocatedTickets:         false,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
+		IsReserved:                  data.TicketRelease.IsReserved,
+		PromoCode:                   promoCode,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -103,7 +114,6 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 			Description:     tt.Description,
 			Price:           tt.Price,
 			QuantityTotal:   uint(tt.QuantityTotal),
-			IsReserved:      tt.IsReserved,
 			TicketReleaseID: ticketRelease.ID,
 		}
 

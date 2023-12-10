@@ -3,12 +3,35 @@ package utils
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"io"
+	"os"
 )
 
+func HashString(s string) (string, error) {
+	secretKey := os.Getenv("SECRET_KEY")
+	if secretKey == "" {
+		return "", errors.New("Something went wrong!")
+	}
+
+	h := hmac.New(sha256.New, []byte(secretKey))
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// CompareHashAndString compares a HMAC-SHA256 hash with a string
+func CompareHashAndString(hash, s string) (bool, error) {
+	expectedHash, err := HashString(s)
+	if err != nil {
+		return false, err
+	}
+
+	return hmac.Equal([]byte(hash), []byte(expectedHash)), nil
+}
 func GenerateSecretToken() (string, error) {
 	token := make([]byte, 32) // Generate a 32 characters long token
 	_, err := rand.Read(token)

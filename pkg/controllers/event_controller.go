@@ -139,6 +139,16 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		}
 	}
 
+	// Remove ticket releases that have the property IsReserved set to true
+	var ticketReleases []models.TicketRelease = []models.TicketRelease{}
+	for _, ticketRelease := range event.TicketReleases {
+		if !ticketRelease.IsReserved {
+			ticketReleases = append(ticketReleases, ticketRelease)
+		}
+	}
+
+	event.TicketReleases = ticketReleases
+
 	c.JSON(http.StatusOK, gin.H{"event": event})
 }
 

@@ -119,13 +119,41 @@ func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	if err := trmc.DB.
 		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
 		Preload("TicketTypes").
-		Where("event_id = ? and is_private = ?", eventIDInt, false).
+		Where("event_id = ?", eventIDInt).
 		Find(&ticketReleases).Error; err != nil {
 		utils.HandleDBError(c, err, "listing the ticket releases")
 		return
 	}
 
-	c.JSON(http.StatusOK, ticketReleases)
+	// Remove ticket releases that have the property IsReserved set to true
+	var ticketReleasesFiltered []models.TicketRelease = []models.TicketRelease{}
+
+	promoCode := c.DefaultQuery("promo_code", "")
+
+	for _, ticketRelease := range ticketReleases {
+		if promoCode != "" {
+			hash, _ := utils.HashString(promoCode)
+			println(promoCode, ticketRelease.PromoCode, hash)
+			// Hash the promo code
+			if ticketRelease.IsReserved {
+				checked, err := utils.CompareHashAndString(ticketRelease.PromoCode, promoCode)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid promo code"})
+					return
+				}
+
+				if checked {
+					ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+				}
+			}
+		} else {
+			if !ticketRelease.IsReserved {
+				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, ticketReleasesFiltered)
 }
 
 func (trmc *TicketReleaseController) GetTicketRelease(c *gin.Context) {
@@ -160,6 +188,28 @@ func (trmc *TicketReleaseController) GetTicketRelease(c *gin.Context) {
 	if err := trmc.DB.Preload("TicketTypes").Where("event_id = ? AND id = ?", eventIDInt, ticketReleaseIDInt).First(&ticketRelease).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
+	}
+
+	if ticketRelease.IsReserved {
+		// Get promo_code query string
+		promoCode := c.DefaultQuery("promo_code", "")
+		println(promoCode)
+		if promoCode == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing promo code"})
+			return
+		}
+
+		// Hash the promo code
+		checked, err := utils.CompareHashAndString(ticketRelease.PromoCode, promoCode)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid promo code"})
+			return
+		}
+
+		if !checked {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid promo code"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, ticketRelease)

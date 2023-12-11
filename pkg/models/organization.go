@@ -81,3 +81,8 @@ func GetOrganizationOwners(db *gorm.DB, organization Organization) (users []User
 
 	return users, nil
 }
+
+func GetAllOrganizationEvents(db *gorm.DB, orgId uint) (events []Event, err error) {
+	err = db.Where("organization_id = ?", orgId).Find(&events).Error
+	return
+}

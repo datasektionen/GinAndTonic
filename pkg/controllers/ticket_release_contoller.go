@@ -29,6 +29,8 @@ type TicketReleaseRequest struct {
 	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
 	NotificationMethod    string `json:"notification_method"`
 	CancellationPolicy    string `json:"cancellation_policy"`
+	IsReserved            bool   `json:"is_reserved"`
+	PromoCode             string `json:"promo_code"`
 }
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
@@ -79,6 +81,25 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
+	var promoCode *string
+	if req.IsReserved {
+		if req.PromoCode == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Promo code is required for reserved ticket releases"})
+			return
+		} else {
+			hashedPromoCode, err := utils.HashString(req.PromoCode)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash promo code"})
+				return
+			}
+
+			promoCode = &hashedPromoCode
+		}
+	}
+
+	println(req.IsReserved)
+	println(*promoCode)
+
 	ticketRelease := models.TicketRelease{
 		EventID:                     req.EventID,
 		Name:                        req.Name,
@@ -87,6 +108,8 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		Close:                       int64(req.Close),
 		HasAllocatedTickets:         false,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
+		IsReserved:                  req.IsReserved,
+		PromoCode:                   promoCode,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -103,8 +126,15 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 
 func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	var ticketReleases []models.TicketRelease
+	var user models.User
 
 	eventID := c.Param("eventID")
+	ugkthid, _ := c.Get("ugkthid")
+
+	if err := trmc.DB.Where("ugkthid = ?", ugkthid).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user"})
+		return
+	}
 
 	// Convert the event ID to an integer
 	eventIDInt, err := strconv.Atoi(eventID)
@@ -128,32 +158,18 @@ func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	// Remove ticket releases that have the property IsReserved set to true
 	var ticketReleasesFiltered []models.TicketRelease = []models.TicketRelease{}
 
-	promoCode := c.DefaultQuery("promo_code", "")
-
 	for _, ticketRelease := range ticketReleases {
-		if promoCode != "" {
-			hash, _ := utils.HashString(promoCode)
-			println(promoCode, ticketRelease.PromoCode, hash)
-			// Hash the promo code
-			if ticketRelease.IsReserved {
-				checked, err := utils.CompareHashAndString(ticketRelease.PromoCode, promoCode)
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid promo code"})
-					return
-				}
-
-				if checked {
-					ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
-				}
-			}
+		if !ticketRelease.IsReserved {
+			ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 		} else {
-			if !ticketRelease.IsReserved {
+			if ticketRelease.UserHasAccessToTicketRelease(&user) {
 				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 			}
 		}
+
 	}
 
-	c.JSON(http.StatusOK, ticketReleasesFiltered)
+	c.JSON(http.StatusOK, gin.H{"ticket_releases": ticketReleasesFiltered})
 }
 
 func (trmc *TicketReleaseController) GetTicketRelease(c *gin.Context) {
@@ -200,7 +216,7 @@ func (trmc *TicketReleaseController) GetTicketRelease(c *gin.Context) {
 		}
 
 		// Hash the promo code
-		checked, err := utils.CompareHashAndString(ticketRelease.PromoCode, promoCode)
+		checked, err := utils.CompareHashAndString(*ticketRelease.PromoCode, promoCode)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid promo code"})
 			return

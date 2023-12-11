@@ -40,6 +40,18 @@ func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.Ti
 }
 
 func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.TicketRequest, transaction *gorm.DB) *ErrorResponse {
+	var user models.User
+
+	if err := transaction.Where("ug_kth_id = ?", ticketRequest.UserUGKthID).First(&user).Error; err != nil {
+		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
+	}
+
+	var ticketRelease models.TicketRelease
+	if err := transaction.Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
+		log.Println("Error getting ticket release")
+		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
+	}
+
 	if !trs.isTicketReleaseOpen(ticketRequest.TicketReleaseID) {
 		log.Println("Ticket release is not open")
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release is not open"}
@@ -50,27 +62,26 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket type is not valid for ticket release"}
 	}
 
-	var ticketRelease models.TicketRelease
-	if err := transaction.Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
-		log.Println("Error getting ticket release")
-		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
-	}
-
 	var ticketReleaseMethodDetail models.TicketReleaseMethodDetail
 	if err := transaction.Where("id = ?", ticketRelease.TicketReleaseMethodDetailID).First(&ticketReleaseMethodDetail).Error; err != nil {
 		log.Println("Error getting ticket release method detail")
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release method detail"}
 	}
 
-	if trs.userAlreadyHasATicketToEvent(ticketRequest.UserUGKthID, ticketRequest.TicketReleaseID, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
+	if trs.userAlreadyHasATicketToEvent(&user, &ticketRelease, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
 		log.Println("User cannot request more tickets to this event")
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
 	}
 
+	if !trs.checkReservedTicketRelease(&ticketRelease, &user) {
+		log.Println("User does not have access to this ticket release")
+		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "You dont have access to this ticket release"}
+	}
+
 	created_ticket_request := models.TicketRequest{
-		UserUGKthID:     ticketRequest.UserUGKthID,
+		UserUGKthID:     user.UGKthID,
 		TicketTypeID:    ticketRequest.TicketTypeID,
-		TicketReleaseID: ticketRequest.TicketReleaseID,
+		TicketReleaseID: ticketRelease.ID,
 		TicketAmount:    ticketRequest.TicketAmount,
 	}
 
@@ -118,6 +129,14 @@ func (trs *TicketRequestService) isTicketReleaseOpen(ticketReleaseID uint) bool 
 	return now >= ticketRelease.Open && now <= ticketRelease.Close
 }
 
+func (trs *TicketRequestService) checkReservedTicketRelease(ticketRelease *models.TicketRelease, user *models.User) bool {
+	if !ticketRelease.IsReserved {
+		return true
+	}
+
+	return ticketRelease.UserHasAccessToTicketRelease(user)
+}
+
 func (trs *TicketRequestService) isTicketTypeValid(ticketTypeID uint, ticketReleaseID uint) bool {
 	var count int64
 	trs.DB.Model(&models.TicketRelease{}).Joins("JOIN ticket_types ON ticket_types.ticket_release_id = ticket_releases.id").
@@ -126,23 +145,14 @@ func (trs *TicketRequestService) isTicketTypeValid(ticketTypeID uint, ticketRele
 	return count > 0
 }
 
-func (trs *TicketRequestService) userAlreadyHasATicketToEvent(userUGKthID string, ticketReleaseID uint, ticketReleaseMethodDetail *models.TicketReleaseMethodDetail, requestedAmount int) bool {
-	var ticketRelease models.TicketRelease
-
-	// Get event ID from ticket release
-	if err := trs.DB.Where("id = ?", ticketReleaseID).First(&ticketRelease).Error; err != nil {
-		return false
-	}
-
+func (trs *TicketRequestService) userAlreadyHasATicketToEvent(user *models.User, ticketRelease *models.TicketRelease, ticketReleaseMethodDetail *models.TicketReleaseMethodDetail, requestedAmount int) bool {
 	var totalRequestedAmount int64
 	trs.DB.Model(&models.TicketRequest{}).
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Joins("JOIN events ON ticket_releases.event_id = events.id").
-		Where("ticket_requests.user_ug_kth_id = ? AND events.id = ?", userUGKthID, ticketRelease.EventID).
+		Where("ticket_requests.user_ug_kth_id = ? AND events.id = ?", user.UGKthID, ticketRelease.EventID).
 		Select("SUM(ticket_requests.ticket_amount)").
 		Row().Scan(&totalRequestedAmount)
-
-	println(totalRequestedAmount)
 
 	newRequestedTicketsAmount := int64(ticketReleaseMethodDetail.MaxTicketsPerUser) - int64(requestedAmount)
 

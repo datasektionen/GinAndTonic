@@ -112,12 +112,21 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 // GetEvent handles retrieving an event by ID
 func (ec *EventController) GetEvent(c *gin.Context) {
 	var event models.Event
+	var user models.User
+
 	id := c.Param("eventID")
+	ugkthid, _ := c.Get("ugkthid")
+
+	if err := ec.DB.Where("ug_kth_id = ?", ugkthid.(string)).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
 
 	err := ec.DB.
 		Preload("Organization").
 		Preload("TicketReleases").
 		Preload("TicketReleases.TicketTypes").
+		Preload("TicketReleases.ReservedUsers").
 		Preload("TicketReleases.TicketReleaseMethodDetail").
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
 		First(&event, id).Error
@@ -140,14 +149,19 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	}
 
 	// Remove ticket releases that have the property IsReserved set to true
-	var ticketReleases []models.TicketRelease = []models.TicketRelease{}
+	var ticketReleasesFiltered []models.TicketRelease = []models.TicketRelease{}
+
 	for _, ticketRelease := range event.TicketReleases {
 		if !ticketRelease.IsReserved {
-			ticketReleases = append(ticketReleases, ticketRelease)
+			ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+		} else {
+			if ticketRelease.UserHasAccessToTicketRelease(&user) {
+				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+			}
 		}
 	}
 
-	event.TicketReleases = ticketReleases
+	event.TicketReleases = ticketReleasesFiltered
 
 	c.JSON(http.StatusOK, gin.H{"event": event})
 }

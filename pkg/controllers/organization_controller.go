@@ -3,6 +3,7 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
@@ -142,4 +143,16 @@ func (ec *OrganisationController) DeleteOrganization(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"organization": organization})
+}
+
+func (oc *OrganisationController) ListOrganizationEvents(c *gin.Context) {
+	organizationID, err := strconv.Atoi(c.Param("organizationID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organization ID"})
+		return
+	}
+
+	events, err := models.GetAllOrganizationEvents(oc.DB, uint(organizationID))
+
+	c.JSON(http.StatusOK, gin.H{"events": events})
 }

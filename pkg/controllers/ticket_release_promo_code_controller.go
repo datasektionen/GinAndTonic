@@ -18,28 +18,6 @@ func NewTicketReleasePromoCodeController(db *gorm.DB) *TicketReleasePromoCodeCon
 	return &TicketReleasePromoCodeController{DB: db}
 }
 
-func (ctrl *TicketReleasePromoCodeController) Get(c *gin.Context) {
-	eventID := c.Param("eventId")
-	promoCode := c.DefaultQuery("promo_code", "")
-
-	if promoCode == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing promo code"})
-		return
-	}
-
-	userID := c.GetString("ugkthid")
-
-	var userUnlockedTicketRelease models.UserUnlockedTicketRelease
-	if err := ctrl.DB.Where("user_id = ? AND ticket_release_id = ?", userID, eventID).First(&userUnlockedTicketRelease).Error; err != nil {
-		// An unexpected error occurred
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
-		return
-	}
-
-	// The user has unlocked the ticket release
-	c.JSON(http.StatusOK, gin.H{"message": "User has unlocked the ticket release"})
-}
-
 func (ctrl *TicketReleasePromoCodeController) Create(c *gin.Context) {
 	eventID := c.Param("eventID")
 
@@ -50,6 +28,13 @@ func (ctrl *TicketReleasePromoCodeController) Create(c *gin.Context) {
 	}
 
 	ugKthId := c.GetString("ugkthid")
+
+	var user models.User
+	if err := ctrl.DB.Where("ug_kth_id = ?", ugKthId).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user"})
+		return
+	}
+
 	promoCode := c.DefaultQuery("promo_code", "")
 
 	if promoCode == "" {
@@ -78,20 +63,14 @@ func (ctrl *TicketReleasePromoCodeController) Create(c *gin.Context) {
 		return
 	}
 
-	ticketReleasePromoCode := models.UserUnlockedTicketRelease{
-		TicketReleaseID: ticketRelease.ID,
-		UserUGKthID:     ugKthId,
-	}
+	// TODO: check if the user is a super admin
 
-	// Check if the user has already unlocked the ticket release
-	var userUnlockedTicketRelease models.UserUnlockedTicketRelease
-	if err := ctrl.DB.Where("user_ug_kth_id = ? AND ticket_release_id = ?", ugKthId, ticketRelease.ID).First(&userUnlockedTicketRelease).Error; err == nil {
-		c.JSON(http.StatusOK, gin.H{"message": "User has already unlocked the ticket release"})
-		return
-	}
+	// Add user to reserved ticket release
+	ticketRelease.UserUnlockReservedTicketRelease(&user)
 
-	if err := ctrl.DB.Create(&ticketReleasePromoCode).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An unexpected error occurred"})
+	// Save ticket release
+	if err := ctrl.DB.Save(&ticketRelease).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving ticket release"})
 		return
 	}
 

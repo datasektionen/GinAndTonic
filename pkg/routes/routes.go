@@ -45,6 +45,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			"message": "pong",
 		})
 	}))
+
 	eventController := controllers.NewEventController(db)
 
 	eventService := services.NewEventService(db)
@@ -68,6 +69,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 
 	r.Use(authentication.ValidateTokenMiddleware())
+	r.Use(middleware.UserLoader(db))
 
 	//Event routes
 	r.POST("/events", eventController.CreateEvent)
@@ -86,7 +88,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.DeleteTicketRelease)
 
 	// Promo code routes
-	r.POST("/unlock-ticket-release/:eventID/", rateLimitMiddleware, ticketReleasePromoCodeController.Create)
+	r.GET("/activate-promo-code/:eventID", ticketReleasePromoCodeController.Create)
 
 	// Allocate tickets routes
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.AllocateTickets)
@@ -106,6 +108,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.GetOrganization)
 	r.PUT("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.UpdateOrganization)
 	r.DELETE("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.DeleteOrganization)
+	r.GET("/organizations/:organizationID/events", middleware.AuthorizeOrganizationAccess(db), organizationController.ListOrganizationEvents)
 
 	// Organization Users routes
 	r.GET("/organizations/:organizationID/users", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), organizationUsersController.GetOrganizationUsers)

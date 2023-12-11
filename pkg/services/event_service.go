@@ -103,7 +103,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		HasAllocatedTickets:         false,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  data.TicketRelease.IsReserved,
-		PromoCode:                   promoCode,
+		PromoCode:                   &promoCode,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -131,3 +131,4 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 	// Commit the transaction
 	return tx.Commit().Error
 }
+

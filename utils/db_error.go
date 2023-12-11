@@ -18,6 +18,10 @@ func HandleDBError(c *gin.Context, err error, action string) {
 		// Check for unique constraint violation
 		if strings.Contains(err.Error(), "unique") || strings.Contains(err.Error(), "duplicate") {
 			c.JSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("Conflict while %s: %v", action, err)})
+		} else if strings.Contains(err.Error(), "foreign key constraint") {
+			c.JSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("Conflict while %s: %v", action, err)})
+		} else if strings.Contains(err.Error(), "violates unique constraint") {
+			c.JSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("Conflict while %s: %v", action, err)})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error %s: %v", action, err)})
 		}

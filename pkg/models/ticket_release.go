@@ -15,7 +15,7 @@ type TicketRelease struct {
 	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
 	IsReserved                  bool                      `json:"is_reserved" default:"false"`
-	PromoCode                   string                    `json:"promo_code" default:"" gorm:"unique" gorm:"index"`
+	PromoCode                   string                    `json:"promo_code" default:""`
 	HasAllocatedTickets         bool                      `json:"has_allocated_tickets"`
 	TicketReleaseMethodDetailID uint                      `gorm:"index" json:"ticket_release_method_detail_id"`
 	TicketReleaseMethodDetail   TicketReleaseMethodDetail `json:"ticket_release_method_detail"`

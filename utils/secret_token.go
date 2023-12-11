@@ -15,7 +15,7 @@ import (
 func HashString(s string) (string, error) {
 	secretKey := os.Getenv("SECRET_KEY")
 	if secretKey == "" {
-		return "", errors.New("Something went wrong!")
+		panic("SECRET_KEY environment variable not set")
 	}
 
 	h := hmac.New(sha256.New, []byte(secretKey))

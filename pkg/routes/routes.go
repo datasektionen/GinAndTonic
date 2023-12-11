@@ -86,7 +86,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.DeleteTicketRelease)
 
 	// Promo code routes
-	r.POST("/unlock-ticket-release/:eventID/", ticketReleasePromoCodeController.Create)
+	r.POST("/unlock-ticket-release/:eventID/", rateLimitMiddleware, ticketReleasePromoCodeController.Create)
 
 	// Allocate tickets routes
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.AllocateTickets)

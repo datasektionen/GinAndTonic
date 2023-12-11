@@ -79,12 +79,17 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		return err
 	}
 
-	var promoCode string = ""
+	var promoCode string
 	if data.TicketRelease.IsReserved {
+		if data.TicketRelease.PromoCode == "" {
+			tx.Rollback()
+			return errors.New("Promo code is required for reserved ticket releases")
+		}
+
 		promoCode, err = utils.HashString(data.TicketRelease.PromoCode)
 		if err != nil {
 			tx.Rollback()
-			return err
+			return errors.New("Could not hash promo code")
 		}
 	}
 

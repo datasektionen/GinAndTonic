@@ -47,7 +47,7 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 	}
 
 	var ticketRelease models.TicketRelease
-	if err := transaction.Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
+	if err := transaction.Preload("ReservedUsers").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
@@ -95,7 +95,7 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 
 func (trs *TicketRequestService) GetTicketRequests(UGKthID string) ([]models.TicketRequest, *ErrorResponse) {
 	var ticketRequests []models.TicketRequest
-	if err := trs.DB.Preload("TicketType").Preload("TicketRelease.TicketReleaseMethodDetail").Where("user_ug_kth_id = ?", UGKthID).Find(&ticketRequests).Error; err != nil {
+	if err := trs.DB.Preload("TicketType").Preload("TicketRelease.Event").Preload("TicketRelease.TicketReleaseMethodDetail").Where("user_ug_kth_id = ?", UGKthID).Find(&ticketRequests).Error; err != nil {
 		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error listing ticket requests"}
 	}
 	return ticketRequests, nil

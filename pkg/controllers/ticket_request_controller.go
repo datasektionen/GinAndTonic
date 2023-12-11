@@ -18,6 +18,21 @@ func NewTicketRequestController(db *gorm.DB) *TicketRequestController {
 	return &TicketRequestController{Service: service}
 }
 
+func (trc *TicketRequestController) UsersList(c *gin.Context) {
+	// Find all ticket requests for the user
+
+	UGKthId, _ := c.Get("ugkthid")
+
+	ticketRequests, err := trc.Service.GetTicketRequests(UGKthId.(string))
+
+	if err != nil {
+		c.JSON(err.StatusCode, gin.H{"error": err.Message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ticket_requests": ticketRequests})
+}
+
 func (trc *TicketRequestController) Create(c *gin.Context) {
 	var ticketRequests []models.TicketRequest
 

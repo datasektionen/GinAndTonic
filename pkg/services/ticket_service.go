@@ -1,6 +1,8 @@
 package services
 
 import (
+	"net/http"
+
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"gorm.io/gorm"
 )
@@ -52,4 +54,14 @@ func (ts *TicketService) EditTicket(eventID, ticketID int, updatedTicket models.
 	}
 
 	return ticket, nil
+}
+
+func (ts *TicketService) GetTicketForUser(UGKthID string) ([]models.Ticket, *ErrorResponse) {
+	tickets, err := models.GetAllValidUsersTicket(ts.DB, UGKthID)
+
+	if err != nil {
+		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
+	}
+
+	return tickets, nil
 }

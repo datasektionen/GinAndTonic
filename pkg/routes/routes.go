@@ -97,9 +97,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Ticket request event routes
 	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)
 	r.POST("/events/:eventID/ticket-requests", rateLimitMiddleware, ticketRequestController.Create)
+	r.DELETE("/events/:eventID/ticket-requests/:ticketRequestID", ticketRequestController.CancelTicketRequest)
 
-	// Ticket request routes
+	// My tickets
 	r.GET("/my-ticket-requests", ticketRequestController.UsersList)
+	r.GET("/my-tickets", ticketsController.UsersList)
 
 	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)

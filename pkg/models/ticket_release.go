@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -15,7 +17,7 @@ type TicketRelease struct {
 	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
 	IsReserved                  bool                      `json:"is_reserved" default:"false"`
-	PromoCode                   *string                   `gorm:"unique;default:NULL" json:"promo_code"`
+	PromoCode                   *string                   `gorm:"default:NULL" json:"promo_code"`
 	HasAllocatedTickets         bool                      `json:"has_allocated_tickets"`
 	TicketReleaseMethodDetailID uint                      `gorm:"index" json:"ticket_release_method_detail_id"`
 	TicketReleaseMethodDetail   TicketReleaseMethodDetail `json:"ticket_release_method_detail"`
@@ -59,6 +61,15 @@ func (tr *TicketRelease) UserHasAccessToTicketRelease(user *User) bool {
 	}
 
 	return false
+}
+
+func (tr *TicketRelease) ValidateTicketReleaseDates(db *gorm.DB) error {
+	// Check if ticketRelease.open is before ticketRelease.close
+	if tr.Open > tr.Close {
+		return errors.New("ticket release open is after ticket release close")
+	}
+
+	return nil
 }
 
 func (tr *TicketRelease) UserUnlockReservedTicketRelease(user *User) {

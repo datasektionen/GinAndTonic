@@ -58,4 +58,19 @@ func GetTicketToEvent(db *gorm.DB, eventID, ticketID uint) (ticket Ticket, err e
 	}
 
 	return ticket, nil
+
+}
+
+func GetAllValidUsersTicket(db *gorm.DB, userUGKthID string) ([]Ticket, error) {
+	var tickets []Ticket
+	if err := db.
+		Preload("TicketRequest.TicketRelease.Event").
+		Preload("TicketRequest.TicketType").
+		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail").
+		Where("user_ug_kth_id = ?", userUGKthID).
+		Find(&tickets).Error; err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }

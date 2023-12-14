@@ -57,9 +57,19 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			tx.Rollback()
 			return err
 		}
+		break
+	case string(models.RESERVED_TICKET_RELEASE):
+		err := ats.allocateReservedTickets(ticketRelease, tx)
+
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		break
 
 	default:
-		return nil
+		tx.Rollback()
+		return errors.New("Unknown ticket release method")
 	}
 
 	tx.Commit()
@@ -74,8 +84,10 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(ticketRelease *mod
 	deadline := utils.ConvertUNIXTimeToDateTime(int64(ticketRelease.Open + methodDetail.OpenWindowDuration))
 
 	// Fetch all ticket requests directly from the database
-	var allTicketRequests []models.TicketRequest
-	if err := tx.Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, false).Find(&allTicketRequests).Error; err != nil {
+	allTicketRequests, err := models.GetAllValidTicketRequestsToTicketRelease(tx, ticketRelease.ID)
+
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -128,6 +140,35 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(ticketRelease *mod
 				return err
 			}
 			remainingTickets--
+		} else {
+			if err := ats.allocateReserveTicket(ticketRequest, tx); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) error {
+	// Fetch all ticket requests directly from the database
+	var allTicketRequests []models.TicketRequest
+	if err := tx.Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, false).Find(&allTicketRequests).Order("created_at").Error; err != nil {
+		return err
+	}
+
+	// Fetch total available tickets directly
+	var availableTickets int
+	for _, ticketType := range ticketRelease.TicketTypes {
+		availableTickets += int(ticketType.QuantityTotal)
+	}
+
+	// Give all users ticekts up to the available tickets, give the rest reserve tickets
+	for i, ticketRequest := range allTicketRequests {
+		if i < availableTickets {
+			if err := ats.allocateTicket(ticketRequest, tx); err != nil {
+				return err
+			}
 		} else {
 			if err := ats.allocateReserveTicket(ticketRequest, tx); err != nil {
 				return err

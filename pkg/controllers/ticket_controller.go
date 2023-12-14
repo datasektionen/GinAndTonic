@@ -96,3 +96,18 @@ func (tc *TicketController) EditTicket(c *gin.Context) {
 
 	c.JSON(http.StatusOK, ticket)
 }
+
+func (tc *TicketController) UsersList(c *gin.Context) {
+	// Find all ticket requests for the user
+
+	UGKthId, _ := c.Get("ugkthid")
+
+	ticketRequests, err := tc.Service.GetTicketForUser(UGKthId.(string))
+
+	if err != nil {
+		c.JSON(err.StatusCode, gin.H{"error": err.Message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tickets": ticketRequests})
+}

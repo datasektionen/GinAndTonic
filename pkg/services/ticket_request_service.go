@@ -52,6 +52,11 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
 
+	if ticketRelease.HasAllocatedTickets {
+		log.Println("Ticket release has allocated tickets")
+		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release has allocated tickets"}
+	}
+
 	if !trs.isTicketReleaseOpen(ticketRequest.TicketReleaseID) {
 		log.Println("Ticket release is not open")
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release is not open"}
@@ -93,12 +98,30 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 	return nil
 }
 
-func (trs *TicketRequestService) GetTicketRequests(UGKthID string) ([]models.TicketRequest, *ErrorResponse) {
-	var ticketRequests []models.TicketRequest
-	if err := trs.DB.Preload("TicketType").Preload("TicketRelease.Event").Preload("TicketRelease.TicketReleaseMethodDetail").Where("user_ug_kth_id = ?", UGKthID).Find(&ticketRequests).Error; err != nil {
-		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error listing ticket requests"}
+func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string) ([]models.TicketRequest, *ErrorResponse) {
+	ticketRequests, err := models.GetAllValidUsersTicketRequests(trs.DB, UGKthID)
+
+	if err != nil {
+		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
 	}
+
 	return ticketRequests, nil
+}
+
+func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) error {
+	// Use your database layer to find the ticket request by ID and cancel it
+	// This is just a placeholder implementation, replace it with your actual code
+	ticketRequest := &models.TicketRequest{}
+	result := trs.DB.Where("id = ?", ticketRequestID).First(ticketRequest)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if err := trs.DB.Delete(ticketRequest).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Additional private methods (isTicketReleaseOpen, isTicketTypeValid, userAlreadyHasATicketToEvent) go here...

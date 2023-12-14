@@ -67,7 +67,6 @@ func (trmd *TicketReleaseMethodDetail) ValidateNotificationMethod() error {
 }
 
 func (trmd *TicketReleaseMethodDetail) ValidateMaxTicketsPerUser() error {
-	println("trmd", trmd.MaxTicketsPerUser)
 	if trmd.MaxTicketsPerUser <= 0 {
 		return fmt.Errorf("MaxTicketsPerUser must be greater than zero")
 	}

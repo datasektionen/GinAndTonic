@@ -7,7 +7,8 @@ import (
 type TRM string
 
 const (
-	FCFS_LOTTERY TRM = "First Come First Serve Lottery"
+	FCFS_LOTTERY            TRM = "First Come First Serve Lottery"
+	RESERVED_TICKET_RELEASE TRM = "Reserved Ticket Release"
 )
 
 type TicketReleaseMethod struct {
@@ -19,6 +20,7 @@ type TicketReleaseMethod struct {
 func InitializeTicketReleaseMethods(db *gorm.DB) error {
 	methods := []TicketReleaseMethod{
 		{MethodName: string(FCFS_LOTTERY), Description: "First Come First Serve Lottery"},
+		{MethodName: string(RESERVED_TICKET_RELEASE), Description: "Gives everyone in the ticket release a ticket"},
 	}
 
 	for _, method := range methods {

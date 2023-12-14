@@ -23,7 +23,7 @@ func (trc *TicketRequestController) UsersList(c *gin.Context) {
 
 	UGKthId, _ := c.Get("ugkthid")
 
-	ticketRequests, err := trc.Service.GetTicketRequests(UGKthId.(string))
+	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthId.(string))
 
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
@@ -57,7 +57,7 @@ func (trc *TicketRequestController) Create(c *gin.Context) {
 }
 func (trc *TicketRequestController) Get(c *gin.Context) {
 	UGKthID, _ := c.Get("ugkthid")
-	ticketRequests, err := trc.Service.GetTicketRequests(UGKthID.(string))
+	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthID.(string))
 
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
@@ -65,4 +65,20 @@ func (trc *TicketRequestController) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, ticketRequests)
+}
+
+func (trc *TicketRequestController) CancelTicketRequest(c *gin.Context) {
+	// Get the ID of the ticket request from the URL parameters
+	ticketRequestID := c.Param("ticketRequestID")
+
+	// Use your database or service layer to find the ticket request by ID and cancel it
+	err := trc.Service.CancelTicketRequest(ticketRequestID)
+	if err != nil {
+		// Handle error, for example send a 404 Not Found response
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket request not found"})
+		return
+	}
+
+	// Send a 200 OK response
+	c.JSON(http.StatusOK, gin.H{"status": "Ticket request cancelled"})
 }

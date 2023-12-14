@@ -7,6 +7,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/DowLucas/gin-ticket-release/pkg/validation"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -168,6 +169,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 
 // UpdateEvent handles updating an event by ID
 func (ec *EventController) UpdateEvent(c *gin.Context) {
+	var eventRequest types.EventRequest
 	var event models.Event
 	id := c.Param("eventID")
 
@@ -176,13 +178,25 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&event); err != nil {
+	if err := c.ShouldBindJSON(&eventRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	event.Name = eventRequest.Name
+	event.Description = eventRequest.Description
+	event.Location = eventRequest.Location
+	event.Date = time.Unix(eventRequest.Date, 0)
+	event.OrganizationID = eventRequest.OrganizationID
+	event.IsPrivate = eventRequest.IsPrivate
+
 	if err := ec.DB.Save(&event).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error updating the event"})
+		return
+	}
+
+	if err := validation.ValidateEventDates(ec.DB, event.ID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

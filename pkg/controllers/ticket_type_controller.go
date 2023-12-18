@@ -66,6 +66,32 @@ func (ttc *TicketTypeController) CreateTicketTypes(c *gin.Context) {
 	c.JSON(http.StatusCreated, ticketTypes)
 }
 
+// Get ticket types from event id and ticket release id
+func (ttc *TicketTypeController) GetEventTicketTypes(c *gin.Context) {
+	eventIDstring := c.Param("eventID")
+	eventID, err := parseIntParam(eventIDstring, "eventID")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ticketReleaseIDstring := c.Param("ticketReleaseID")
+	ticketReleaseID, err := parseIntParam(ticketReleaseIDstring, "ticketReleaseID")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var ticketTypes []models.TicketType
+
+	if err := ttc.DB.Where("event_id = ? AND ticket_release_id = ?", eventID, ticketReleaseID).Find(&ticketTypes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error getting the ticket types"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ticketTypes)
+}
+
 func checkEventExists(ttc *TicketTypeController, eventID uint) bool {
 	var event models.Event
 

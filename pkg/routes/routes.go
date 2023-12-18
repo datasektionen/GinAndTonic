@@ -82,10 +82,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)
-	r.POST("/events/:eventID/ticket-release", ticketReleaseController.CreateTicketRelease)
-	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", ticketReleaseController.GetTicketRelease)
+	r.POST("/events/:eventID/ticket-release", middleware.AuthorizeEventAccess(db), ticketReleaseController.CreateTicketRelease)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.GetTicketRelease)
 	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.UpdateTicketRelease)
 	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.DeleteTicketRelease)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db), ticketTypeController.GetEventTicketTypes)
 
 	// Promo code routes
 	r.GET("/activate-promo-code/:eventID", ticketReleasePromoCodeController.Create)

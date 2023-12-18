@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
@@ -47,4 +48,36 @@ func (cewc *CompleteEventWorkflowController) CreateEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Event created"})
+}
+
+func (cewc *CompleteEventWorkflowController) CreateTicketRelease(c *gin.Context) {
+	var err error
+
+	var req types.TicketReleaseFullWorkFlowRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	eventIDstring := c.Param("eventID")
+	eventID, err := strconv.Atoi(eventIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ugkthid, exists := c.Get("ugkthid")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	err = cewc.service.CreateTicketRelease(req, eventID, ugkthid.(string))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Ticket release created"})
 }

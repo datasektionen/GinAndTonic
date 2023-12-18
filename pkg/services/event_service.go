@@ -41,9 +41,6 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		return err
 	}
 
-	println(data.TicketRelease.Name)
-	println(data.TicketRelease.TicketReleaseMethodID)
-
 	var ticketReleaseMethod models.TicketReleaseMethod
 	if err := tx.First(&ticketReleaseMethod, "id = ?", data.TicketRelease.TicketReleaseMethodID).Error; err != nil {
 		tx.Rollback()
@@ -132,3 +129,105 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 	return tx.Commit().Error
 }
 
+func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlowRequest, eventID int, UGKthId string) error {
+	// Start a transaction
+	tx := es.DB.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// Check if the user is a super admin
+	var event models.Event
+	if err := tx.First(&event, eventID).Error; err != nil {
+		tx.Rollback()
+		return errors.New("Invalid event ID")
+	}
+
+	// Find ticket release method
+	var ticketReleaseMethod models.TicketReleaseMethod
+	if err := tx.First(&ticketReleaseMethod, "id = ?", data.TicketRelease.TicketReleaseMethodID).Error; err != nil {
+		tx.Rollback()
+		return errors.New("Invalid ticket release method ID")
+	}
+
+	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
+		TicketReleaseMethodID: uint(data.TicketRelease.TicketReleaseMethodID),
+		OpenWindowDuration:    int64(data.TicketRelease.OpenWindowDuration),
+		NotificationMethod:    data.TicketRelease.NotificationMethod,
+		CancellationPolicy:    data.TicketRelease.CancellationPolicy,
+		MaxTicketsPerUser:     uint(data.TicketRelease.MaxTicketsPerUser),
+	}
+
+	if err := ticketReleaseMethodDetails.Validate(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Create(&ticketReleaseMethodDetails).Error; err != nil {
+		tx.Rollback()
+		return errors.New("Could not create ticket release method details")
+	}
+
+	method, err := models.NewTicketReleaseConfig(ticketReleaseMethod.MethodName, &ticketReleaseMethodDetails)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := method.Validate(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var promoCode string
+	if data.TicketRelease.IsReserved {
+		if data.TicketRelease.PromoCode == "" {
+			tx.Rollback()
+			return errors.New("Promo code is required for reserved ticket releases")
+		}
+
+		promoCode, err = utils.HashString(data.TicketRelease.PromoCode)
+		if err != nil {
+			tx.Rollback()
+			return errors.New("Could not hash promo code")
+		}
+	}
+
+	// Create TicketRelease
+	ticketRelease := models.TicketRelease{
+		EventID:                     int(event.ID),
+		Name:                        data.TicketRelease.Name,
+		Description:                 data.TicketRelease.Description,
+		Open:                        data.TicketRelease.Open,
+		Close:                       data.TicketRelease.Close,
+		HasAllocatedTickets:         false,
+		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
+		IsReserved:                  data.TicketRelease.IsReserved,
+		PromoCode:                   &promoCode,
+	}
+
+	if err := tx.Create(&ticketRelease).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create TicketTypes
+	for _, tt := range data.TicketTypes {
+		ticketType := models.TicketType{
+			EventID:         event.ID,
+			Name:            tt.Name,
+			Description:     tt.Description,
+			Price:           tt.Price,
+			QuantityTotal:   uint(tt.QuantityTotal),
+			TicketReleaseID: ticketRelease.ID,
+		}
+
+		if err := tx.Create(&ticketType).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Commit the transaction
+	return tx.Commit().Error
+}

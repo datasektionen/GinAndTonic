@@ -41,6 +41,13 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
+	// Check if there is a ticket release with the same name and event ID
+	var checkTicketRelease models.TicketRelease
+	if err := trmc.DB.Where("name = ? AND event_id = ?", req.Name, req.EventID).First(&checkTicketRelease).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release with the same name already exists"})
+		return
+	}
+
 	// Get ticket release method from id
 	var ticketReleaseMethod models.TicketReleaseMethod
 	if err := trmc.DB.First(&ticketReleaseMethod, "id = ?", req.TicketReleaseMethodID).Error; err != nil {
@@ -96,9 +103,6 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 			promoCode = &hashedPromoCode
 		}
 	}
-
-	println(req.IsReserved)
-	println(*promoCode)
 
 	ticketRelease := models.TicketRelease{
 		EventID:                     req.EventID,

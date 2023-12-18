@@ -37,6 +37,11 @@ type EventFullWorkflowRequest struct {
 	TicketTypes   []TicketTypePostReq  `json:"ticket_types"`
 }
 
+type TicketReleaseFullWorkFlowRequest struct {
+	TicketRelease TicketReleasePostReq `json:"ticket_release"`
+	TicketTypes   []TicketTypePostReq  `json:"ticket_types"`
+}
+
 type TicketReleasePostReq struct {
 	Name                  string `json:"name"`
 	Description           string `json:"description"`

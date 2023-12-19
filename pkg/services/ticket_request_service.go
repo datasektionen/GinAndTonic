@@ -157,7 +157,7 @@ func (trs *TicketRequestService) checkReservedTicketRelease(ticketRelease *model
 		return true
 	}
 
-	return ticketRelease.UserHasAccessToTicketRelease(user)
+	return ticketRelease.UserHasAccessToTicketRelease(trs.DB, user.UGKthID)
 }
 
 func (trs *TicketRequestService) isTicketTypeValid(ticketTypeID uint, ticketReleaseID uint) bool {

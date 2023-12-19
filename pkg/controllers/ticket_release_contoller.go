@@ -166,7 +166,7 @@ func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 		if !ticketRelease.IsReserved {
 			ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 		} else {
-			if ticketRelease.UserHasAccessToTicketRelease(&user) {
+			if ticketRelease.UserHasAccessToTicketRelease(trmc.DB, user.UGKthID) {
 				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 			}
 		}

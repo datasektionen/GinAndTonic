@@ -129,6 +129,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		Preload("TicketReleases.TicketTypes").
 		Preload("TicketReleases.ReservedUsers").
 		Preload("TicketReleases.TicketReleaseMethodDetail").
+		Preload("TicketReleases.Event").
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
 		First(&event, id).Error
 
@@ -156,7 +157,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		if !ticketRelease.IsReserved {
 			ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 		} else {
-			if ticketRelease.UserHasAccessToTicketRelease(&user) {
+			if ticketRelease.UserHasAccessToTicketRelease(ec.DB, user.UGKthID) {
 				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 			}
 		}

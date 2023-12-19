@@ -49,13 +49,30 @@ func DeleteTicketRelease(db *gorm.DB, ticketReleaseID uint) error {
 	return tx.Commit().Error
 }
 
-func (tr *TicketRelease) UserHasAccessToTicketRelease(user *User) bool {
+func (tr *TicketRelease) UserHasAccessToTicketRelease(DB *gorm.DB, id string) bool {
 	if !tr.IsReserved {
 		return true
 	}
 
+	var user User
+	if err := DB.
+		Preload("Organizations").Where("ug_kth_id = ?", id).First(&user).Error; err != nil {
+		return false
+	}
+
 	for _, reservedUser := range tr.ReservedUsers {
 		if reservedUser.UGKthID == user.UGKthID {
+			return true
+		}
+	}
+
+	if tr.Event.OrganizationID == 0 {
+		panic("Need to prelaod organization")
+	}
+
+	// Check if user is in same organization as ticket release
+	for _, organization := range user.Organizations {
+		if organization.ID == uint(tr.Event.OrganizationID) {
 			return true
 		}
 	}

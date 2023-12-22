@@ -222,8 +222,8 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 
 	var tickets []models.Ticket
 	if err := ec.DB.
-		Preload("User").
-		Preload("TicketRequest").
+		Preload("Transaction").
+		Preload("User.FoodPreferences").
 		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.TicketRelease").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").

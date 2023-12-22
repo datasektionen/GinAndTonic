@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/stripe/stripe-go/v72"
@@ -34,7 +33,7 @@ func (ts *TransactionService) CreateTransaction(pi stripe.PaymentIntent, ticket 
 		TicketID:    uint(ticketID),
 		Amount:      int(pi.Amount),
 		Currency:    pi.Currency,
-		PayedAt:     time.Unix(pi.Created, 0),
+		PayedAt:     pi.Created,
 		Refunded:    false, // Set this based on your logic
 		UserUGKthID: ticket.UserUGKthID,
 	}

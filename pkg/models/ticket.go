@@ -13,6 +13,7 @@ type Ticket struct {
 	Refunded        bool          `json:"refunded" default:"false"`
 	UserUGKthID     string        `json:"user_ug_kth_id"`
 	User            User          `json:"user"`
+	Transaction     Transaction   `json:"transaction"`
 }
 
 func GetTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) {

@@ -16,6 +16,7 @@ type User struct {
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
 	Organizations         []Organization         `gorm:"many2many:organization_users;" json:"organizations"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:UserUGKthID" json:"organization_user_roles"`
+	FoodPreferences       UserFoodPreference     `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`
 	RoleID                uint                   `json:"role_id"`
 	Role                  Role                   `json:"role"`
 	CreatedAt             time.Time              `json:"created_at"`

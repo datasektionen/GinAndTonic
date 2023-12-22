@@ -54,7 +54,7 @@ func (ctrl *UserFoodPreferenceController) Get(c *gin.Context) {
 
 	UGKthID, _ := c.Get("ugkthid")
 
-	if err := ctrl.DB.Preload("User").Where("user_ug_kth_id = ?", UGKthID).First(&userFoodPreference).Error; err != nil {
+	if err := ctrl.DB.Where("user_ug_kth_id = ?", UGKthID).First(&userFoodPreference).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error getting the user food preference"})
 		return
 	}

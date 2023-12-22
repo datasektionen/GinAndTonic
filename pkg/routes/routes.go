@@ -66,7 +66,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	allocateTicketsController := controllers.NewAllocateTicketsController(db, allocateTicketsService)
 	ticketsController := controllers.NewTicketController(db)
 	constantOptionsController := controllers.NewConstantOptionsController(db)
+	paymentsController := controllers.NewPaymentController(db)
+
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
+	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
 	r.Use(authentication.ValidateTokenMiddleware())
 	r.Use(middleware.UserLoader(db))
@@ -101,6 +104,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/ticket-requests", rateLimitMiddleware, ticketRequestController.Create)
 	r.DELETE("/events/:eventID/ticket-requests/:ticketRequestID", ticketRequestController.CancelTicketRequest)
 
+	// Ticket events routes
+	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db), eventController.ListTickets)
+
 	// My tickets
 	r.GET("/my-ticket-requests", ticketRequestController.UsersList)
 	r.GET("/my-tickets", ticketsController.UsersList)
@@ -108,6 +114,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.EditTicket)
+	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
 
 	r.POST("/organizations", organizationController.CreateOrganization)
 	r.GET("/organizations", authentication.RequireRole("super_admin"), organizationController.ListOrganizations)

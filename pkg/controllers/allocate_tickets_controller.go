@@ -72,3 +72,22 @@ func (atc *AllocateTicketsController) ListAllocatedTickets(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets})
 }
+
+func (atc *AllocateTicketsController) ListAllocatedTicketsForEvent(c *gin.Context) {
+	eventID := c.Param("eventID")
+
+	var tickets []models.Ticket
+	if err := atc.DB.
+		Preload("TicketRequest").
+		Preload("TicketRequest.TicketType").
+		Preload("TicketRequest.TicketRelease").
+		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
+		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Where("ticket_releases.event_id = ?", eventID).
+		Find(&tickets).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested tickets"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tickets": tickets})
+}

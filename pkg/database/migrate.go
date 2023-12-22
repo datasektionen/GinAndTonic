@@ -21,6 +21,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Role{},
 		&models.OrganizationRole{},
 		&models.OrganizationUserRole{},
+		&models.Transaction{},
 		&tr_methods.LotteryConfig{},
 	)
 	return err

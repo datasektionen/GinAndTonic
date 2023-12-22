@@ -19,7 +19,7 @@ type TicketReleaseMethod struct {
 
 func InitializeTicketReleaseMethods(db *gorm.DB) error {
 	methods := []TicketReleaseMethod{
-		{MethodName: string(FCFS_LOTTERY), Description: "First Come First Serve Lottery"},
+		{MethodName: string(FCFS_LOTTERY), Description: "First Come First Serve Lottery is a ticket release method where the people who requests a ticket within a specified time frame will be entered into a lottery. When tickets are allocated, all the ticket requests are entered into a lottery and the winners are selected randomly. The winners will be given a ticket and the rest will be put on the waitlist. Everyone who requested a ticket after the specified time frame will be put on the waitlist, unless the lottery isn't full. If the lottery isn't full, the remaining tickets will be given to the people on the waitlist, in the order they requested the ticket."},
 		{MethodName: string(RESERVED_TICKET_RELEASE), Description: "Gives everyone in the ticket release a ticket"},
 	}
 

@@ -21,6 +21,16 @@ func NewAllocateTicketsController(db *gorm.DB, ats *services.AllocateTicketsServ
 }
 
 func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
+	type AllocateTicketsRequest struct {
+		PayWithin int64 `json:"pay_within"`
+	}
+
+	var allocateTicketsRequest AllocateTicketsRequest
+	if err := c.ShouldBindJSON(&allocateTicketsRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
 	eventID := c.Param("eventID")
 	ticketReleaseID := c.Param("ticketReleaseID")
 
@@ -29,6 +39,12 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	// Find based on event ID and ticket release ID
 	if err := atc.DB.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").Preload("TicketTypes").Where("event_id = ? AND id = ?", eventID, ticketReleaseID).First(&ticketRelease).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID or ticket release ID"})
+		return
+	}
+
+	ticketRelease.PayWithin = &allocateTicketsRequest.PayWithin
+	if !ticketRelease.ValidatePayWithin() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid pay within"})
 		return
 	}
 

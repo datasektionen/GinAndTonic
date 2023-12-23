@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -18,10 +19,19 @@ type TicketRelease struct {
 	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
 	IsReserved                  bool                      `json:"is_reserved" default:"false"`
 	PromoCode                   *string                   `gorm:"default:NULL" json:"promo_code"`
+	PayWithin                   *int64                    `json:"pay_within" default:"NULL"`
 	HasAllocatedTickets         bool                      `json:"has_allocated_tickets"`
 	TicketReleaseMethodDetailID uint                      `gorm:"index" json:"ticket_release_method_detail_id"`
 	TicketReleaseMethodDetail   TicketReleaseMethodDetail `json:"ticket_release_method_detail"`
 	ReservedUsers               []User                    `gorm:"many2many:user_unlocked_ticket_releases;" json:"-"`
+}
+
+func (tr *TicketRelease) ValidatePayWithin() bool {
+	if tr.PayWithin != nil && tr.Event.Date.Unix() < time.Now().Add(time.Duration(*tr.PayWithin)*time.Hour).Unix() {
+		return false
+	}
+
+	return true
 }
 
 func DeleteTicketRelease(db *gorm.DB, ticketReleaseID uint) error {

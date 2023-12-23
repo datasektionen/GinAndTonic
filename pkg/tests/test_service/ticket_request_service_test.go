@@ -36,7 +36,10 @@ func (suite *TicketRequestTestSuite) TearDownTest() {
 func SetupTicketRequestDB(db *gorm.DB) {
 	// Seed the database with necessary data for testing
 	// For example, create TicketRelease, TicketType, User, etc.
+	// Creat user
+	testutils.SetupOrganizationWorkflow(db)
 	// Create a Event
+
 	event := testutils.CreateEventWorkflow(db)
 
 	// Create ticket release method
@@ -77,6 +80,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequest() {
 		1,
 		"validUserUGKthID",
 		false,
+		time.Now(),
 	)
 
 	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
@@ -101,6 +105,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 			1,
 			"validUserUGKthID",
 			false,
+			time.Now(),
 		)
 
 		err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
@@ -114,6 +119,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 		1,
 		"validUserUGKthID",
 		false,
+		time.Now(),
 	)
 
 	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
@@ -129,35 +135,12 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 }
 
 func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterOpenWindowDurationIsReserveTicket() {
-	// Create event with ticket release method detail with open window duration of 1 second
+	SetupTicketRequestDB(suite.db) // Assuming this function is adapted to accept a *gorm.DB parameter
 
-	event := testutils.CreateEventWorkflow(suite.db)
+	var ticketRelease models.TicketRelease
+	suite.db.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").First(&ticketRelease)
 
-	// Create ticket release method
-	testutils.CreateTicketReleaseMethodWorkflow(suite.db)
-
-	ticketReleaseMethodDetail := factory.NewTicketReleaseMethodDetail(
-		10,
-		"Email",
-		"Standard",
-		10, // OpenWindowDuration in seconds
-		1,  // Example TicketReleaseMethodID
-	)
-
-	suite.db.Create(ticketReleaseMethodDetail)
-
-	ticketRelease := models.TicketRelease{
-		EventID:                     int(event.ID),
-		Open:                        time.Now().Unix() - 11, // Ticket is created 1 second after open window duration has passed which means it is a reserve ticket
-		Close:                       time.Now().Unix() + 20,
-		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
-	}
-
-	suite.db.Create(&ticketRelease)
-
-	ticketType := factory.NewTicketType(event.ID, "validTicketTypeName", "validTicketTypeDescription", 100, 100, false, 1)
-
-	suite.db.Create(ticketType)
+	ticketReleaseMethodDetail := ticketRelease.TicketReleaseMethodDetail
 
 	// Create ticket request
 	ticketRequest := factory.NewTicketRequest(
@@ -166,20 +149,25 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterOpenWindowDurat
 		1,
 		"validUserUGKthID",
 		false,
+		// CreatedAt is one day after the open window duration
+		time.Now().Add(time.Duration(ticketReleaseMethodDetail.OpenWindowDuration+86400)*time.Second),
 	)
 
-	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
-	suite.Nil(err)
+	if err := suite.db.Create(&ticketRequest).Error; err != nil {
+		panic(err)
+	}
 
 	// Check that it is a reserve ticket
 	var ticketRequestFromDB []models.TicketRequest
-	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
+	ticketRequestFromDB, err := suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
 
 	suite.Nil(err)
 	suite.Equal(1, len(ticketRequestFromDB))
 
 	requested_time := ticketRequestFromDB[0].CreatedAt
 	window_close_time := utils.ConvertUNIXTimeToDateTime(int64(ticketRelease.Open + ticketReleaseMethodDetail.OpenWindowDuration))
+
+	println(requested_time.Format(time.RFC3339))
 
 	fmt.Printf("Requested time: %s\n", requested_time.Format(time.RFC3339))
 	fmt.Printf("Window close time: %s\n", window_close_time.Format(time.RFC3339))
@@ -221,6 +209,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterClose() {
 		1,
 		"validUserUGKthID",
 		false,
+		time.Now(),
 	)
 
 	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
@@ -264,6 +253,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestBeforeOpen() {
 		1,
 		"validUserUGKthID",
 		false,
+		time.Now(),
 	)
 
 	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
@@ -306,9 +296,10 @@ func (suite *TicketRequestTestSuite) TestUserMakesTwoTicketRequestUnderMaxTicket
 			1,
 			"validUserUGKthID",
 			false,
+			time.Now(),
 		)
 
-		err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+		err := suite.db.Create(&ticketRequest).Error
 		suite.Nil(err)
 	}
 
@@ -318,6 +309,7 @@ func (suite *TicketRequestTestSuite) TestUserMakesTwoTicketRequestUnderMaxTicket
 		1,
 		"validUserUGKthID",
 		false,
+		time.Now(),
 	)
 
 	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})

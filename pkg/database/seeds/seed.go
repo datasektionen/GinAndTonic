@@ -82,6 +82,7 @@ func SeedTicketRequests(db *gorm.DB) {
 		1, // Example TicketTypeID
 		"UserUGKthID",
 		false,
+		time.Now(),
 	)
 	db.Create(request)
 }

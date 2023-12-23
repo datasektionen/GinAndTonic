@@ -221,6 +221,7 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 	eventID := c.Param("eventID")
 
 	var tickets []models.Ticket
+	var ticketRequests []models.TicketRequest
 	if err := ec.DB.
 		Preload("Transaction").
 		Preload("User.FoodPreferences").
@@ -234,5 +235,16 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"tickets": tickets})
+	if err := ec.DB.
+		Preload("User.FoodPreferences").
+		Preload("TicketType").
+		Preload("TicketRelease").
+		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Where("ticket_releases.event_id = ? AND NOT EXISTS (SELECT 1 FROM tickets WHERE tickets.ticket_request_id = ticket_requests.id)", eventID).
+		Find(&ticketRequests).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested ticket requests"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tickets": tickets, "ticket_requests": ticketRequests})
 }

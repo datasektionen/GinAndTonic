@@ -15,6 +15,10 @@ type TicketType struct {
 	TicketReleaseID   uint    `json:"ticket_release_id"`
 }
 
+func (tt *TicketType) IsFree() bool {
+	return tt.Price == 0
+}
+
 func (tt *TicketType) BeforeCreate(tx *gorm.DB) (err error) {
 	if tt.QuantityAvailable == 0 {
 		tt.QuantityAvailable = uint(tt.QuantityTotal)

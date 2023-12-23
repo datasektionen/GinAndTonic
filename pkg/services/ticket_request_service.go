@@ -173,11 +173,15 @@ func (trs *TicketRequestService) userAlreadyHasATicketToEvent(user *models.User,
 	trs.DB.Model(&models.TicketRequest{}).
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Joins("JOIN events ON ticket_releases.event_id = events.id").
-		Where("ticket_requests.user_ug_kth_id = ? AND events.id = ?", user.UGKthID, ticketRelease.EventID).
+		Where("ticket_requests.user_ug_kth_id = ? AND ticket_releases.id = ?", user.UGKthID, ticketRelease.ID).
 		Select("SUM(ticket_requests.ticket_amount)").
 		Row().Scan(&totalRequestedAmount)
 
+	println(totalRequestedAmount, requestedAmount, ticketReleaseMethodDetail.MaxTicketsPerUser)
+
 	newRequestedTicketsAmount := int64(ticketReleaseMethodDetail.MaxTicketsPerUser) - int64(requestedAmount)
+
+	println(newRequestedTicketsAmount)
 
 	return totalRequestedAmount > newRequestedTicketsAmount
 }

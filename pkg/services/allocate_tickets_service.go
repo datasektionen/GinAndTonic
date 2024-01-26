@@ -91,6 +91,10 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(ticketRelease *mod
 		return err
 	}
 
+	if len(allTicketRequests) == 0 {
+		return errors.New("No ticket requests to allocate")
+	}
+
 	eligibleTicketRequestsForLottery := make([]models.TicketRequest, 0)
 	notEligibleTicketRequests := make([]models.TicketRequest, 0)
 

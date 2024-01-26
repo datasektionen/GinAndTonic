@@ -4,6 +4,15 @@ import (
 	"gorm.io/gorm"
 )
 
+type TicketStatus string
+
+const (
+	Pending   TicketStatus = "pending"
+	Reserved  TicketStatus = "reserved"
+	Cancelled TicketStatus = "cancelled"
+	Allocated TicketStatus = "allocated"
+)
+
 type Ticket struct {
 	gorm.Model
 	TicketRequestID uint          `gorm:"index" json:"ticket_request_id"`
@@ -11,9 +20,10 @@ type Ticket struct {
 	IsPaid          bool          `json:"is_paid" default:"false"`
 	IsReserve       bool          `json:"is_reserve"`
 	Refunded        bool          `json:"refunded" default:"false"`
-	UserUGKthID     string        `json:"user_ug_kth_id"`
+	UserUGKthID     string        `json:"user_ug_kth_id"` // Maybe not needed
 	User            User          `json:"user"`
 	Transaction     Transaction   `json:"transaction"`
+	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
 }
 
 func GetTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) {

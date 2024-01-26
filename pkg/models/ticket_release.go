@@ -26,12 +26,16 @@ type TicketRelease struct {
 	ReservedUsers               []User                    `gorm:"many2many:user_unlocked_ticket_releases;" json:"-"`
 }
 
-func (tr *TicketRelease) ValidatePayWithin() bool {
-	if tr.PayWithin != nil && tr.Event.Date.Unix() < time.Now().Add(time.Duration(*tr.PayWithin)*time.Hour).Unix() {
-		return false
+func (tr *TicketRelease) ValidatePayWithin() error {
+	if tr.Event.ID == 0 {
+		panic("Need to preload event")
 	}
 
-	return true
+	if tr.PayWithin != nil && tr.Event.Date.Unix() < time.Now().Add(time.Duration(*tr.PayWithin)*time.Hour).Unix() {
+		return errors.New("pay within is after event date")
+	}
+
+	return nil
 }
 
 func DeleteTicketRelease(db *gorm.DB, ticketReleaseID uint) error {

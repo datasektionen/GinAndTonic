@@ -37,14 +37,17 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	var ticketRelease models.TicketRelease
 
 	// Find based on event ID and ticket release ID
-	if err := atc.DB.Preload("Event").Preload("TicketReleaseMethodDetail.TicketReleaseMethod").Preload("TicketTypes").Where("event_id = ? AND id = ?", eventID, ticketReleaseID).First(&ticketRelease).Error; err != nil {
+	if err := atc.DB.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").Preload("TicketTypes").Preload("Event").Where("event_id = ? AND id = ?", eventID, ticketReleaseID).First(&ticketRelease).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID or ticket release ID"})
 		return
 	}
 
 	ticketRelease.PayWithin = &allocateTicketsRequest.PayWithin
-	if err := ticketRelease.ValidatePayWithin(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	println("Pay within: ", *ticketRelease.PayWithin)
+
+	if !ticketRelease.ValidatePayWithin() {
+		println("Invalid pay within")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid pay within"})
 		return
 	}
 

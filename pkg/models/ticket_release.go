@@ -17,6 +17,7 @@ type TicketRelease struct {
 	Close                       int64                     `json:"close"`
 	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
+	TicketsAvailable            int                       `gorm:"-" json:"tickets_available"`
 	IsReserved                  bool                      `json:"is_reserved" default:"false"`
 	PromoCode                   *string                   `gorm:"default:NULL" json:"promo_code"`
 	PayWithin                   *int64                    `json:"pay_within" default:"NULL"`
@@ -26,13 +27,25 @@ type TicketRelease struct {
 	ReservedUsers               []User                    `gorm:"many2many:user_unlocked_ticket_releases;" json:"-"`
 }
 
-func (tr *TicketRelease) ValidatePayWithin() error {
-	if tr.Event.ID == 0 {
-		panic("Need to preload event")
+func (tr *TicketRelease) ValidatePayWithin() bool {
+	payWithin := *tr.PayWithin
+	println(payWithin)
+
+	if tr.PayWithin == nil {
+		println("PayWithin is not nil")
+		return false
 	}
 
-	if tr.PayWithin != nil && tr.Event.Date.Unix() < time.Now().Add(time.Duration(*tr.PayWithin)*time.Hour).Unix() {
-		return errors.New("pay within is after event date")
+	if tr.PayWithin != nil && *tr.PayWithin < 0 {
+		println("PayWithin is not less than 0")
+		return false
+	}
+
+	println("Event date: ", tr.Event.Date.Unix())
+
+	if tr.Event.Date.Unix() < time.Now().Add(time.Duration(*tr.PayWithin)*time.Hour).Unix() {
+		println("Event date is not less than pay within")
+		return false
 	}
 
 	return nil
@@ -105,4 +118,14 @@ func (tr *TicketRelease) ValidateTicketReleaseDates(db *gorm.DB) error {
 
 func (tr *TicketRelease) UserUnlockReservedTicketRelease(user *User) {
 	tr.ReservedUsers = append(tr.ReservedUsers, *user)
+}
+
+func GetOpenTicketReleases(db *gorm.DB) (ticketReleases []TicketRelease, err error) {
+	err = db.Where("open <= ? AND close >= ?", time.Now().Unix(), time.Now().Unix()).Find(&ticketReleases).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ticketReleases, nil
 }

@@ -3,10 +3,13 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	_ "github.com/lib/pq"
+	"github.com/robfig/cron/v3"
+	"gorm.io/gorm"
 
 	"log"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/database"
+	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/routes"
 	"github.com/joho/godotenv"
@@ -29,6 +32,18 @@ func CORSConfig() cors.Config {
 	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers", "Content-Type", "X-XSRF-TOKEN", "Accept", "Origin", "X-Requested-With", "Authorization")
 	corsConfig.AddAllowMethods("GET", "POST", "PUT", "DELETE")
 	return corsConfig
+}
+
+func setupCronJobs(db *gorm.DB) {
+	c := cron.New()
+	_, err := c.AddFunc("@every 30m", func() {
+		jobs.AllocateReserveTicketsJob(db)
+	})
+	if err != nil {
+		log.Fatalf("Error scheduling example job: %v", err)
+	}
+	c.Start()
+	defer c.Stop()
 }
 
 func main() {

@@ -19,11 +19,16 @@ type Ticket struct {
 	TicketRequest   TicketRequest `json:"ticket_request"`
 	IsPaid          bool          `json:"is_paid" default:"false"`
 	IsReserve       bool          `json:"is_reserve"`
+	ReserveNumber   uint          `json:"reserve_number" default:"0"`
 	Refunded        bool          `json:"refunded" default:"false"`
 	UserUGKthID     string        `json:"user_ug_kth_id"` // Maybe not needed
 	User            User          `json:"user"`
 	Transaction     Transaction   `json:"transaction"`
 	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
+}
+
+func (t *Ticket) Delete(db *gorm.DB) error {
+	return db.Delete(t).Error
 }
 
 func GetTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) {
@@ -80,6 +85,37 @@ func GetAllValidUsersTicket(db *gorm.DB, userUGKthID string) ([]Ticket, error) {
 		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail").
 		Where("user_ug_kth_id = ?", userUGKthID).
 		Find(&tickets).Error; err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}
+
+func GetAllTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tickets []Ticket, err error) {
+	// Get all tickets to a ticket release thats not soft deleted or reserved
+	err = db.
+		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
+		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Where("ticket_releases.id = ? AND tickets.is_reserve = ?", ticketReleaseID, false).
+		Find(&tickets).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}
+
+func GetAllReserveTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tickets []Ticket, err error) {
+	// Get all tickets to a ticket release thats not soft deleted or reserved or refunded
+	err = db.
+		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
+		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Where("ticket_releases.id = ? AND tickets.refunded = ? AND tickets.is_reserve = ?", ticketReleaseID, false, true).
+		Order("reserve_number ASC").
+		Find(&tickets).Error
+
+	if err != nil {
 		return nil, err
 	}
 

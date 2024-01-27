@@ -23,6 +23,8 @@ func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint)
 		return nil, err
 	}
 
+	// Acording to gorm soft delete, we should not fetch soft deleted records
+
 	return ticketRequests, nil
 }
 

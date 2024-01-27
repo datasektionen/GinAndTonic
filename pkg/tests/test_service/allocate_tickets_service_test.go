@@ -32,9 +32,7 @@ func (suite *AllocateTicketsTestSuite) TearDownTest() {
 func (suite *AllocateTicketsTestSuite) createTicketRelease(totalTickets int, methodName models.TRM, openWindowDuration int64, openTime int64) models.TicketRelease {
 	return models.TicketRelease{
 		TicketTypes: []models.TicketType{
-			{
-				QuantityTotal: uint(totalTickets),
-			},
+			{},
 		},
 		TicketReleaseMethodDetail: models.TicketReleaseMethodDetail{
 			TicketReleaseMethod: models.TicketReleaseMethod{
@@ -69,6 +67,13 @@ func (suite *AllocateTicketsTestSuite) validateTicketAllocation(expectedAllocate
 	suite.Equal(expectedAllocated, len(allocatedTickets))
 	suite.Equal(expectedReserve, len(reserveTickets))
 	suite.Equal(expectedUnhandled, len(ticketRequestFromDB))
+
+	// Check that the reserve tickets are numbered 1 to len(reserveTickets)
+	if len(reserveTickets) > 0 {
+		for i, ticket := range reserveTickets {
+			suite.Equal(uint(i+1), ticket.ReserveNumber)
+		}
+	}
 }
 
 func (suite *AllocateTicketsTestSuite) TestAllocateTickets() {

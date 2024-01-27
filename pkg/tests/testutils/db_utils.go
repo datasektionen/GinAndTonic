@@ -71,9 +71,7 @@ func CleanupTestDatabase(db *gorm.DB) {
 func CreateTicketRelease(totalTickets int, methodName models.TRM, openWindowDuration int64, openTime int64) models.TicketRelease {
 	return models.TicketRelease{
 		TicketTypes: []models.TicketType{
-			{
-				QuantityTotal: uint(totalTickets),
-			},
+			{},
 		},
 		TicketReleaseMethodDetail: models.TicketReleaseMethodDetail{
 			TicketReleaseMethod: models.TicketReleaseMethod{

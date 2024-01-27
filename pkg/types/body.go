@@ -54,13 +54,13 @@ type TicketReleasePostReq struct {
 	TicketReleaseMethodID int    `json:"ticket_release_method_id"`
 	IsReserved            bool   `json:"is_reserved"`
 	PromoCode             string `json:"promo_code"`
+	TicketsAvailable      int    `json:"tickets_available"`
 }
 
 type TicketTypePostReq struct {
-	Name          string  `json:"name"`
-	Description   string  `json:"description"`
-	Price         float64 `json:"price"`
-	QuantityTotal int     `json:"quantity_total"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
 }
 
 type CompleteEventWorkflowRequest struct {

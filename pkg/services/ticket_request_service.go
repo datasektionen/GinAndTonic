@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -115,6 +116,12 @@ func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) err
 	result := trs.DB.Where("id = ?", ticketRequestID).First(ticketRequest)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	// Check if ticket request is allocted to a ticket
+	// If the ticket request is allocated to a ticket, it cannot be cancelled
+	if len(ticketRequest.Tickets) > 0 {
+		return errors.New("Ticket request is already allocated to a ticket, cancel the ticket instead")
 	}
 
 	if err := trs.DB.Delete(ticketRequest).Error; err != nil {

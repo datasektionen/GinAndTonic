@@ -10,7 +10,6 @@ func NewTicketType(eventID uint, name, description string, price float64, quanti
 		Name:            name,
 		Description:     description,
 		Price:           price,
-		QuantityTotal:   quantityTotal,
 		TicketReleaseID: ticketReleaseID,
 	}
 }

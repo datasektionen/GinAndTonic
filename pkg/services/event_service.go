@@ -97,6 +97,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		Description:                 data.TicketRelease.Description,
 		Open:                        data.TicketRelease.Open,
 		Close:                       data.TicketRelease.Close,
+		TicketsAvailable:            data.TicketRelease.TicketsAvailable,
 		HasAllocatedTickets:         false,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  data.TicketRelease.IsReserved,
@@ -115,7 +116,6 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 			Name:            tt.Name,
 			Description:     tt.Description,
 			Price:           tt.Price,
-			QuantityTotal:   uint(tt.QuantityTotal),
 			TicketReleaseID: ticketRelease.ID,
 		}
 
@@ -200,6 +200,7 @@ func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlow
 		Description:                 data.TicketRelease.Description,
 		Open:                        data.TicketRelease.Open,
 		Close:                       data.TicketRelease.Close,
+		TicketsAvailable:            data.TicketRelease.TicketsAvailable,
 		HasAllocatedTickets:         false,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  data.TicketRelease.IsReserved,
@@ -218,7 +219,6 @@ func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlow
 			Name:            tt.Name,
 			Description:     tt.Description,
 			Price:           tt.Price,
-			QuantityTotal:   uint(tt.QuantityTotal),
 			TicketReleaseID: ticketRelease.ID,
 		}
 

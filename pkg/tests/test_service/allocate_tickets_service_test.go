@@ -40,7 +40,8 @@ func (suite *AllocateTicketsTestSuite) createTicketRelease(totalTickets int, met
 			},
 			OpenWindowDuration: openWindowDuration,
 		},
-		Open: openTime,
+		TicketsAvailable: totalTickets,
+		Open:             openTime,
 	}
 }
 

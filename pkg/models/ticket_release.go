@@ -17,7 +17,7 @@ type TicketRelease struct {
 	Close                       int64                     `json:"close"`
 	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
-	TicketsAvailable            int                       `gorm:"-" json:"tickets_available"`
+	TicketsAvailable            int                       `json:"tickets_available"`
 	IsReserved                  bool                      `json:"is_reserved" default:"false"`
 	PromoCode                   *string                   `gorm:"default:NULL" json:"promo_code"`
 	PayWithin                   *int64                    `json:"pay_within" default:"NULL"`
@@ -48,7 +48,7 @@ func (tr *TicketRelease) ValidatePayWithin() bool {
 		return false
 	}
 
-	return nil
+	return true
 }
 
 func DeleteTicketRelease(db *gorm.DB, ticketReleaseID uint) error {
@@ -122,6 +122,16 @@ func (tr *TicketRelease) UserUnlockReservedTicketRelease(user *User) {
 
 func GetOpenTicketReleases(db *gorm.DB) (ticketReleases []TicketRelease, err error) {
 	err = db.Where("open <= ? AND close >= ?", time.Now().Unix(), time.Now().Unix()).Find(&ticketReleases).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ticketReleases, nil
+}
+
+func GetClosedTicketReleases(db *gorm.DB) (ticketReleases []TicketRelease, err error) {
+	err = db.Where("close <= ?", time.Now().Unix()).Find(&ticketReleases).Error
 
 	if err != nil {
 		return nil, err

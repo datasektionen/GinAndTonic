@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/gin-contrib/cors"
 	_ "github.com/lib/pq"
 	"github.com/robfig/cron/v3"
@@ -34,7 +36,7 @@ func CORSConfig() cors.Config {
 	return corsConfig
 }
 
-func setupCronJobs(db *gorm.DB) {
+func setupCronJobs(db *gorm.DB) *cron.Cron {
 	c := cron.New()
 	_, err := c.AddFunc("@every 30m", func() {
 		jobs.AllocateReserveTicketsJob(db)
@@ -42,8 +44,11 @@ func setupCronJobs(db *gorm.DB) {
 	if err != nil {
 		log.Fatalf("Error scheduling example job: %v", err)
 	}
+
+	fmt.Println("Starting cron jobs")
 	c.Start()
-	defer c.Stop()
+
+	return c
 }
 
 func main() {
@@ -71,7 +76,12 @@ func main() {
 		panic("Failed to initialize ticket release methods: " + err.Error())
 	}
 
+	// Setup cron jobs
+	c := setupCronJobs(db)
+
 	router := routes.SetupRouter(db)
 
 	router.Run()
+
+	c.Stop()
 }

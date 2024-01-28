@@ -13,6 +13,7 @@ services:
       - db
       - nyckeln
     environment:
+      - ENV=dev
       - DB_HOST=db
       - DB_USER=ticketuser
       - DB_PASSWORD=yourpassword

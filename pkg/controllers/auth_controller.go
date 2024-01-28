@@ -23,8 +23,10 @@ var jwtKey []byte
 func init() {
 	var err error
 
-	if err = godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+	if os.Getenv("ENV") == "dev" {
+		if err = godotenv.Load(); err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
 	}
 
 	jwtKey = []byte(os.Getenv("JWT_KEY"))

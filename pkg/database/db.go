@@ -14,8 +14,10 @@ import (
 func InitDB() (*gorm.DB, error) {
 	var err error
 
-	if err = godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+	if os.Getenv("ENV") == "dev" {
+		if err = godotenv.Load(); err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
 	}
 
 	host := os.Getenv("DB_HOST")

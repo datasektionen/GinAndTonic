@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/gin-contrib/cors"
 	_ "github.com/lib/pq"
@@ -15,19 +14,18 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/routes"
-	"github.com/joho/godotenv"
 )
 
 func init() {
 	// Load environment variables from .env file
-	if os.Getenv("ENV") == "dev" {
-		var err error
+	// if os.Getenv("ENV") == "dev" {
+	// 	var err error
 
-		if err = godotenv.Load(".env"); err != nil {
-			log.Fatalf("Error loading .env file: %v", err)
-		}
+	// 	if err = godotenv.Load(".env"); err != nil {
+	// 		log.Fatalf("Error loading .env file: %v", err)
+	// 	}
 
-	}
+	// }
 }
 
 func CORSConfig() cors.Config {

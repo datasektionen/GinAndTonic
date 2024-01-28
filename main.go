@@ -20,7 +20,7 @@ import (
 
 func init() {
 	// Load environment variables from .env file
-	if os.Getenv("ENV") != "dev" {
+	if os.Getenv("ENV") == "dev" {
 		var err error
 
 		if err = godotenv.Load(".env"); err != nil {

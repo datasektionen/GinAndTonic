@@ -373,3 +373,4 @@
 {"id":6,"level":"info","msg":"Starting to process ticket release","time":"2024-01-28T15:55:10+01:00"}
 {"id":6,"level":"info","msg":"Ticket release has a promo code","time":"2024-01-28T15:55:10+01:00"}
 {"level":"info","msg":"AllocateReserveTicketsJob took 8.353766ms","time":"2024-01-28T15:55:10+01:00"}
+{"level":"info","msg":"No closed ticket releases","time":"2024-01-28T18:08:17Z"}

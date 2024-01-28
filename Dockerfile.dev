@@ -1,0 +1,20 @@
+# Start from the official Go image.
+FROM golang:1.19
+
+# Set the working directory inside the container.
+WORKDIR /app
+
+# Copy the local package files to the container's workspace.
+COPY . .
+
+# Install the live reloading tool 'air' and any other application dependencies.
+# This is assuming your go.mod and go.sum files are in the same directory as your Dockerfile.
+RUN go mod download
+RUN go install github.com/cosmtrek/air@latest
+
+# Expose the port the app runs on
+EXPOSE 8080
+EXPOSE 7002
+
+# Use the 'air' command to start the live reloading
+CMD ["air"]

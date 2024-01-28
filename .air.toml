@@ -1,6 +1,6 @@
 # .air.toml
 [build]
-  cmd = "go build -o ./tmp/main ./pkg/server/main.go"
+  cmd = "go build -o ./tmp/main -buildvcs=false ./main.go"
   bin = "./tmp/main"
   log = "air.log"
 

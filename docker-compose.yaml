@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: go-gin-app
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    command: air
+    depends_on:
+      - db
+      - nyckeln
+    environment:
+      - DB_HOST=db
+      - DB_USER=ticketuser
+      - DB_PASSWORD=yourpassword
+      - DB_NAME=ticketdb
+      - DB_PORT=5432
+      - DB_SSLMODE=disable  # or your preferred SSL mode
+      - LOGIN_BASE_URL=http://nyckeln:7002
+    volumes:
+      - .:/app
+
+  db:
+    container_name: postgres-db
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ticketdb
+      POSTGRES_USER: ticketuser
+      POSTGRES_PASSWORD: yourpassword
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  nyckeln:
+    container_name: nyckeln-service
+    image: ghcr.io/datasektionen/nyckeln-under-dorrmattan
+    ports:
+      - "7002:7002"
+
+volumes:
+  postgres-data:

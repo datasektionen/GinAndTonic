@@ -55,16 +55,14 @@ func Logout(c *gin.Context) {
 
 // Login redirects to the external login page
 func LoginPostman(c *gin.Context) {
-	loginURL := os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "http://localhost:8080/postman-login-complete/"
-
-	c.Redirect(http.StatusSeeOther, loginURL)
+	c.Redirect(http.StatusSeeOther, "http://localhost:7002/login?callback="+"http://localhost:8080/postman-login-complete/")
 }
 
 func Login(c *gin.Context) {
-	loginURL := os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "http://localhost:8080/login-complete/"
+	// loginURL := os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "http://app:8080/login-complete/"
 
 	c.JSON(http.StatusOK, gin.H{
-		"login_url": loginURL,
+		"login_url": "http://localhost:7002/login?callback=" + "http://localhost:8080/login-complete/",
 	})
 }
 
@@ -243,6 +241,7 @@ func LoginCompletePostman(c *gin.Context) {
 		})
 		return
 	}
+
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusOK {
@@ -250,7 +249,6 @@ func LoginCompletePostman(c *gin.Context) {
 		decoder := json.NewDecoder(res.Body)
 		err := decoder.Decode(&body)
 		if err != nil {
-			println("Error: " + err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": "Error decoding response",
 			})

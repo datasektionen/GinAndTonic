@@ -138,6 +138,8 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		return
 	}
 
+	println(event.TicketReleases[0].TicketsAvailable)
+
 	// Check if the event is private
 	if event.IsPrivate {
 		// Get the secret token from the request

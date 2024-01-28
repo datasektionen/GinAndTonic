@@ -13,7 +13,7 @@ import (
 var log = logrus.New()
 
 func init() {
-	logFilePath := "logs/allocate_reserve_tickets_job.log"
+	logFilePath := "../../logs/allocate_reserve_tickets_job.log"
 
 	// Create a file to write logs to. Append to existing file, create if not exists, writable.
 	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

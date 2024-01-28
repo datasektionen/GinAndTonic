@@ -374,3 +374,21 @@
 {"id":6,"level":"info","msg":"Ticket release has a promo code","time":"2024-01-28T15:55:10+01:00"}
 {"level":"info","msg":"AllocateReserveTicketsJob took 8.353766ms","time":"2024-01-28T15:55:10+01:00"}
 {"level":"info","msg":"No closed ticket releases","time":"2024-01-28T18:08:17Z"}
+{"level":"info","msg":"No closed ticket releases","time":"2024-01-28T19:41:36Z"}
+{"level":"info","msg":"No closed ticket releases","time":"2024-01-28T20:11:36Z"}
+{"level":"info","msg":"Starting to process closed ticket releases","number_of_closed_ticket_releases":1,"time":"2024-01-28T20:53:08Z"}
+{"id":2,"level":"info","msg":"Starting to process ticket release","time":"2024-01-28T20:53:08Z"}
+{"id":2,"level":"info","msg":"Ticket release has a promo code","time":"2024-01-28T20:53:08Z"}
+{"level":"info","msg":"AllocateReserveTicketsJob took 2.174213ms","time":"2024-01-28T20:53:08Z"}
+{"level":"info","msg":"Starting to process closed ticket releases","number_of_closed_ticket_releases":1,"time":"2024-01-28T21:23:08Z"}
+{"id":2,"level":"info","msg":"Starting to process ticket release","time":"2024-01-28T21:23:08Z"}
+{"id":2,"level":"info","msg":"Ticket release has a promo code","time":"2024-01-28T21:23:08Z"}
+{"level":"info","msg":"AllocateReserveTicketsJob took 1.987036ms","time":"2024-01-28T21:23:08Z"}
+{"level":"info","msg":"Starting to process closed ticket releases","number_of_closed_ticket_releases":1,"time":"2024-01-28T21:53:08Z"}
+{"id":2,"level":"info","msg":"Starting to process ticket release","time":"2024-01-28T21:53:08Z"}
+{"id":2,"level":"info","msg":"Ticket release has a promo code","time":"2024-01-28T21:53:08Z"}
+{"level":"info","msg":"AllocateReserveTicketsJob took 5.591654ms","time":"2024-01-28T21:53:08Z"}
+{"level":"info","msg":"Starting to process closed ticket releases","number_of_closed_ticket_releases":1,"time":"2024-01-28T22:23:08Z"}
+{"id":2,"level":"info","msg":"Starting to process ticket release","time":"2024-01-28T22:23:08Z"}
+{"id":2,"level":"info","msg":"Ticket release has a promo code","time":"2024-01-28T22:23:08Z"}
+{"level":"info","msg":"AllocateReserveTicketsJob took 5.642314ms","time":"2024-01-28T22:23:08Z"}

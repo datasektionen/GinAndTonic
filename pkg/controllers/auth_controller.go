@@ -134,6 +134,13 @@ func LoginComplete(c *gin.Context) {
 	}
 	defer res.Body.Close()
 
+	var domain string
+	if os.Getenv("ENV") == "dev" {
+		domain = "localhost"
+	} else if os.Getenv("ENV") == "prod" {
+		domain = "ginandtonic.betasektionen.se"
+	}
+
 	if res.StatusCode == http.StatusOK {
 		var body types.Body
 		decoder := json.NewDecoder(res.Body)
@@ -160,10 +167,10 @@ func LoginComplete(c *gin.Context) {
 			http.SetCookie(c.Writer, &http.Cookie{
 				Name:     "auth_token",
 				Value:    tokenString,
-				HttpOnly: true,
+				HttpOnly: true, // Set this to true in production
 				Path:     "/",
-				Secure:   false, // Uncomment this line if you are using HTTPS
-				// Domain: "yourfrontenddomain.com", // Set your domain here
+				Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
+				Domain:   domain,                     // Set your domain here
 			})
 
 			referer := c.Request.Referer()
@@ -217,13 +224,14 @@ func LoginComplete(c *gin.Context) {
 		}
 
 		// Set the JWT token in an HTTP-only cookie
+
 		http.SetCookie(c.Writer, &http.Cookie{
 			Name:     "auth_token",
 			Value:    tokenString,
 			HttpOnly: true,
 			Path:     "/",
-			// Secure: true, // Uncomment this line if you are using HTTPS
-			// Domain: "yourfrontenddomain.com", // Set your domain here
+			Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
+			Domain:   domain,                     // Set your domain here
 		})
 
 		c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"?auth=success")

@@ -13,21 +13,27 @@ import (
 
 func InitDB() (*gorm.DB, error) {
 	var err error
+	var dsn string
 
 	if os.Getenv("ENV") == "dev" {
 		if err = godotenv.Load(); err != nil {
 			log.Fatalf("Error loading .env file: %v", err)
 		}
+
+		host := os.Getenv("DB_HOST")
+		user := os.Getenv("DB_USER")
+		password := os.Getenv("DB_PASSWORD")
+		dbname := os.Getenv("DB_NAME")
+		port := os.Getenv("DB_PORT")
+		sslmode := os.Getenv("DB_SSLMODE")
+
+		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC", host, user, password, dbname, port, sslmode)
+	} else if os.Getenv("ENV") == "prod" {
+		dsn = os.Getenv("DATABASE_URL")
+
+	} else {
+		log.Fatalf("Error loading .env file: %v", err)
 	}
-
-	host := os.Getenv("DB_HOST")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-	port := os.Getenv("DB_PORT")
-	sslmode := os.Getenv("DB_SSLMODE")
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC", host, user, password, dbname, port, sslmode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

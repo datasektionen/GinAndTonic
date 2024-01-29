@@ -62,10 +62,16 @@ func LoginPostman(c *gin.Context) {
 
 func Login(c *gin.Context) {
 	// loginURL := os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "http://app:8080/login-complete/"
+	if os.Getenv("ENV") == "dev" {
+		c.JSON(http.StatusOK, gin.H{
+			"login_url": "http://localhost:7002/login?callback=" + "http://localhost:8080/login-complete/",
+		})
 
-	c.JSON(http.StatusOK, gin.H{
-		"login_url": "http://localhost:7002/login?callback=" + "http://localhost:8080/login-complete/",
-	})
+	} else if os.Getenv("ENV") == "prod" {
+		c.JSON(http.StatusOK, gin.H{
+			"login_url": os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "https://ginandtonic.betasektionen.se/login-complete/",
+		})
+	}
 }
 
 func CurrentUser(c *gin.Context) {

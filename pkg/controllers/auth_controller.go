@@ -70,7 +70,7 @@ func Login(c *gin.Context) {
 	} else if os.Getenv("ENV") == "prod" {
 		// Redirect to the external login page
 		scheme := "https" // Set this to "http" if your application is not running on HTTPS
-		callbackURL := scheme + "://" + c.Request.Host + "/login/"
+		callbackURL := scheme + "://" + c.Request.Host + "/login-complete/"
 		println(callbackURL)
 		c.Redirect(http.StatusMovedPermanently, os.Getenv("LOGIN_BASE_URL")+"/login?callback="+callbackURL)
 

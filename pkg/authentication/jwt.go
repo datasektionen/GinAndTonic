@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -35,6 +36,7 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 		cookie, err := c.Request.Cookie("auth_token")
 		// View cookie error
 		if err != nil {
+			fmt.Println("Error getting cookie:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
 			return
@@ -44,6 +46,7 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 		tokenString := cookie.Value
 
 		if tokenString == "" {
+			fmt.Println("Error getting cookie:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
 			return

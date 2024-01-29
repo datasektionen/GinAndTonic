@@ -32,7 +32,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	if os.Getenv("ENV") == "dev" {
 		config.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080", "http://tessera.betasektionen.se"}
 	} else if os.Getenv("ENV") == "prod" {
-		config.AllowOrigins = []string{"http://tessera.betasektionen.se", "https://tessera.betasektionen.se"}
+		config.AllowOrigins = []string{"http://tessera.betasektionen.se", "https://tessera.betasektionen.se", "http://localhost:5000", "http://localhost"}
 	}
 	config.AllowCredentials = true
 

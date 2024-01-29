@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
@@ -28,7 +29,11 @@ func rateLimitMiddleware(c *gin.Context) {
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:5000"}
+	if os.Getenv("ENV") == "dev" {
+		config.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080", "http://tessera.betasektionen.se"}
+	} else if os.Getenv("ENV") == "prod" {
+		config.AllowOrigins = []string{"http://tessera.betasektionen.se"}
+	}
 	config.AllowCredentials = true
 
 	r.Use(cors.New(config))

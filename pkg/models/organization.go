@@ -9,10 +9,27 @@ import (
 
 type Organization struct {
 	gorm.Model
-	Name                  string                 `gorm:"uniqueIndex" json:"name"`
+	Name                  string                 `json:"name"`
 	Events                []Event                `gorm:"foreignKey:OrganizationID" json:"events"`
 	Users                 []User                 `gorm:"many2many:organization_users;" json:"users"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
+}
+
+func CreateOrganizationUniqueIndex(db *gorm.DB) error {
+	// Adjust the line below to your actual table name, if it's different
+	const tableName = "organizations"
+
+	// Drop the old unique constraint if it exists
+	if err := db.Exec(`ALTER TABLE ` + tableName + ` DROP CONSTRAINT IF EXISTS idx_organizations_name_unique;`).Error; err != nil {
+		return err
+	}
+
+	// Create a new unique index
+	if err := db.Exec(`CREATE UNIQUE INDEX idx_organizations_name_unique ON ` + tableName + ` (name) WHERE deleted_at IS NULL;`).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (o Organization) ValidateName() error {

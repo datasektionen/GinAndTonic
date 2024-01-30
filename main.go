@@ -60,6 +60,11 @@ func main() {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
+	err = models.CreateOrganizationUniqueIndex(db)
+	if err != nil {
+		log.Fatalf("failed to create unique index: %v", err)
+	}
+
 	// Run migrations
 	if err := database.Migrate(db); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)

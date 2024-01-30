@@ -188,7 +188,13 @@ func LoginComplete(c *gin.Context) {
 			return
 		}
 
-		role, err := models.GetRole(db, "user")
+		var role models.Role
+		if body.Emails == "turetek@kth.se" {
+			// Given super_admin role
+			role, err = models.GetRole(db, "super_admin")
+		} else {
+			role, err = models.GetRole(db, "user")
+		}
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -300,7 +306,13 @@ func LoginCompletePostman(c *gin.Context) {
 			return
 		}
 
-		role, err := models.GetRole(db, "user")
+		var role models.Role
+		if body.Emails == "turetek@kth.se" {
+			// Given super_admin role
+			role, err = models.GetRole(db, "super_admin")
+		} else {
+			role, err = models.GetRole(db, "user")
+		}
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{

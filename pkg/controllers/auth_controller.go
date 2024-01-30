@@ -72,7 +72,9 @@ func Login(c *gin.Context) {
 		scheme := "https" // Set this to "http" if your application is not running on HTTPS
 		callbackURL := scheme + "://" + c.Request.Host + "/login-complete/"
 		println(callbackURL)
-		c.Redirect(http.StatusMovedPermanently, os.Getenv("LOGIN_BASE_URL")+"/login?callback="+callbackURL)
+		c.JSON(http.StatusOK, gin.H{
+			"login_url": os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + callbackURL,
+		})
 
 		// println("Redirecting to: " + os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "https://ginandtonic.betasektionen.se/login-complete/")
 		// c.Redirect(os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "https://ginandtonic.betasektionen.se/login-complete/")

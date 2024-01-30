@@ -69,7 +69,7 @@ func Logout(c *gin.Context) {
 		SameSite: getSameSite(),
 		MaxAge:   -1,
 		Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-		Domain:   getDomain()                  // Set your domain here
+		Domain:   getDomain(),                 // Set your domain here
 	})
 
 	c.Redirect(http.StatusSeeOther, "/")

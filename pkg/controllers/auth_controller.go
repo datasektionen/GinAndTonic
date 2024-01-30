@@ -182,12 +182,8 @@ func LoginComplete(c *gin.Context) {
 
 			setCookie(c, tokenString, 60*60*24*7) //  7 days
 
-			referer := c.Request.Referer()
-			if referer != "" {
-				c.Redirect(http.StatusSeeOther, referer+"?auth=success")
-			} else {
-				c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"?auth=success")
-			}
+			// referer := c.Request.Referer()
+			c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"?auth=success")
 
 			return
 		}

@@ -39,6 +39,7 @@ services:
   nyckeln:
     container_name: nyckeln-service
     image: ghcr.io/datasektionen/nyckeln-under-dorrmattan
+    platform: linux/amd64
     ports:
       - "7002:7002"
 

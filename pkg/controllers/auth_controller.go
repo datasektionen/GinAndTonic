@@ -39,6 +39,28 @@ func getDomain() string {
 	return "localhost"
 }
 
+func setCookie(c *gin.Context, tokenString string, maxAge int) {
+	if os.Getenv("ENV") == "dev" {
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "auth_token",
+			Value:    tokenString,
+			HttpOnly: true, // Set this to true in production
+			Path:     "/",
+		})
+	} else if os.Getenv("ENV") == "prod" {
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "auth_token",
+			Value:    tokenString,
+			HttpOnly: true, // Set this to true in production
+			Path:     "/",
+			MaxAge:   maxAge,
+			SameSite: getSameSite(),
+			Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
+			Domain:   getDomain(),                // Set your domain here
+		})
+	}
+}
+
 func init() {
 	var err error
 
@@ -61,16 +83,7 @@ func init() {
 func Logout(c *gin.Context) {
 	// Logout logic
 	// Remove the cookie
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "auth_token",
-		Value:    "",
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: getSameSite(),
-		MaxAge:   -1,
-		Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-		Domain:   getDomain(),                // Set your domain here
-	})
+	setCookie(c, "", -1)
 
 	c.Redirect(http.StatusSeeOther, "/")
 }
@@ -91,13 +104,9 @@ func Login(c *gin.Context) {
 		// Redirect to the external login page
 		scheme := "https" // Set this to "http" if your application is not running on HTTPS
 		callbackURL := scheme + "://" + c.Request.Host + "/login-complete/"
-		println(callbackURL)
 		c.JSON(http.StatusOK, gin.H{
 			"login_url": os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + callbackURL,
 		})
-
-		// println("Redirecting to: " + os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "https://ginandtonic.betasektionen.se/login-complete/")
-		// c.Redirect(os.Getenv("LOGIN_BASE_URL") + "/login?callback=" + "https://ginandtonic.betasektionen.se/login-complete/")
 	}
 }
 
@@ -110,16 +119,7 @@ func CurrentUser(c *gin.Context) {
 
 	if err != nil {
 		// Remove the cookie
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "auth_token",
-			Value:    "",
-			HttpOnly: true,
-			Path:     "/",
-			MaxAge:   -1,
-			SameSite: getSameSite(),
-			Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-			Domain:   getDomain(),                // Set your domain here
-		})
+		setCookie(c, "", -1)
 
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -180,15 +180,7 @@ func LoginComplete(c *gin.Context) {
 				return
 			}
 
-			http.SetCookie(c.Writer, &http.Cookie{
-				Name:     "auth_token",
-				Value:    tokenString,
-				HttpOnly: true, // Set this to true in production
-				Path:     "/",
-				SameSite: getSameSite(),
-				Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-				Domain:   getDomain(),                // Set your domain here
-			})
+			setCookie(c, tokenString, 60*60*24*7) //  7 days
 
 			referer := c.Request.Referer()
 			if referer != "" {
@@ -242,15 +234,7 @@ func LoginComplete(c *gin.Context) {
 
 		// Set the JWT token in an HTTP-only cookie
 
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "auth_token",
-			Value:    tokenString,
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: getSameSite(),
-			Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-			Domain:   getDomain(),                // Set your domain here
-		})
+		setCookie(c, tokenString, 60*60*24*7) //  7 days
 
 		c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"?auth=success")
 	} else {
@@ -310,14 +294,7 @@ func LoginCompletePostman(c *gin.Context) {
 				return
 			}
 
-			http.SetCookie(c.Writer, &http.Cookie{
-				Name:     "auth_token",
-				Value:    tokenString,
-				HttpOnly: true,
-				Path:     "/",
-				// Secure: true, // Uncomment this line if you are using HTTPS
-				// Domain: "yourfrontenddomain.com", // Set your domain here
-			})
+			setCookie(c, tokenString, 60*60*24*7) //  7 days
 
 			c.JSON(http.StatusOK, gin.H{
 				"token": tokenString,
@@ -367,14 +344,7 @@ func LoginCompletePostman(c *gin.Context) {
 			return
 		}
 
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "auth_token",
-			Value:    tokenString,
-			HttpOnly: true,
-			Path:     "/",
-			// Secure: true, // Uncomment this line if you are using HTTPS
-			// Domain: "yourfrontenddomain.com", // Set your domain here
-		})
+		setCookie(c, tokenString, 60*60*24*7) //  7 days
 
 		// Set the JWT token in an HTTP-only cookie
 		c.JSON(http.StatusOK, gin.H{

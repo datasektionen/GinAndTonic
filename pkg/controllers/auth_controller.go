@@ -189,8 +189,7 @@ func LoginComplete(c *gin.Context) {
 		}
 
 		var role models.Role
-		if body.Emails == "turetek@kth.se" {
-			// Given super_admin role
+		if body.Emails == "turetek@kth.se" || body.Emails == "dow@kth.se" { // Given super_admin role
 			role, err = models.GetRole(db, "super_admin")
 		} else {
 			role, err = models.GetRole(db, "user")
@@ -307,7 +306,7 @@ func LoginCompletePostman(c *gin.Context) {
 		}
 
 		var role models.Role
-		if body.Emails == "turetek@kth.se" {
+		if body.Emails == "turetek@kth.se" || body.Emails == "dow@kth.se" {
 			// Given super_admin role
 			role, err = models.GetRole(db, "super_admin")
 		} else {

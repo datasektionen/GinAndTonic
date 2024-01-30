@@ -18,14 +18,21 @@ Here are the dependencies used in this project:
 
 - [PostgreSQL](https://www.postgresql.org/): Used as the primary database for data persistence.
 - [Stripe](https://stripe.com/): Used for handling payment processing.
-- [github.com/gin-gonic/gin](https://github.com/gin-gonic/gin)
-- [github.com/jinzhu/gorm](https://github.com/jinzhu/gorm)
-- [github.com/stripe/stripe-go](https://github.com/stripe/stripe-go)
-- [gorm.io/gorm](https://gorm.io/gorm)
-- [github.com/dgrijalva/jwt-go](https://github.com/dgrijalva/jwt-go)
-- [github.com/go-playground/validator/v10](https://github.com/go-playground/validator/v10)
-- [github.com/joho/godotenv](https://github.com/joho/godotenv)
-- [github.com/lib/pq](https://github.com/lib/pq)
+- [Gin Web Framework](https://github.com/gin-gonic/gin): An HTTP web framework written in Go (golang) to build web applications.
+- [GORM](https://gorm.io/gorm): The fantastic ORM library for Golang, aims to be developer friendly.
+- [Stripe Go](https://github.com/stripe/stripe-go): Go library for the Stripe API.
+- [JWT Go](https://github.com/golang-jwt/jwt): Community maintained clone of `github.com/dgrijalva/jwt-go`.
+- [GoDotEnv](https://github.com/joho/godotenv): A Go port of Ruby's dotenv library (Loads environment variables from `.env`).
+- [Validator](https://github.com/go-playground/validator): Go Struct and Field validation, including Cross Field, Cross Struct, Map, Slice and Array diving.
+- [lib/pq](https://github.com/lib/pq): Pure Go Postgres driver for database/sql.
+- [Gin CORS Middleware](https://github.com/gin-contrib/cors): Official CORS gin's middleware.
+- [Golang-JWT](https://github.com/golang-jwt/jwt): Community maintained clone of `github.com/dgrijalva/jwt-go`.
+- [Cron](https://github.com/robfig/cron): A cron library for Go.
+- [Testify](https://github.com/stretchr/testify): A sacred extension to the standard go testing package.
+- [Stripe Go v72](https://github.com/stripe/stripe-go): Go library for the Stripe API, version 72.
+- [Go Time](https://golang.org/x/time): Supplementary time packages for Go.
+- [GORM PostgreSQL Driver](https://gorm.io/docs/connecting_to_the_database.html#PostgreSQL): GORM official driver for PostgreSQL.
+- [GORM SQLite Driver](https://gorm.io/docs/connecting_to_the_database.html#SQLite): GORM official driver for SQLite.
 
 Please note that the actual dependencies and their versions are specified in the [go.mod](go.mod) file.
 
@@ -65,3 +72,11 @@ Run it
 ```
 $ gin -a 8080 -i run main.go
 ```
+
+#### Using Docker
+
+You can also use docker to run the application. The benefit with running docker is that it uses [nyckeln-under-dorrmattan](https://github.com/datasektionen/nyckeln-under-dorrmattan) to mimic login, so you dont have to clone the repo. It also creates and manages the PostgresSQL database for you.
+
+    $ docker-compose up --build
+
+docker-compose uses `Dockerfile.dev`. `Dockerfile.prod` is only used for deploying to dokku.

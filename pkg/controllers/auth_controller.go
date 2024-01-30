@@ -20,6 +20,25 @@ const YOUR_CALLBACK_URL = "http://localhost:8080/login-complete"
 var db *gorm.DB
 var jwtKey []byte
 
+func getSameSite() http.SameSite {
+	if os.Getenv("ENV") == "dev" {
+		return http.SameSiteNoneMode
+	} else if os.Getenv("ENV") == "prod" {
+		return http.SameSiteNoneMode
+	}
+	return http.SameSiteNoneMode
+}
+
+func getDomain() string {
+	if os.Getenv("ENV") == "dev" {
+		return "localhost"
+	} else if os.Getenv("ENV") == "prod" {
+		return ".betasektionen.se"
+	}
+
+	return "localhost"
+}
+
 func init() {
 	var err error
 
@@ -47,9 +66,10 @@ func Logout(c *gin.Context) {
 		Value:    "",
 		HttpOnly: true,
 		Path:     "/",
+		SameSite: getSameSite(),
 		MaxAge:   -1,
-		// Secure: true, // Uncomment this line if you are using HTTPS
-		// Domain: "yourfrontenddomain.com", // Set your domain here
+		Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
+		Domain:   getDomain()                  // Set your domain here
 	})
 
 	c.Redirect(http.StatusSeeOther, "/")
@@ -96,8 +116,9 @@ func CurrentUser(c *gin.Context) {
 			HttpOnly: true,
 			Path:     "/",
 			MaxAge:   -1,
-			// Secure: true, // Uncomment this line if you are using HTTPS
-			// Domain: "yourfrontenddomain.com", // Set your domain here
+			SameSite: getSameSite(),
+			Secure:  os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
+			Domain:  getDomain()                // Set your domain here
 		})
 
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -171,6 +192,7 @@ func LoginComplete(c *gin.Context) {
 				Value:    tokenString,
 				HttpOnly: true, // Set this to true in production
 				Path:     "/",
+				SameSite: getSameSite(),
 				Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
 				Domain:   domain,                     // Set your domain here
 			})
@@ -232,6 +254,7 @@ func LoginComplete(c *gin.Context) {
 			Value:    tokenString,
 			HttpOnly: true,
 			Path:     "/",
+			SameSite: getSameSite(),
 			Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
 			Domain:   domain,                     // Set your domain here
 		})

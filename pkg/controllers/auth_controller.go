@@ -69,7 +69,7 @@ func Logout(c *gin.Context) {
 		SameSite: getSameSite(),
 		MaxAge:   -1,
 		Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-		Domain:   getDomain(),                 // Set your domain here
+		Domain:   getDomain(),                // Set your domain here
 	})
 
 	c.Redirect(http.StatusSeeOther, "/")
@@ -117,8 +117,8 @@ func CurrentUser(c *gin.Context) {
 			Path:     "/",
 			MaxAge:   -1,
 			SameSite: getSameSite(),
-			Secure:  os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-			Domain:  getDomain()                // Set your domain here
+			Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
+			Domain:   getDomain(),                // Set your domain here
 		})
 
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -157,13 +157,6 @@ func LoginComplete(c *gin.Context) {
 	}
 	defer res.Body.Close()
 
-	var domain string
-	if os.Getenv("ENV") == "dev" {
-		domain = "localhost"
-	} else if os.Getenv("ENV") == "prod" {
-		domain = "ginandtonic.betasektionen.se"
-	}
-
 	if res.StatusCode == http.StatusOK {
 		var body types.Body
 		decoder := json.NewDecoder(res.Body)
@@ -194,7 +187,7 @@ func LoginComplete(c *gin.Context) {
 				Path:     "/",
 				SameSite: getSameSite(),
 				Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-				Domain:   domain,                     // Set your domain here
+				Domain:   getDomain(),                // Set your domain here
 			})
 
 			referer := c.Request.Referer()
@@ -256,7 +249,7 @@ func LoginComplete(c *gin.Context) {
 			Path:     "/",
 			SameSite: getSameSite(),
 			Secure:   os.Getenv("ENV") == "prod", // True means only send cookie over HTTPS
-			Domain:   domain,                     // Set your domain here
+			Domain:   getDomain(),                // Set your domain here
 		})
 
 		c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"?auth=success")

@@ -58,3 +58,7 @@ func GetUserByEmailIfExists(db *gorm.DB, email string) (User, error) {
 	err := db.Preload("Role").Where("email = ?", email).First(&user).Error
 	return user, err
 }
+
+func (u *User) FullName() string {
+	return u.FirstName + " " + u.LastName
+}

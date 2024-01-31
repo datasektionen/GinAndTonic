@@ -1,0 +1,47 @@
+<div
+  style="
+    font-family: Verdana, sans-serif;
+    padding: 10px;
+    background-color: #e1e1e1;
+    color: #303030;
+  "
+>
+  <h1 style="font-size: 24px; color: #272727">Hey, {{ .FullName }}!</h1>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    We're glad to inform you that you've received a ticket to
+    <strong>{{ .EventName }}!</strong> <br />
+    You can view and pay your tickets under the "My Tickets" section of your
+    profile. <a style="color: #00494e" href="{{ .TicketURL }}">Click here</a> to
+    view your tickets. This is also where you pay for your ticket. Go to the "My
+    Tickets" section, select the ticket you want to pay for and click the "Pay"
+    button. A popup will appear where you pay for your ticket.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    <strong> {{ .OrganizationName }} </strong> would appreciate it if you could
+    pay for your tickets as soon as possible. {{ if .PayWithin }} You therefore
+    have <strong>{{ .PayWithin }} </strong>hours to pay for your tickets. If you
+    do not pay for your tickets within this time, your tickets will be given to
+    a reserve. {{ else }} You have to pay for the ticket before the event. {{
+    end }}
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you no longer wish to attend the event select the
+    <strong> "I no longer wish to attend" </strong> in the "My Tickets" section
+    of your profile.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you have any questions, please contact us at <a
+        style="color: #00494e"
+        href="mailto:{{ .OrganizationEmail }}?subject=Questions about {{ .EventName }}"
+        >{{ .OrganizationEmail }}</a>
+  </p>
+  <br />
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

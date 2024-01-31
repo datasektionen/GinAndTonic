@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 
 	"gorm.io/gorm"
@@ -11,6 +10,7 @@ import (
 type Organization struct {
 	gorm.Model
 	Name                  string                 `json:"name"`
+	Email                 string                 `json:"email" gorm:"unique"`
 	Events                []Event                `gorm:"foreignKey:OrganizationID" json:"events"`
 	Users                 []User                 `gorm:"many2many:organization_users;" json:"users"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
@@ -27,7 +27,6 @@ func CreateOrganizationUniqueIndex(db *gorm.DB) error {
 
 	// Create a new unique index
 	if err := db.Exec(`CREATE UNIQUE INDEX idx_organizations_name_unique ON ` + tableName + ` (name) WHERE deleted_at IS NULL;`).Error; err != nil {
-		fmt.Println(err)
 	}
 
 	return nil

@@ -1,4 +1,4 @@
-package services
+package jobs
 
 import (
 	"bytes"
@@ -8,17 +8,7 @@ import (
 	"os"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
-	"gorm.io/gorm"
 )
-
-/* Service for handling notifications, mainly sending emails */
-type NotificationService struct {
-	db *gorm.DB
-}
-
-func NewNotificationService(db *gorm.DB) *NotificationService {
-	return &NotificationService{db: db}
-}
 
 // create type for body
 type MailData struct {
@@ -35,7 +25,7 @@ func SendEmail(user *models.User, subject, content string) error {
 	// Create the data to be sent
 	data := MailData{
 		Key:     os.Getenv("SPAM_API_KEY"),
-		To:      user.Email,
+		To:      "lucdow7@gmail.com", // HARD CODED FOR TESTING TODO CHANGE
 		From:    FROM,
 		Subject: subject,
 		Content: content,

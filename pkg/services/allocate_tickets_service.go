@@ -2,9 +2,11 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 
+	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
@@ -27,6 +29,8 @@ func init() {
 
 func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketRelease) error {
 	method := ticketRelease.TicketReleaseMethodDetail.TicketReleaseMethod
+	var tickets []*models.Ticket
+	var err error
 
 	if method.MethodName == "" {
 		// Raise error
@@ -51,20 +55,51 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 
 	switch method.MethodName {
 	case string(models.FCFS_LOTTERY):
-		err := ats.allocateFCFSLotteryTickets(ticketRelease, tx)
+		tickets, err = ats.allocateFCFSLotteryTickets(ticketRelease, tx)
 
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
+
+		tx.Commit()
+
+		if len(tickets) > 0 {
+			// Notify the users that the tickets have been allocated
+			for _, ticket := range tickets {
+				println("Ticket ID: ", ticket.ID)
+				err := jobs.HandleTicketAllocationAddToQueue(ats.DB, int(ticket.ID))
+
+				if err != nil {
+					fmt.Println(err)
+					return err
+				}
+			}
+		}
+
 		break
 	case string(models.RESERVED_TICKET_RELEASE):
-		err := ats.allocateReservedTickets(ticketRelease, tx)
+		tickets, err = ats.allocateReservedTickets(ticketRelease, tx)
 
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
+
+		tx.Commit()
+
+		if len(tickets) > 0 {
+			// Notify the users that the tickets have been allocated
+			for _, ticket := range tickets {
+				err := jobs.HandleTicketAllocationAddToQueue(ats.DB, int(ticket.ID))
+
+				if err != nil {
+					fmt.Println(err)
+					return err
+				}
+			}
+		}
+
 		break
 
 	default:
@@ -72,13 +107,14 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 		return errors.New("Unknown ticket release method")
 	}
 
-	tx.Commit()
-
 	return nil
 }
 
-func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) error {
+func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
+	ticketRelease *models.TicketRelease,
+	tx *gorm.DB) (allTickets []*models.Ticket, err error) {
 	var reserveNumber uint
+
 	methodDetail := ticketRelease.TicketReleaseMethodDetail
 
 	// Calculate the deadline for eligible requests
@@ -89,11 +125,11 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(ticketRelease *mod
 
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	if len(allTicketRequests) == 0 {
-		return errors.New("No ticket requests to allocate")
+		return allTickets, errors.New("No ticket requests to allocate")
 	}
 
 	eligibleTicketRequestsForLottery := make([]models.TicketRequest, 0)
@@ -118,21 +154,27 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(ticketRelease *mod
 		reserveNumber = 1
 		for i := 0; i < len(eligibleTicketRequestsForLottery); i++ {
 			if i < availableTickets {
-				if err := ats.AllocateTicket(eligibleTicketRequestsForLottery[i], tx); err != nil {
-					return err
+				ticket, err := ats.AllocateTicket(eligibleTicketRequestsForLottery[i], tx)
+				if err != nil {
+					return nil, err
 				}
+				allTickets = append(allTickets, ticket)
 			} else {
-				if err := ats.AllocateReserveTicket(eligibleTicketRequestsForLottery[i], reserveNumber, tx); err != nil {
-					return err
+				ticket, err := ats.AllocateReserveTicket(eligibleTicketRequestsForLottery[i], reserveNumber, tx)
+				if err != nil {
+					return nil, err
 				}
 				reserveNumber++
+				allTickets = append(allTickets, ticket)
 			}
 		}
 	} else {
 		for _, ticketRequest := range eligibleTicketRequestsForLottery {
-			if err := ats.AllocateTicket(ticketRequest, tx); err != nil {
-				return err
+			ticket, err := ats.AllocateTicket(ticketRequest, tx)
+			if err != nil {
+				return nil, err
 			}
+			allTickets = append(allTickets, ticket)
 		}
 	}
 
@@ -140,27 +182,31 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(ticketRelease *mod
 	reserveNumber = 1
 	for _, ticketRequest := range notEligibleTicketRequests {
 		if remainingTickets > 0 {
-			if err := ats.AllocateTicket(ticketRequest, tx); err != nil {
-				return err
+			ticket, err := ats.AllocateTicket(ticketRequest, tx)
+			if err != nil {
+				return nil, err
 			}
+			allTickets = append(allTickets, ticket)
 			remainingTickets--
 		} else {
-			if err := ats.AllocateReserveTicket(ticketRequest, reserveNumber, tx); err != nil {
-				return err
+			ticket, err := ats.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
+			if err != nil {
+				return nil, err
 			}
+			allTickets = append(allTickets, ticket)
 			reserveNumber++
 		}
 	}
 
-	return nil
+	return allTickets, nil
 }
 
-func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) error {
+func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) (tickets []*models.Ticket, err error) {
 	// Fetch all ticket requests directly from the database
 	var reserveNumber uint = 1
 	var allTicketRequests []models.TicketRequest
 	if err := tx.Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, false).Find(&allTicketRequests).Order("created_at").Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	// Fetch total available tickets directly
@@ -169,24 +215,28 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	// Give all users ticekts up to the available tickets, give the rest reserve tickets
 	for i, ticketRequest := range allTicketRequests {
 		if i < availableTickets {
-			if err := ats.AllocateTicket(ticketRequest, tx); err != nil {
-				return err
+			ticket, err := ats.AllocateTicket(ticketRequest, tx)
+			if err != nil {
+				return nil, err
 			}
+			tickets = append(tickets, ticket)
 		} else {
-			if err := ats.AllocateReserveTicket(ticketRequest, reserveNumber, tx); err != nil {
-				return err
+			ticket, err := ats.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
+			if err != nil {
+				return nil, err
 			}
+			tickets = append(tickets, ticket)
 			reserveNumber++
 		}
 	}
 
-	return nil
+	return tickets, nil
 }
 
-func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) error {
+func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ticket, error) {
 	ticketRequest.IsHandled = true
 	if err := tx.Save(&ticketRequest).Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	ticket := models.Ticket{
@@ -196,19 +246,19 @@ func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketReq
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &ticket, nil
 }
 
 func (ats *AllocateTicketsService) AllocateReserveTicket(
 	ticketRequest models.TicketRequest,
 	reserveNumber uint,
-	tx *gorm.DB) error {
+	tx *gorm.DB) (*models.Ticket, error) {
 	ticketRequest.IsHandled = true
 	if err := tx.Save(&ticketRequest).Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	ticket := models.Ticket{
@@ -219,8 +269,8 @@ func (ats *AllocateTicketsService) AllocateReserveTicket(
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &ticket, nil
 }

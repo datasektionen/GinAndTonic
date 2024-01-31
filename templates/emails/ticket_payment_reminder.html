@@ -1,0 +1,47 @@
+<div
+  style="
+    font-family: Verdana, sans-serif;
+    padding: 10px;
+    background-color: #e1e1e1;
+    color: #303030;
+  "
+>
+  <h1 style="font-size: 24px; color: #272727">Hello, {{ .FullName }}!</h1>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    This is a friendly reminder that you have a ticket to
+    <strong>{{ .EventName }}!</strong> that has not been paid for yet. <br />
+    You can view and pay for your tickets under the "My Tickets" section of your
+    profile. <a style="color: #00494e" href="{{ .TicketURL }}">Click here</a> to
+    view your tickets.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    <strong> {{ .OrganizationName }} </strong> would appreciate it if you could
+    pay for your tickets as soon as possible. {{ if .PayWithin }} You therefore
+    have <strong>{{ .PayWithin }} </strong>hours to pay for your tickets. If you
+    do not pay for your tickets within this time, your tickets may be given to a
+    reserve. {{ else }} You have to pay for the ticket before the event. {{ end
+    }}
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you no longer wish to attend the event, please select the
+    <strong> "I no longer wish to attend" </strong> option in the "My Tickets"
+    section of your profile.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you have any questions, please contact us at
+    <a
+      style="color: #00494e"
+      href="mailto:{{ .OrganizationEmail }}?subject=Questions about {{ .EventName }}"
+      >{{ .OrganizationEmail }}</a
+    >
+  </p>
+  <br />
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

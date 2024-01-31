@@ -59,7 +59,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
-	notificationService := services.NewNotificationService(db)
 
 	organizationController := controllers.NewOrganizationController(db, organizationService)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
@@ -73,7 +72,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketsController := controllers.NewTicketController(db)
 	constantOptionsController := controllers.NewConstantOptionsController(db)
 	paymentsController := controllers.NewPaymentController(db)
-	notificationController := controllers.NewNotificationController(db, notificationService)
+	notificationController := controllers.NewNotificationController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -154,6 +153,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Testing
 	r.POST("/send-email", authentication.RequireRole("super_admin"), notificationController.SendEmail)
-
+	r.POST("send-test-email", authentication.RequireRole("super_admin"), notificationController.SendTestEmail)
 	return r
 }

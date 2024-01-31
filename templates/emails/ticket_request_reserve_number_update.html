@@ -1,0 +1,39 @@
+<div
+  style="
+    font-family: Verdana, sans-serif;
+    padding: 10px;
+    background-color: #e1e1e1;
+    color: #303030;
+  "
+>
+  <h1 style="font-size: 24px; color: #272727">Hey, {{ .FullName }}!</h1>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    This is an email letting you know that your reserve number for
+    <strong>{{ .EventName }}.</strong> has been updated. Your new reserve number
+    is <strong>{{ .ReserveNumber }}</strong>.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you no longer wish to attend the event, please select the
+    <strong>"Cancel Request"</strong> option in the "My Ticket Requests" section
+    of your profile. You can also
+    <a style="color: #00494e" href="{{ .TicketURL }}">Click here</a> to view
+    your ticket requests.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you have any other questions, please contact us at
+    <a
+      style="color: #00494e"
+      href="mailto:{{ .OrganizationEmail }}?subject=Questions about {{ .EventName }}"
+      >{{ .OrganizationEmail }}</a
+    >
+  </p>
+
+  <br />
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

@@ -12,6 +12,7 @@ services:
     depends_on:
       - db
       - nyckeln
+      - redis
     environment:
       - ENV=dev
       - DB_HOST=db
@@ -21,6 +22,7 @@ services:
       - DB_PORT=5432
       - DB_SSLMODE=disable  # or your preferred SSL mode
       - LOGIN_BASE_URL=http://nyckeln:7002
+      - REDIS_ADDR=redis:6379
     volumes:
       - .:/app
 
@@ -42,6 +44,10 @@ services:
     platform: linux/amd64
     ports:
       - "7002:7002"
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres-data:

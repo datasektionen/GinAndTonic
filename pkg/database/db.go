@@ -26,7 +26,6 @@ func InitDB() (*gorm.DB, error) {
 		dbname := os.Getenv("DB_NAME")
 		port := os.Getenv("DB_PORT")
 		sslmode := os.Getenv("DB_SSLMODE")
-
 		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC", host, user, password, dbname, port, sslmode)
 	} else if os.Getenv("ENV") == "prod" {
 		dsn = os.Getenv("DATABASE_URL")

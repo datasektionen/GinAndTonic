@@ -59,6 +59,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
+	notificationService := services.NewNotificationService(db)
 
 	organizationController := controllers.NewOrganizationController(db, organizationService)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
@@ -72,6 +73,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketsController := controllers.NewTicketController(db)
 	constantOptionsController := controllers.NewConstantOptionsController(db)
 	paymentsController := controllers.NewPaymentController(db)
+	notificationController := controllers.NewNotificationController(db, notificationService)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -146,9 +148,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// User Food Preference routes
 	r.PUT("/user-food-preferences", userFoodPreferenceController.Update)
 	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
-	r.GET("food-preferences", userFoodPreferenceController.ListFoodPreferences)
+	r.GET("/food-preferences", userFoodPreferenceController.ListFoodPreferences)
 
 	r.POST("/admin/create-user", authentication.RequireRole("super_admin"), userController.CreateUser)
+
+	// Testing
+	r.POST("/send-email", authentication.RequireRole("super_admin"), notificationController.SendEmail)
 
 	return r
 }

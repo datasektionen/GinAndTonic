@@ -2,34 +2,12 @@ package jobs
 
 import (
 	"errors"
-	"os"
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
-
-var log = logrus.New()
-
-func init() {
-	// logFilePath := "../../logs/allocate_reserve_tickets_job.log"
-
-	// // Create a file to write logs to. Append to existing file, create if not exists, writable.
-	// logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// if err != nil {
-	// 	log.Fatal("Failed to open log file:", err)
-	// }
-
-	// Set log output to the file
-	log.SetOutput(os.Stdout)
-
-	// Set log level
-	log.SetLevel(logrus.InfoLevel)
-
-	// Log as JSON for structured logging
-	log.SetFormatter(&logrus.JSONFormatter{})
-}
 
 func AllocateReserveTicketsJob(db *gorm.DB) error {
 	start := time.Now()

@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 
 	"gorm.io/gorm"
@@ -26,7 +27,7 @@ func CreateOrganizationUniqueIndex(db *gorm.DB) error {
 
 	// Create a new unique index
 	if err := db.Exec(`CREATE UNIQUE INDEX idx_organizations_name_unique ON ` + tableName + ` (name) WHERE deleted_at IS NULL;`).Error; err != nil {
-		return err
+		fmt.Println(err)
 	}
 
 	return nil

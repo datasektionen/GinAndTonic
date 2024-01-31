@@ -1,33 +1,53 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/robfig/cron/v3"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-
-	"log"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/database"
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
+	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/routes"
 )
 
+var log = logrus.New()
+
 func init() {
 	// Load environment variables from .env file
+	var err error
 	if os.Getenv("ENV") == "dev" {
-		var err error
-
 		if err = godotenv.Load(".env"); err != nil {
-			log.Fatalf("Error loading .env file: %v", err)
+			log.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("Error loading .env file")
+
 		}
 
 	}
+
+	// Set log output to the file
+	log.SetOutput(os.Stdout)
+
+	// Set log level
+	log.SetLevel(logrus.InfoLevel)
+
+	// Log as JSON for structured logging
+	log.SetFormatter(&logrus.JSONFormatter{})
 }
 
 func CORSConfig() cors.Config {
@@ -45,7 +65,9 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 		jobs.AllocateReserveTicketsJob(db)
 	})
 	if err != nil {
-		log.Fatalf("Error scheduling example job: %v", err)
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("Failed to add AllocateReserveTicketsJob to cron")
 	}
 
 	fmt.Println("Starting cron jobs")
@@ -54,20 +76,55 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 	return c
 }
 
+func startAsynqServer(db *gorm.DB) *asynq.Server {
+	srv := asynq.NewServer(
+		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_ADDR")},
+		asynq.Config{
+			// Specify how many concurrent workers to use
+			Concurrency: 5,
+			// Optionally specify multiple queues with different priority.
+			Queues: map[string]int{
+				"critical": 6,
+				"default":  3,
+				"low":      1,
+			},
+		},
+	)
+
+	// mux maps a type to a handler
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(tasks.TypeEmail, jobs.HandleEmailJob(db))
+
+	go func() {
+		if err := srv.Run(mux); err != nil {
+			log.Fatalf("Could not run Asynq server: %v", err)
+			// For debugging, you might want to print the error and stop the execution:
+			fmt.Println("Failed to start Asynq server:", err)
+			os.Exit(1)
+		}
+	}()
+
+	return srv
+}
+
 func main() {
 	db, err := database.InitDB()
 	if err != nil {
-		log.Fatalf("Error initializing database: %v", err)
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("Failed to connect to database")
 	}
 
 	err = models.CreateOrganizationUniqueIndex(db)
 	if err != nil {
-		log.Fatalf("failed to create unique index: %v", err)
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("Failed to create unique index for organizations")
 	}
 
 	// Run migrations
 	if err := database.Migrate(db); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+		panic("Failed to migrate database: " + err.Error())
 	}
 
 	// Initialize roles
@@ -84,12 +141,53 @@ func main() {
 		panic("Failed to initialize ticket release methods: " + err.Error())
 	}
 
+	gin.SetMode(gin.ReleaseMode)
+
 	// Setup cron jobs
 	c := setupCronJobs(db)
 
+	// jobs.StartEmailJobs(db, 5)
+	asynqServer := startAsynqServer(db)
+
 	router := routes.SetupRouter(db)
 
-	router.Run()
+	// Create a server using router
+	srv := &http.Server{
+		Addr:    ":8080", // or your specific port
+		Handler: router,
+	}
 
+	// Run the server in a goroutine
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("Failed to run Gin server")
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+	log.Info("Shutting down servers...")
+
+	// Shutdown cron jobs
 	c.Stop()
+
+	// Shutdown Asynq server
+	asynqServer.Shutdown()
+
+	// Create a deadline for the shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Shutdown the server
+	if err := srv.Shutdown(ctx); err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Server forced to shutdown")
+	}
+
+	log.Info("Servers gracefully stopped")
 }

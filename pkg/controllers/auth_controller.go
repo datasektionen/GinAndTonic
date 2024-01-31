@@ -258,6 +258,8 @@ func LoginCompletePostman(c *gin.Context) {
 		return
 	}
 
+	println("Verification URL: " + verificationURL)
+
 	q := req.URL.Query()
 	q.Add("format", "json")
 	q.Add("api_key", os.Getenv("LOGIN_API_KEY"))
@@ -279,7 +281,7 @@ func LoginCompletePostman(c *gin.Context) {
 		err := decoder.Decode(&body)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": "Error decoding response",
+				"message": "Error decoding response", "error": err.Error(),
 			})
 			return
 		}

@@ -90,8 +90,6 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int) error {
 		payWithin = *ticketRelease.PayWithin
 	}
 
-	println("Pay within: ", payWithin)
-
 	data := types.EmailTicketAllocationCreated{
 		FullName:          user.FullName(),
 		EventName:         event.Name,

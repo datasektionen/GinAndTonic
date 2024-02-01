@@ -67,7 +67,6 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			// Notify the users that the tickets have been allocated
 			for _, ticket := range tickets {
 				var err error
-				println("Ticket ID: ", ticket.ID, ticket.IsReserve)
 				if !ticket.IsReserve {
 					err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
 				} else {
@@ -148,8 +147,6 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 
 	// Split ticket requests based on eligibility
 	for _, tr := range allTicketRequests {
-		fmt.Println("Ticket request created at: ", tr.CreatedAt.Format(time.RFC3339))
-		fmt.Println("Deadline: ", deadline.Format(time.RFC3339))
 		if tr.CreatedAt.Before(deadline) || tr.CreatedAt.Equal(deadline) {
 			eligibleTicketRequestsForLottery = append(eligibleTicketRequestsForLottery, tr)
 		} else {
@@ -157,13 +154,8 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 		}
 	}
 
-	println("Eligible ticket requests: ", len(eligibleTicketRequestsForLottery))
-	println("Not eligible ticket requests: ", len(notEligibleTicketRequests))
-
 	// Fetch total available tickets directly
 	var availableTickets int = ticketRelease.TicketsAvailable
-
-	println("Available tickets: ", availableTickets)
 
 	if len(eligibleTicketRequestsForLottery) > availableTickets {
 		rand.Shuffle(len(eligibleTicketRequestsForLottery), func(i, j int) {

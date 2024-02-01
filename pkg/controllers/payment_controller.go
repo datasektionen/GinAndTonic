@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,6 +16,8 @@ import (
 	"github.com/stripe/stripe-go/webhook"
 	"gorm.io/gorm"
 )
+
+// TODO Implement payment log file for better debugging in production
 
 func init() {
 	// Set your secret key. Remember to switch to your live secret key in production!
@@ -122,6 +125,13 @@ func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 
 		if pc.transactionService.CreateTransaction(paymentIntent, ticket) != nil {
 			c.String(http.StatusInternalServerError, "Error creating transaction")
+			return
+		}
+
+		err = services.Notify_TicketPaymentConfirmation(pc.DB, int(ticket.ID))
+		if err != nil {
+			fmt.Println(err)
+			c.String(http.StatusInternalServerError, "Error notifying user, but ticket payment was successful")
 			return
 		}
 

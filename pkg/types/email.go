@@ -40,7 +40,7 @@ type EmailTicketRequestConfirmation struct {
 type EmailTicketPaymentConfirmation struct {
 	FullName          string
 	EventName         string
-	Tickets           []EmailTicket
+	TicketsHTML       template.HTML
 	OrganizationEmail string
 }
 

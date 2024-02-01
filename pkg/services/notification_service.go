@@ -83,7 +83,7 @@ func Notify_TicketCancelled(db *gorm.DB, user *models.User, organization *models
 	return nil
 }
 
-func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int) error {
+func Notify_TicketAllocationCreated(db *gorm.DB, ticketId, payWithin int) error {
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
@@ -100,18 +100,13 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int) error {
 		return fmt.Errorf("user email is empty")
 	}
 
-	var payWithin string
-	if ticketRelease.PayWithin != nil {
-		payWithin = fmt.Sprintf("%d", *ticketRelease.PayWithin)
-	}
-
 	data := types.EmailTicketAllocationCreated{
 		FullName:          user.FullName(),
 		EventName:         event.Name,
 		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
 		OrganizationName:  event.Organization.Name,
 		OrganizationEmail: event.Organization.Email,
-		PayWithin:         payWithin,
+		PayWithin:         fmt.Sprintf("%d", payWithin),
 	}
 
 	htmlContent, err := ParseTemplate("templates/emails/ticket_allocation_created.html", data)
@@ -170,6 +165,51 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 	}
 
 	AddEmailJob(db, &user, fmt.Sprintf("Your ticket request to %s!", event.Name), htmlContent)
+
+	return nil
+}
+
+// Notify_TicketReserveCreated notifies the user that their ticket reserve has been created
+func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
+	var ticket models.Ticket
+	err := db.
+		Preload("TicketRequest.User").
+		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketType").
+		First(&ticket, ticketId).Error
+	if err != nil {
+		return err
+	}
+
+	user := ticket.TicketRequest.User
+	ticketRelease := ticket.TicketRequest.TicketRelease
+	event := ticketRelease.Event
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	var tickets []types.EmailTicket
+	tickets = append(tickets, types.EmailTicket{
+		Name:  ticket.TicketRequest.TicketType.Name,
+		Price: fmt.Sprintf("%f", math.Round(100*ticket.TicketRequest.TicketType.Price)/100),
+	})
+
+	emailTicketString, _ := GenerateEmailTable(tickets)
+
+	data := types.EmailTicketPaymentConfirmation{
+		FullName:          user.FullName(),
+		EventName:         event.Name,
+		TicketsHTML:       template.HTML(emailTicketString),
+		OrganizationEmail: event.Organization.Email,
+	}
+
+	htmlContent, err := ParseTemplate("templates/emails/ticket_payment_confirmation.html", data)
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, &user, fmt.Sprintf("Ticket payment confirmation to %s!", event.Name), htmlContent)
 
 	return nil
 }

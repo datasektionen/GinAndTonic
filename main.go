@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -95,19 +96,52 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 }
 
 func startAsynqServer(db *gorm.DB) *asynq.Server {
-	srv := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
-		asynq.Config{
-			// Specify how many concurrent workers to use
-			Concurrency: 5,
-			// Optionally specify multiple queues with different priority.
-			Queues: map[string]int{
-				"critical": 6,
-				"default":  3,
-				"low":      1,
+	// Parse the REDIS_URL
+	redisURL, err := url.Parse(os.Getenv("REDIS_URL"))
+	if err != nil {
+		log.Fatalf("Failed to parse REDIS_URL: %v", err)
+	}
+
+	// Extract host and password. Port is part of the host in the URL.
+	redisHost := redisURL.Host
+	redisPassword, _ := redisURL.User.Password()
+
+	// Create a new Asynq server instance with RedisClientOpt.
+	var srv *asynq.Server
+
+	if os.Getenv("ENV") == "dev" {
+		srv = asynq.NewServer(
+			asynq.RedisClientOpt{
+				Addr: os.Getenv("REDIS_URL"),
 			},
-		},
-	)
+			asynq.Config{
+				Concurrency: 1,
+				Queues: map[string]int{
+					"critical": 6,
+					"default":  3,
+					"low":      1,
+				},
+			},
+		)
+	} else {
+		println("Starting Asynq server with password")
+		println(redisPassword)
+		println(redisHost)
+		srv = asynq.NewServer(
+			asynq.RedisClientOpt{
+				Addr:     redisHost,
+				Password: redisPassword, // Set the password here.
+			},
+			asynq.Config{
+				Concurrency: 5,
+				Queues: map[string]int{
+					"critical": 6,
+					"default":  3,
+					"low":      1,
+				},
+			},
+		)
+	}
 
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()

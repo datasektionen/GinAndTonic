@@ -1,6 +1,7 @@
 package test_service
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ type AllocateTicketsTestSuite struct {
 }
 
 func (suite *AllocateTicketsTestSuite) SetupTest() {
+	os.Setenv("ENV", "test")
 	db, err := testutils.SetupTestDatabase(false)
 	suite.Require().NoError(err)
 

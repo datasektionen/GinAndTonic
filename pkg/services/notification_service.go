@@ -51,6 +51,10 @@ func AddEmailJob(db *gorm.DB, user *models.User, subject, htmlContent string) {
 }
 
 func Notify_TicketRequestCancelled(db *gorm.DB, user *models.User, organization *models.Organization, eventName string) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
 	data := types.EmailTicketRequestCancelledConfirmation{
 		FullName:          user.FullName(),
 		EventName:         eventName,
@@ -68,6 +72,10 @@ func Notify_TicketRequestCancelled(db *gorm.DB, user *models.User, organization 
 }
 
 func Notify_TicketCancelled(db *gorm.DB, user *models.User, organization *models.Organization, eventName string) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
 	data := types.EmailTicketCancelledConfirmation{
 		FullName:          user.FullName(),
 		EventName:         eventName,
@@ -85,6 +93,10 @@ func Notify_TicketCancelled(db *gorm.DB, user *models.User, organization *models
 }
 
 func Notify_TicketAllocationCreated(db *gorm.DB, ticketId, payWithin int) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
@@ -128,6 +140,10 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId, payWithin int) error 
 
 // Notify_TicketRequestCreated notifies the user that their ticket request has been created
 func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
 	var ticketRequests []models.TicketRequest
 	err := db.
 		Preload("User").
@@ -178,6 +194,10 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 
 // Notify_TicketReserveCreated notifies the user that their ticket reserve has been created
 func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").

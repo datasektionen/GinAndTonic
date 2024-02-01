@@ -22,7 +22,7 @@ services:
       - DB_PORT=5432
       - DB_SSLMODE=disable  # or your preferred SSL mode
       - LOGIN_BASE_URL=http://nyckeln:7002
-      - REDIS_ADDR=redis:6379
+      - REDIS_URL=redis:6379
     volumes:
       - .:/app
 

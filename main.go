@@ -78,7 +78,7 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 
 func startAsynqServer(db *gorm.DB) *asynq.Server {
 	srv := asynq.NewServer(
-		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_ADDR")},
+		asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
 		asynq.Config{
 			// Specify how many concurrent workers to use
 			Concurrency: 5,

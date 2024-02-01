@@ -14,6 +14,14 @@ import (
 var allocator_logger = logrus.New()
 
 func init() {
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs", 0755)
+	}
+
+	if _, err := os.Stat("logs/allocate_reserve_tickets_job.log"); os.IsNotExist(err) {
+		os.Create("logs/allocate_reserve_tickets_job.log")
+	}
+
 	allocator_log_file, err := os.OpenFile("logs/allocate_reserve_tickets_job.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		notification_logger.Fatal(err)
@@ -192,8 +200,6 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			continue
 		}
 
-
-		
 		// TODO: Notify user that ticket has been deleted
 
 		// Increment number of new tickets to be allocated from the reserve list

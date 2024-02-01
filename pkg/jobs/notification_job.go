@@ -17,6 +17,15 @@ var notification_logger = logrus.New()
 
 func init() {
 	// Load or create log file
+	// Create logs directory if it doesn't exist
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs", 0755)
+	}
+
+	if _, err := os.Stat("logs/allocate_reserve_tickets_job.log"); os.IsNotExist(err) {
+		os.Create("logs/allocate_reserve_tickets_job.log")
+	}
+
 	notification_log_file, err := os.OpenFile("logs/notification.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		notification_logger.Fatal(err)

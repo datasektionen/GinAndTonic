@@ -50,8 +50,8 @@ func (trmd *TicketReleaseMethodDetail) ValidateCancellationPolicy() error {
 	case FULL_REFUND, NO_REFUND:
 		return nil
 	default:
-		fmt.Errorf("invalid CancellationPolicy: %v", trmd.CancellationPolicy)
-		return fmt.Errorf("invalid CancellationPolicy: %v", trmd.CancellationPolicy)
+		err := fmt.Errorf("invalid CancellationPolicy: %v", trmd.CancellationPolicy)
+		return err
 	}
 }
 

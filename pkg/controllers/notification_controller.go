@@ -2,14 +2,13 @@ package controllers
 
 import (
 	"bytes"
+	"html/template"
 	"net/http"
-	"os"
 	"strings"
-	"text/template"
-	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -40,16 +39,37 @@ func (nc *NotificationController) SendTestEmail(c *gin.Context) {
 		return
 	}
 
-	var data = types.EmailTicketAllocationCreated{
+	// updatedTime := time.Now()
+	// payWithin := 1
+
+	// PayBefo
+	// PayBefore := utils.ConvertPayWithinToString(payWithin, updatedTime)
+
+	// var data = types.EmailTicketAllocationCreated{
+	// 	FullName:          "Tsst",
+	// 	EventName:         "Blums",
+	// 	TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+	// 	OrganizationName:  "DKM",
+	// 	OrganizationEmail: "test@datasektionen.se",
+	// 	PayBefore:         PayBefore,
+	// }
+
+	var tickets []types.EmailTicket
+	tickets = append(tickets, types.EmailTicket{
+		Name:  "Test",
+		Price: "100.00",
+	})
+
+	str, _ := services.GenerateEmailTable(tickets)
+
+	var data = types.EmailTicketNotPaidInTime{
 		FullName:          "Tsst",
 		EventName:         "Blums",
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationName:  "DKM",
-		OrganizationEmail: "test@datasektionen.se",
-		PayBefore:         time.Now().Format("2006-01-02 15:04:05"),
+		TicketsHTML:       template.HTML(str),
+		OrganizationEmail: "test@gmail.com",
 	}
 
-	tmpl, err := template.ParseFiles("templates/emails/ticket_allocation_created.html")
+	tmpl, err := template.ParseFiles("templates/emails/ticket_not_paid_in_time.html")
 	if err != nil {
 		panic(err)
 	}

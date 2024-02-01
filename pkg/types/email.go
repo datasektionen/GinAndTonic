@@ -75,3 +75,10 @@ type EmailTicketRequestReserveNumberUpdate struct {
 	RequestNumber     string
 	OrganizationEmail string
 }
+
+type EmailTicketNotPaidInTime struct {
+	FullName          string
+	EventName         string
+	TicketsHTML       template.HTML
+	OrganizationEmail string
+}

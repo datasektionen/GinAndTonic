@@ -240,3 +240,43 @@ func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
 
 	return nil
 }
+
+// Notify_TicketReserveCreated notifies the user that their ticket reserve has been created
+// We need ticket since its already been deleted from the database
+func Notify_TicketNotPaidInTime(db *gorm.DB, ticket *models.Ticket) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	user := ticket.TicketRequest.User
+	ticketRelease := ticket.TicketRequest.TicketRelease
+	event := ticketRelease.Event
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	var tickets []types.EmailTicket
+	tickets = append(tickets, types.EmailTicket{
+		Name:  ticket.TicketRequest.TicketType.Name,
+		Price: fmt.Sprintf("%f", math.Round(100*ticket.TicketRequest.TicketType.Price)/100),
+	})
+
+	emailTicketString, _ := GenerateEmailTable(tickets)
+
+	data := types.EmailTicketNotPaidInTime{
+		FullName:          user.FullName(),
+		EventName:         event.Name,
+		TicketsHTML:       template.HTML(emailTicketString),
+		OrganizationEmail: event.Organization.Email,
+	}
+
+	htmlContent, err := ParseTemplate("templates/emails/ticket_not_paid_in_time.html", data)
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, &user, fmt.Sprintf("Your ticket was not paid in time to %s!", event.Name), htmlContent)
+
+	return nil
+}

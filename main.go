@@ -59,6 +59,22 @@ func CORSConfig() cors.Config {
 	return corsConfig
 }
 
+func createLogDirAndLogFiles() {
+	// Create logs directory if it doesn't exist
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs", 0755)
+	}
+
+	// Create log files if they don't exist
+	if _, err := os.Stat("logs/allocate_reserve_tickets_job.log"); os.IsNotExist(err) {
+		os.Create("logs/allocate_reserve_tickets_job.log")
+	}
+
+	if _, err := os.Stat("logs/notification.log"); os.IsNotExist(err) {
+		os.Create("logs/email_job.log")
+	}
+}
+
 func setupCronJobs(db *gorm.DB) *cron.Cron {
 	c := cron.New()
 	_, err := c.AddFunc("@every 30m", func() {
@@ -113,6 +129,8 @@ func main() {
 			"error": err,
 		}).Fatal("Failed to connect to database")
 	}
+
+	createLogDirAndLogFiles()
 
 	err = models.CreateOrganizationUniqueIndex(db)
 	if err != nil {

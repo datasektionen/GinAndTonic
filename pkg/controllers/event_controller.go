@@ -128,7 +128,6 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		Preload("TicketReleases").
 		Preload("TicketReleases.TicketTypes").
 		Preload("TicketReleases.ReservedUsers").
-		Preload("TicketReleases.TicketReleaseMethodDetail").
 		Preload("TicketReleases.Event").
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
 		First(&event, id).Error

@@ -65,3 +65,31 @@ func (ts *TicketService) GetTicketForUser(UGKthID string) ([]models.Ticket, *Err
 
 	return tickets, nil
 }
+
+func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *ErrorResponse {
+	// Get ticket
+	var ticket models.Ticket
+	if err := ts.DB.
+		Preload("User").
+		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Where("id = ?", ticketID).First(&ticket).Error; err != nil {
+		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket"}
+	}
+
+	// Check if user is owner of ticket
+	if ticket.User.UGKthID != ugKthID {
+		return &ErrorResponse{StatusCode: http.StatusForbidden, Message: "You are not the owner of this ticket"}
+	}
+
+	// Check if ticket is already refunded
+	if ticket.Refunded {
+		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already refunded"}
+	}
+
+	// Check if ticket is paid
+	if ticket.IsPaid {
+		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already paid"}
+	}
+
+	return nil
+}

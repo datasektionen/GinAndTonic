@@ -111,3 +111,23 @@ func (tc *TicketController) UsersList(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"tickets": ticketRequests})
 }
+
+func (tc *TicketController) CancelTicket(c *gin.Context) {
+	//
+	UGKthId, _ := c.Get("ugkthid")
+	ticketIDstring := c.Param("ticketID")
+
+	ticketID, err := strconv.Atoi(ticketIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	errResponse := tc.Service.CancelTicket(UGKthId.(string), ticketID)
+	if errResponse != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errResponse.Message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+}

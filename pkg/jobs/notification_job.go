@@ -1,18 +1,13 @@
 package jobs
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
-	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -75,63 +70,6 @@ func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string,
 	}).Info("Added email task to queue")
 
 	return err
-}
-
-func HandleTicketAllocationAddToQueue(db *gorm.DB, ticketId int) error {
-	/*
-		Handler that when a ticket allocation is created, it adds a job to the queue
-		to send an email to the user that the ticket allocation was created.
-	*/
-	var ticket models.Ticket
-	err := db.
-		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").First(&ticket, ticketId).Error
-	if err != nil {
-		return err
-	}
-
-	user := ticket.TicketRequest.User
-	ticketRelease := ticket.TicketRequest.TicketRelease
-	event := ticketRelease.Event
-
-	if user.Email == "" {
-		return fmt.Errorf("user email is empty")
-	}
-
-	var payWithin int = 0
-	if ticketRelease.PayWithin != nil {
-		payWithin = int(*ticketRelease.PayWithin)
-	}
-
-	var data = types.EmailTicketAllocationCreated{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationName:  event.Organization.Name,
-		OrganizationEmail: event.Organization.Email,
-		PayWithin:         fmt.Sprintf("%d", payWithin),
-	}
-
-	tmpl, err := template.ParseFiles("templates/emails/ticket_allocation_created.html")
-	if err != nil {
-		panic(err)
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		panic(err)
-	}
-
-	// The HTML content of the email is now in buf
-	htmlContent := buf.String()
-
-	htmlContent = strings.ReplaceAll(htmlContent, "\x00", "")
-
-	// Create the data to be sent
-	// TODO add event
-	AddEmailJobToQueue(db, &user, "Your ticket to", htmlContent, nil)
-
-	return nil
 }
 
 func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error {

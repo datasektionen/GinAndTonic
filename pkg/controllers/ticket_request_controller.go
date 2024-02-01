@@ -79,6 +79,7 @@ func (trc *TicketRequestController) CancelTicketRequest(c *gin.Context) {
 		return
 	}
 
+
 	// Send a 200 OK response
 	c.JSON(http.StatusOK, gin.H{"status": "Ticket request cancelled"})
 }

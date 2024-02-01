@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
@@ -67,8 +66,14 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 		if len(tickets) > 0 {
 			// Notify the users that the tickets have been allocated
 			for _, ticket := range tickets {
-				println("Ticket ID: ", ticket.ID)
-				err := jobs.HandleTicketAllocationAddToQueue(ats.DB, int(ticket.ID))
+				var err error
+				println("Ticket ID: ", ticket.ID, ticket.IsReserve)
+				if !ticket.IsReserve {
+					err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
+				} else {
+					// TODO
+					// err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
+				}
 
 				if err != nil {
 					fmt.Println(err)
@@ -91,7 +96,13 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 		if len(tickets) > 0 {
 			// Notify the users that the tickets have been allocated
 			for _, ticket := range tickets {
-				err := jobs.HandleTicketAllocationAddToQueue(ats.DB, int(ticket.ID))
+				var err error
+				if !ticket.IsReserve {
+					err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
+				} else {
+					// TODO
+					// err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
+				}
 
 				if err != nil {
 					fmt.Println(err)
@@ -137,6 +148,8 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 
 	// Split ticket requests based on eligibility
 	for _, tr := range allTicketRequests {
+		fmt.Println("Ticket request created at: ", tr.CreatedAt.Format(time.RFC3339))
+		fmt.Println("Deadline: ", deadline.Format(time.RFC3339))
 		if tr.CreatedAt.Before(deadline) || tr.CreatedAt.Equal(deadline) {
 			eligibleTicketRequestsForLottery = append(eligibleTicketRequestsForLottery, tr)
 		} else {
@@ -144,8 +157,13 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 		}
 	}
 
+	println("Eligible ticket requests: ", len(eligibleTicketRequestsForLottery))
+	println("Not eligible ticket requests: ", len(notEligibleTicketRequests))
+
 	// Fetch total available tickets directly
 	var availableTickets int = ticketRelease.TicketsAvailable
+
+	println("Available tickets: ", availableTickets)
 
 	if len(eligibleTicketRequestsForLottery) > availableTickets {
 		rand.Shuffle(len(eligibleTicketRequestsForLottery), func(i, j int) {

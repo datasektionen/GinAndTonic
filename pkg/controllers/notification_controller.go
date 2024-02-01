@@ -28,29 +28,6 @@ type EmailRequest struct {
 	Content string `json:"content"`
 }
 
-func (nc *NotificationController) SendEmail(c *gin.Context) {
-	var req EmailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var user models.User
-	if err := nc.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User with email not found"})
-		return
-	}
-
-	err := jobs.HandleTicketAllocationAddToQueue(nc.DB, 1)
-	// err = jobs.AddEmailJobToQueue(nc.DB, &user, req.Subject, req.Content, nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to add email to queue"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Email sent successfully"})
-}
-
 func (nc *NotificationController) SendTestEmail(c *gin.Context) {
 	/*
 		Handler that when a ticket allocation is created, it adds a job to the queue

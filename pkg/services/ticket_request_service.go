@@ -16,6 +16,11 @@ type ErrorResponse struct {
 	Message    string // Error message
 }
 
+// Error implements error.
+func (*ErrorResponse) Error() string {
+	panic("unimplemented")
+}
+
 type TicketRequestService struct {
 	DB *gorm.DB
 }
@@ -113,10 +118,13 @@ func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) err
 	// Use your database layer to find the ticket request by ID and cancel it
 	// This is just a placeholder implementation, replace it with your actual code
 	ticketRequest := &models.TicketRequest{}
-	result := trs.DB.Where("id = ?", ticketRequestID).First(ticketRequest)
+	result := trs.DB.Preload("User").Preload("TicketRelease.Event.Organization").Where("id = ?", ticketRequestID).First(ticketRequest)
 	if result.Error != nil {
 		return result.Error
 	}
+
+	user := ticketRequest.User
+	org := ticketRequest.TicketRelease.Event.Organization
 
 	// Check if ticket request is allocted to a ticket
 	// If the ticket request is allocated to a ticket, it cannot be cancelled
@@ -125,6 +133,12 @@ func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) err
 	}
 
 	if err := trs.DB.Delete(ticketRequest).Error; err != nil {
+		return err
+	}
+
+	err := Notify_TicketRequestCancelled(trs.DB, &user, &org, ticketRequest.TicketRelease.Event.Name)
+
+	if err != nil {
 		return err
 	}
 

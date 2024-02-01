@@ -9,10 +9,10 @@
   <h1 style="font-size: 24px; color: #272727">Hey, {{ .FullName }}!</h1>
 
   <p style="font-size: 16px; line-height: 1.5">
-    This is a confirmation that you recently requested tickets to
-    <strong>{{ .EventName }}.</strong> <br />
-
-    You have requested the following ticket(s)
+    This is a confirmation that we've received your payment for your ticket(s)
+    to
+    <strong>{{ .EventName }}.</strong> The following tickets have been
+    successfully payed for,
   </p>
 
   <style>
@@ -54,21 +54,15 @@
   </ul>
 
   <p style="font-size: 16px; line-height: 1.5">
-    If you no longer wish to attend the event, please select the
-    <strong>"Cancel Request"</strong> option in the "My Ticket Requests" section
-    of your profile. You can also
-    <a style="color: #00494e" href="{{ .TicketURL }}">Click here</a> to view
-    your ticket requests.
-  </p>
-
-  <p style="font-size: 16px; line-height: 1.5">
-    If you have any questions, please contact us at
+    We look forward to seeing you at the event! If you have any questions,
+    please contact us at
     <a
       style="color: #00494e"
-      href="mailto:{{ .OrganizationEmail }}?subject=Questions about {{ .EventName }}"
+      href="mailto:{{ .OrganizationEmail }}?subject=Question about {{ .EventName }}"
       >{{ .OrganizationEmail }}</a
     >
   </p>
+
   <br />
 
   <p style="font-size: 14px; line-height: 1.5">

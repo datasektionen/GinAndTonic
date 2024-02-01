@@ -118,6 +118,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/my-tickets", ticketsController.UsersList)
 
 	// Ticket routes
+	r.DELETE("/my-tickets/:ticketID", ticketsController.CancelTicket)
+
+	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.EditTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
@@ -152,7 +155,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/admin/create-user", authentication.RequireRole("super_admin"), userController.CreateUser)
 
 	// Testing
-	r.POST("/send-email", authentication.RequireRole("super_admin"), notificationController.SendEmail)
 	r.POST("send-test-email", authentication.RequireRole("super_admin"), notificationController.SendTestEmail)
 	return r
 }

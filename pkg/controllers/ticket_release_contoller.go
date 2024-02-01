@@ -115,6 +115,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  req.IsReserved,
 		PromoCode:                   promoCode,
+		TicketsAvailable:            req.TicketsAvailable,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -152,7 +153,7 @@ func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	// Find the event with the given ID
 	// Preload
 	if err := trmc.DB.
-		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketReleaseMethodDetail.ticketReleaseMethod").
 		Preload("TicketTypes").
 		Where("event_id = ?", eventIDInt).
 		Find(&ticketReleases).Error; err != nil {

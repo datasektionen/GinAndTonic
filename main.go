@@ -125,8 +125,6 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 		)
 	} else {
 		println("Starting Asynq server with password")
-		println(redisPassword)
-		println(redisHost)
 		srv = asynq.NewServer(
 			asynq.RedisClientOpt{
 				Addr:     redisHost,

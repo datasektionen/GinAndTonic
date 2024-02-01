@@ -1,6 +1,7 @@
 package test_service
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/database/factory"
@@ -21,15 +22,32 @@ type OrganizationServiceTestSuite struct {
 }
 
 func createDefaultRole(db *gorm.DB) {
-	db.Create(factory.NewRole("validRoleName"))
+	var role *models.Role
+	role = factory.NewRole("validRoleName")
+
+	println(role.Name)
+
+	err := db.Create(*role)
+	if err != nil {
+		fmt.Println("Error creating role", err)
+		panic(err)
+	}
 }
 
 func createDefaultUser(db *gorm.DB) {
-	db.Create(factory.NewUser("validUserUGKthID", "validUsername", "validFirstName", "validLastName", "validEmail", 1))
+	err := db.Create(factory.NewUser("validUserUGKthID", "validUsername", "validFirstName", "validLastName", "validEmail", 1))
+	if err != nil {
+		fmt.Println("Error creating role", err)
+		panic(err)
+	}
 }
 
 func createDefaultOrganization(db *gorm.DB) {
-	db.Create(factory.NewOrganization("validOrganizationName"))
+	err := db.Create(factory.NewOrganization("validOrganizationName", "validOrganizationEmail"))
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func (suite *OrganizationServiceTestSuite) SetupTest() {

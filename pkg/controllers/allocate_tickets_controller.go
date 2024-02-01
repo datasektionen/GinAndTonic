@@ -43,10 +43,8 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	}
 
 	ticketRelease.PayWithin = &allocateTicketsRequest.PayWithin
-	println("Pay within: ", *ticketRelease.PayWithin)
 
 	if !ticketRelease.ValidatePayWithin() {
-		println("Invalid pay within")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid pay within"})
 		return
 	}
@@ -70,6 +68,7 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error closing ticket release"})
 		return
 	}
+
 
 	c.JSON(http.StatusOK, gin.H{"message": "Tickets allocated"})
 }

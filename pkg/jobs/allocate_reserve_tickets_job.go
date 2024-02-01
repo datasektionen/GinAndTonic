@@ -6,29 +6,27 @@ import (
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-var log = logrus.New()
+var allocator_logger = logrus.New()
 
 func init() {
-	// logFilePath := "../../logs/allocate_reserve_tickets_job.log"
-
-	// // Create a file to write logs to. Append to existing file, create if not exists, writable.
-	// logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// if err != nil {
-	// 	log.Fatal("Failed to open log file:", err)
-	// }
+	allocator_log_file, err := os.OpenFile("logs/allocate_reserve_tickets_job.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		notification_logger.Fatal(err)
+	}
 
 	// Set log output to the file
-	log.SetOutput(os.Stdout)
+	allocator_logger.SetOutput(allocator_log_file)
 
 	// Set log level
-	log.SetLevel(logrus.InfoLevel)
+	allocator_logger.SetLevel(logrus.InfoLevel)
 
 	// Log as JSON for structured logging
-	log.SetFormatter(&logrus.JSONFormatter{})
+	allocator_logger.SetFormatter(&logrus.JSONFormatter{})
 }
 
 func AllocateReserveTicketsJob(db *gorm.DB) error {
@@ -40,11 +38,11 @@ func AllocateReserveTicketsJob(db *gorm.DB) error {
 	}
 
 	if len(closedTicketReleases) == 0 {
-		log.Info("No closed ticket releases")
+		allocator_logger.Info("No closed ticket releases")
 		return nil
 	}
 
-	log.WithFields(logrus.Fields{
+	allocator_logger.WithFields(logrus.Fields{
 		"number_of_closed_ticket_releases": len(closedTicketReleases),
 	}).Info("Starting to process closed ticket releases")
 
@@ -58,7 +56,7 @@ func AllocateReserveTicketsJob(db *gorm.DB) error {
 	}
 
 	elapsed := time.Since(start)
-	log.Infof("AllocateReserveTicketsJob took %s", elapsed)
+	allocator_logger.Infof("AllocateReserveTicketsJob took %s", elapsed)
 
 	return nil
 }
@@ -74,13 +72,13 @@ func ManuallyProcessAllocateReserveTicketsJob(db *gorm.DB, ticketReleaseID uint)
 	}
 
 	if ticketRelease == nil {
-		log.WithFields(logrus.Fields{
+		allocator_logger.WithFields(logrus.Fields{
 			"ticket_release_id": ticketReleaseID,
 		}).Info("Ticket release does not exist")
 		return nil
 	}
 
-	log.WithFields(logrus.Fields{
+	allocator_logger.WithFields(logrus.Fields{
 		"ticket_release_id": ticketReleaseID,
 	}).Info("Starting to process ticket release")
 
@@ -90,14 +88,14 @@ func ManuallyProcessAllocateReserveTicketsJob(db *gorm.DB, ticketReleaseID uint)
 	}
 
 	elapsed := time.Since(start)
-	log.Infof("ManuallyProcessAllocateReserveTicketsJob took %s", elapsed)
+	allocator_logger.Infof("ManuallyProcessAllocateReserveTicketsJob took %s", elapsed)
 
 	return nil
 }
 
 func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	// Start by getting all ticket releases that have not allocated tickets
-	log.WithFields(logrus.Fields{
+	allocator_logger.WithFields(logrus.Fields{
 		"id": ticketRelease.ID,
 	}).Info("Starting to process ticket release")
 
@@ -109,7 +107,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	}()
 
 	if tx.Error != nil {
-		log.WithFields(logrus.Fields{
+		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error beginning transaction: %s", tx.Error.Error())
 
@@ -119,7 +117,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	// This case should never happen since if tickets are allocated then the ticket release is closed
 	// but we check anyway
 	if !ticketRelease.HasAllocatedTickets {
-		log.WithFields(logrus.Fields{
+		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Info("Ticket release has not allocated tickets")
 		return nil
@@ -127,7 +125,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 
 	// If the ticket release has a promo code then we skip it
 	if ticketRelease.PromoCode != nil {
-		log.WithFields(logrus.Fields{
+		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Info("Ticket release has a promo code")
 
@@ -141,7 +139,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	// Get all allocated tickets that isnt a reserve ticket or deleted
 	allocatedTickets, err := models.GetAllTicketsToTicketRelease(tx, ticketRelease.ID)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error getting all tickets to ticket release with ID %d: %s", ticketRelease.ID, err.Error())
 
@@ -151,7 +149,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	// Get all reserved tickets that isnt deleted
 	reservedTickets, err := models.GetAllReserveTicketsToTicketRelease(tx, ticketRelease.ID)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error getting all reserve tickets to ticket release with ID %d: %s", ticketRelease.ID, err.Error())
 
@@ -167,10 +165,10 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		var mustPayBefore time.Time
 
 		if payWithin != nil {
-			mustPayBefore = ticket.UpdatedAt.Add(time.Duration(*payWithin) * time.Hour)
+			mustPayBefore = utils.MustPayBefore(int(*payWithin), ticket.UpdatedAt)
 		} else {
 			tx.Rollback()
-			log.WithFields(logrus.Fields{
+			allocator_logger.WithFields(logrus.Fields{
 				"id": ticketRelease.ID,
 			}).Error("Pay within is nil")
 
@@ -185,13 +183,17 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		// If we reach this point then the ticket has not been paid within the time limit
 		// We can say that the user looses the ticket, we set the ticket to deleted and
 		// increment the number of new tickets to be allocated from the reserve list
-		if err := ticket.Delete(tx); err != nil {
-			log.WithFields(logrus.Fields{
+		err := ticket.Delete(tx)
+		if err != nil {
+			allocator_logger.WithFields(logrus.Fields{
 				"id": ticketRelease.ID,
 			}).Errorf("Error deleting ticket with ID %v: %s", ticketRelease.ID, err.Error())
 
 			continue
 		}
+
+
+		
 		// TODO: Notify user that ticket has been deleted
 
 		// Increment number of new tickets to be allocated from the reserve list
@@ -213,7 +215,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 				ticket.ReserveNumber = uint(i - int(newReserveTickets) + 1)
 
 				if err := tx.Save(&ticket).Error; err != nil {
-					log.WithFields(logrus.Fields{
+					allocator_logger.WithFields(logrus.Fields{
 						"id": ticketRelease.ID,
 					}).Errorf("Error saving ticket with ID %d: %s", ticketRelease.ID, err.Error())
 				}
@@ -227,7 +229,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			ticket.ReserveNumber = 0
 
 			if err := tx.Save(&ticket).Error; err != nil {
-				log.WithFields(logrus.Fields{
+				allocator_logger.WithFields(logrus.Fields{
 					"id": ticketRelease.ID,
 				}).Errorf("Error saving ticket with ID %d: %s", ticketRelease.ID, err.Error())
 
@@ -242,14 +244,14 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 
 	err = tx.Commit().Error
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error committing transaction: %s", err.Error())
 
 		return err
 	}
 
-	log.WithFields(logrus.Fields{
+	allocator_logger.WithFields(logrus.Fields{
 		"id": ticketRelease.ID,
 	}).Info("Finished processing ticket release")
 

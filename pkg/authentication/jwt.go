@@ -2,7 +2,6 @@ package authentication
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
 func GenerateToken(ugkthid string, role string) (string, error) {
-	log.Println("Generating token for user", ugkthid, "with role", role)
 	expirationTime := time.Now().Add(7 * time.Hour * 24)
 	claims := &jwt.RegisteredClaims{
 		Subject:   ugkthid,

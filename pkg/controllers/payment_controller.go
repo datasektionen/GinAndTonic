@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,6 +16,8 @@ import (
 	"github.com/stripe/stripe-go/webhook"
 	"gorm.io/gorm"
 )
+
+// TODO Implement payment log file for better debugging in production
 
 func init() {
 	// Set your secret key. Remember to switch to your live secret key in production!
@@ -72,7 +75,6 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 
 // Payment webhook
 func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
-	println("Payment webhook")
 	const MaxBodyBytes = int64(65536)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
 	payload, err := ioutil.ReadAll(c.Request.Body)
@@ -92,7 +94,6 @@ func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 		c.String(http.StatusBadRequest, "Error parsing webhook: %v", err.Error())
 		return
 	}
-
 
 	// Unmarshal the event data into an appropriate struct depending on its Type
 	switch event.Type {
@@ -123,10 +124,18 @@ func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 		}
 
 		if pc.transactionService.CreateTransaction(paymentIntent, ticket) != nil {
-			println("Error creating transaction")
 			c.String(http.StatusInternalServerError, "Error creating transaction")
 			return
 		}
+
+		err = services.Notify_TicketPaymentConfirmation(pc.DB, int(ticket.ID))
+		if err != nil {
+			fmt.Println(err)
+			c.String(http.StatusInternalServerError, "Error notifying user, but ticket payment was successful")
+			return
+		}
+
+		// Send notification to user
 
 		// Then define and call a function to handle the event payment_intent.succeeded
 		// ...

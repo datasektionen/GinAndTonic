@@ -63,8 +63,6 @@ func (ctrl *TicketReleasePromoCodeController) Create(c *gin.Context) {
 		return
 	}
 
-	// TODO: check if the user is a super admin
-
 	// Add user to reserved ticket release
 	ticketRelease.UserUnlockReservedTicketRelease(&user)
 

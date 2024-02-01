@@ -1,0 +1,31 @@
+<div
+  style="
+    font-family: Verdana, sans-serif;
+    padding: 10px;
+    background-color: #e1e1e1;
+    color: #303030;
+  "
+>
+  <h1 style="font-size: 24px; color: #272727">Hey, {{ .FullName }}!</h1>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    This is a confirmation that you've recently cancelled a ticket for
+    <strong>{{ .EventName }}.</strong> <br />
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you believe this to be a mistake or if you have any other questions,
+    please contact us at
+    <a
+      style="color: #00494e"
+      href="mailto:{{ .OrganizationEmail }}?subject=Mistake with ticket for {{ .EventName }}"
+      >{{ .OrganizationEmail }}</a
+    >
+  </p>
+
+  <br />
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

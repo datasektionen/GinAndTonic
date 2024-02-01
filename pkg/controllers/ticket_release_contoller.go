@@ -115,6 +115,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  req.IsReserved,
 		PromoCode:                   promoCode,
+		TicketsAvailable:            req.TicketsAvailable,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -152,7 +153,7 @@ func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	// Find the event with the given ID
 	// Preload
 	if err := trmc.DB.
-		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketReleaseMethodDetail.ticketReleaseMethod").
 		Preload("TicketTypes").
 		Where("event_id = ?", eventIDInt).
 		Find(&ticketReleases).Error; err != nil {
@@ -214,7 +215,6 @@ func (trmc *TicketReleaseController) GetTicketRelease(c *gin.Context) {
 	if ticketRelease.IsReserved {
 		// Get promo_code query string
 		promoCode := c.DefaultQuery("promo_code", "")
-		println(promoCode)
 		if promoCode == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing promo code"})
 			return
@@ -332,7 +332,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketReleaseMethodDetails.TicketReleaseMethodID = uint(req.TicketReleaseMethodID)
 
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cancellation policy"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

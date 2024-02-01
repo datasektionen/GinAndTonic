@@ -33,8 +33,10 @@ func (trc *TicketRequestController) UsersList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ticket_requests": ticketRequests})
 }
 
+// Create a ticket request
 func (trc *TicketRequestController) Create(c *gin.Context) {
 	var ticketRequests []models.TicketRequest
+	var ticketRequestsIds []int
 
 	UGKthID, _ := c.Get("ugkthid")
 
@@ -47,14 +49,21 @@ func (trc *TicketRequestController) Create(c *gin.Context) {
 		ticketRequests[i].UserUGKthID = UGKthID.(string)
 	}
 
-	err := trc.Service.CreateTicketRequests(ticketRequests)
+	mTicketRequests, err := trc.Service.CreateTicketRequests(ticketRequests)
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
 		return
 	}
 
+	for _, ticketRequest := range mTicketRequests {
+		ticketRequestsIds = append(ticketRequestsIds, int(ticketRequest.ID))
+	}
+
+	services.Notify_TicketRequestCreated(trc.Service.DB, ticketRequestsIds)
+
 	c.JSON(http.StatusCreated, ticketRequests)
 }
+
 func (trc *TicketRequestController) Get(c *gin.Context) {
 	UGKthID, _ := c.Get("ugkthid")
 	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthID.(string))

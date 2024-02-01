@@ -83,7 +83,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequest() {
 		time.Now(),
 	)
 
-	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
 	suite.Nil(err)
 
 	var ticketRequestFromDB []models.TicketRequest
@@ -108,7 +108,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 			time.Now(),
 		)
 
-		err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+		_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
 		suite.Nil(err)
 	}
 
@@ -122,7 +122,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 		time.Now(),
 	)
 
-	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
 	suite.NotNil(err)
 
 	var ticketRequestFromDB []models.TicketRequest
@@ -167,8 +167,6 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterOpenWindowDurat
 	requested_time := ticketRequestFromDB[0].CreatedAt
 	window_close_time := utils.ConvertUNIXTimeToDateTime(int64(ticketRelease.Open + ticketReleaseMethodDetail.OpenWindowDuration))
 
-	println(requested_time.Format(time.RFC3339))
-
 	fmt.Printf("Requested time: %s\n", requested_time.Format(time.RFC3339))
 	fmt.Printf("Window close time: %s\n", window_close_time.Format(time.RFC3339))
 
@@ -212,7 +210,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterClose() {
 		time.Now(),
 	)
 
-	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
 	suite.NotNil(err)
 
 	// Check that it is a reserve ticket
@@ -256,7 +254,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestBeforeOpen() {
 		time.Now(),
 	)
 
-	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
 	suite.NotNil(err)
 
 	// Check that it is a reserve ticket
@@ -312,7 +310,7 @@ func (suite *TicketRequestTestSuite) TestUserMakesTwoTicketRequestUnderMaxTicket
 		time.Now(),
 	)
 
-	err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
 	suite.NotNil(err)
 
 	// Check that it is a reserve ticket

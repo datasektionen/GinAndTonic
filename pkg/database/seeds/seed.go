@@ -40,7 +40,7 @@ func SeedOrganizationUserRoles(db *gorm.DB) {
 
 func SeedOrganizations(db *gorm.DB) {
 	for i := 0; i < 5; i++ {
-		org := factory.NewOrganization("Organization Name")
+		org := factory.NewOrganization("Organization Name", "Organization Email")
 		db.Create(org)
 	}
 }

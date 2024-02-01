@@ -1,0 +1,40 @@
+<div
+  style="
+    font-family: Verdana, sans-serif;
+    padding: 10px;
+    background-color: #e1e1e1;
+    color: #303030;
+  "
+>
+  <h1 style="font-size: 24px; color: #272727">Hey, {{ .FullName }}!</h1>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    Unfortunately, you didn't receive a ticket to
+    <strong>{{ .EventName }}.</strong> <br />
+    However, you are number <strong>{{ .ReserveNumber }}</strong> on the reserve
+    list. <br />
+    If any tickets become available, we will inform you immediately.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you no longer wish to be on the reserve list, please select the
+    <strong>"Leave reserve list"</strong> option in the "My Tickets" section of
+    your profile. You can also
+    <a style="color: #00494e" href="{{ .TicketURL }}">Click here</a> to view
+    your tickets.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you have any questions, please contact us at
+    <a
+      style="color: #00494e"
+      href="mailto:{{ .OrganizationEmail }}?subject=Questions about {{ .EventName }}"
+      >{{ .OrganizationEmail }}</a
+    >
+  </p>
+  <br />
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

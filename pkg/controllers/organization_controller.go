@@ -41,6 +41,12 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 		return
 	}
 
+	// Check if email is in use
+	if ec.DB.Where("email = ?", organization.Email).First(&organization).RowsAffected > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+		return
+	}
+
 	if err := ec.DB.Create(&organization).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetDBError(err)})
 		return
@@ -117,6 +123,12 @@ func (ec *OrganisationController) UpdateOrganization(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&organization); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if new email is in use
+	if ec.DB.Where("email = ?", organization.Email).First(&organization).RowsAffected > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
 		return
 	}
 

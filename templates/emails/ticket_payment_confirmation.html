@@ -9,13 +9,12 @@
   <h1 style="font-size: 24px; color: #272727">Hey, {{ .FullName }}!</h1>
 
   <p style="font-size: 16px; line-height: 1.5">
-    This is a confirmation that we've received your payment for your ticket(s)
-    to
+    This is a confirmation that we've received your payment for your ticket to
     <strong>{{ .EventName }}.</strong> A recipeipt has been sent to you in a
     separate email.
   </p>
   <p style="font-size: 16px; line-height: 1.5">
-    The following tickets have been successfully payed for,
+    The following ticket have been successfully payed for,
   </p>
 
   <style>
@@ -27,6 +26,13 @@
       width: 100%;
       border: 1px solid #ccc;
     }
+    li {
+      padding: 10px;
+      margin: 0;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+    }
     ul.cost-summary li:nth-child(even) {
       background-color: #d0dede;
     }
@@ -35,9 +41,6 @@
     }
     ul.cost-summary li:last-child {
       border-bottom: none;
-    }
-    span {
-      margin: 0 10px;
     }
   </style>
 

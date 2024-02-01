@@ -93,7 +93,6 @@ func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 		return
 	}
 
-
 	// Unmarshal the event data into an appropriate struct depending on its Type
 	switch event.Type {
 	case "payment_intent.succeeded":

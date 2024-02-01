@@ -1,5 +1,7 @@
 package types
 
+import "html/template"
+
 type EmailTicket struct {
 	Name  string
 	Price string
@@ -29,7 +31,7 @@ type EmalTicketReserveCreated struct {
 type EmailTicketRequestConfirmation struct {
 	FullName          string
 	EventName         string
-	Tickets           []EmailTicket
+	TicketsHTML       template.HTML
 	TicketURL         string
 	OrganizationEmail string
 }

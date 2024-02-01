@@ -99,7 +99,6 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 		if err := srv.Run(mux); err != nil {
 			log.Fatalf("Could not run Asynq server: %v", err)
 			// For debugging, you might want to print the error and stop the execution:
-			fmt.Println("Failed to start Asynq server:", err)
 			os.Exit(1)
 		}
 	}()

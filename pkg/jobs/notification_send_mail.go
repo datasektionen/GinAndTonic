@@ -10,7 +10,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 )
 
-// create type for body
+// MailData is the data that is sent to the spam API
 type MailData struct {
 	Key     string `json:"key"`
 	To      string `json:"to"`
@@ -19,14 +19,26 @@ type MailData struct {
 	Content string `json:"content"`
 }
 
-const FROM = "tessera@datasektionen.se"
+// From is the email address that the emails will be sent from
+const From = "tessera-no-reply@datasektionen.se"
 
+// SpamURL is the URL to the spam API
+const SpamURL = "https://spam.datasektionen.se/api/sendmail"
+
+// SendEmail sends an email to the user
 func SendEmail(user *models.User, subject, content string) error {
 	// Create the data to be sent
+	var to string
+	if os.Getenv("ENV") == "dev" {
+		to = os.Getenv("SPAM_TEST_EMAIL")
+	} else {
+		to = user.Email
+	}
+
 	data := MailData{
 		Key:     os.Getenv("SPAM_API_KEY"),
-		To:      "lucdow7@gmail.com", // HARD CODED FOR TESTING TODO CHANGE
-		From:    FROM,
+		To:      to,
+		From:    From,
 		Subject: subject,
 		Content: content,
 	}
@@ -39,10 +51,9 @@ func SendEmail(user *models.User, subject, content string) error {
 	payloadBuffer := bytes.NewBuffer(payloadBytes)
 
 	// Define the URL
-	url := "https://spam.datasektionen.se/api/sendmail"
 
 	// Create a new request
-	req, err := http.NewRequest("POST", url, payloadBuffer)
+	req, err := http.NewRequest("POST", SpamURL, payloadBuffer)
 	if err != nil {
 		return err
 	}

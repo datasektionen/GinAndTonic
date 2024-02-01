@@ -10,8 +10,10 @@
 
   <p style="font-size: 16px; line-height: 1.5">
     This is a confirmation that you recently requested tickets to
-    <strong>{{ .EventName }}.</strong> <br />
+    <strong>{{ .EventName }}.</strong>
+  </p>
 
+  <p style="font-size: 16px; line-height: 1.5">
     You have requested the following ticket(s)
   </p>
 
@@ -24,12 +26,6 @@
       width: 100%;
       border: 1px solid #ccc;
     }
-    ul.cost-summary li {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #ccc;
-      padding: 10px 0;
-    }
     ul.cost-summary li:nth-child(even) {
       background-color: #d0dede;
     }
@@ -39,19 +35,9 @@
     ul.cost-summary li:last-child {
       border-bottom: none;
     }
-    span {
-      margin: 0 10px;
-    }
   </style>
 
-  <ul class="cost-summary">
-    {{ range .Tickets }}
-    <li>
-      <span>{{ .Name }}</span>
-      <span>{{ .Price }} SEK</span>
-    </li>
-    {{ end }}
-  </ul>
+  {{ .TicketsHTML }}
 
   <p style="font-size: 16px; line-height: 1.5">
     If you no longer wish to attend the event, please select the

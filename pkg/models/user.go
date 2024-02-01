@@ -62,3 +62,8 @@ func GetUserByEmailIfExists(db *gorm.DB, email string) (User, error) {
 func (u *User) FullName() string {
 	return u.FirstName + " " + u.LastName
 }
+
+func (u *User) IsSuperAdmin() bool {
+	// Preload role
+	return u.RoleID == 1
+}

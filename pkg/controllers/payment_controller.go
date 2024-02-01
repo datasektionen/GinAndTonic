@@ -72,7 +72,6 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 
 // Payment webhook
 func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
-	println("Payment webhook")
 	const MaxBodyBytes = int64(65536)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
 	payload, err := ioutil.ReadAll(c.Request.Body)
@@ -122,10 +121,11 @@ func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 		}
 
 		if pc.transactionService.CreateTransaction(paymentIntent, ticket) != nil {
-			println("Error creating transaction")
 			c.String(http.StatusInternalServerError, "Error creating transaction")
 			return
 		}
+
+		// Send notification to user
 
 		// Then define and call a function to handle the event payment_intent.succeeded
 		// ...

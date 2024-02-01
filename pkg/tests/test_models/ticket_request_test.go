@@ -112,8 +112,6 @@ func (suite *TicketRequestTestSuite) TestCascadeOnTicketReleaseDeletedSoft() {
 	var retrievedTicketRelease models.TicketRelease
 	err = suite.db.Where("id = ?", 1).First(&retrievedTicketRelease).Error
 
-	println(retrievedTicketRelease.ID)
-
 	// Assert error
 	assert.Error(suite.T(), err)
 

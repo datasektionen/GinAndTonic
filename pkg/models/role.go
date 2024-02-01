@@ -20,8 +20,8 @@ func GetRole(db *gorm.DB, name string) (Role, error) {
 func InitializeRoles(db *gorm.DB) error {
 	// Define the roles you want to ensure exist
 	roles := []Role{
-		{Name: "user"},
 		{Name: "super_admin"},
+		{Name: "user"},
 	}
 
 	// Check each role and create it if it doesn't exist

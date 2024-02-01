@@ -46,12 +46,11 @@ func (f *FCFSLotteryConfig) Validate() error {
 }
 
 func (trmd *TicketReleaseMethodDetail) ValidateCancellationPolicy() error {
-	println("trmd", trmd.CancellationPolicy)
 	switch trmd.CancellationPolicy {
 	case FULL_REFUND, NO_REFUND:
 		return nil
 	default:
-		println("trmd", trmd.CancellationPolicy)
+		fmt.Errorf("invalid CancellationPolicy: %v", trmd.CancellationPolicy)
 		return fmt.Errorf("invalid CancellationPolicy: %v", trmd.CancellationPolicy)
 	}
 }

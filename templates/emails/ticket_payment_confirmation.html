@@ -24,12 +24,6 @@
       width: 100%;
       border: 1px solid #ccc;
     }
-    ul.cost-summary li {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #ccc;
-      padding: 10px 0;
-    }
     ul.cost-summary li:nth-child(even) {
       background-color: #d0dede;
     }
@@ -44,14 +38,7 @@
     }
   </style>
 
-  <ul class="cost-summary">
-    {{ range .Tickets }}
-    <li>
-      <span>{{ .Name }}</span>
-      <span>{{ .Price }} SEK</span>
-    </li>
-    {{ end }}
-  </ul>
+  {{ .TicketsHTML }}
 
   <p style="font-size: 16px; line-height: 1.5">
     We look forward to seeing you at the event! If you have any questions,

@@ -91,5 +91,15 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *ErrorRespon
 		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already paid"}
 	}
 
+	// Delete ticket
+	if err := ts.DB.Delete(&ticket).Error; err != nil {
+		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting ticket"}
+	}
+
+	// Notify user
+	if err := Notify_TicketCancelled(ts.DB, &ticket.User, &ticket.TicketRequest.TicketRelease.Event.Organization, ticket.TicketRequest.TicketRelease.Event.Name); err != nil {
+		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error notifying user"}
+	}
+
 	return nil
 }

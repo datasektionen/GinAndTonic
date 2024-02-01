@@ -36,8 +36,6 @@ func (tc *TicketController) ListTickets(c *gin.Context) {
 		return
 	}
 
-	println("Tickets: ", tickets)
-
 	c.JSON(http.StatusOK, tickets)
 }
 
@@ -125,7 +123,7 @@ func (tc *TicketController) CancelTicket(c *gin.Context) {
 
 	errResponse := tc.Service.CancelTicket(UGKthId.(string), ticketID)
 	if errResponse != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errResponse.Message})
+		c.JSON(errResponse.StatusCode, gin.H{"error": errResponse.Message})
 		return
 	}
 

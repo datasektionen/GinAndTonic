@@ -258,8 +258,6 @@ func LoginCompletePostman(c *gin.Context) {
 		return
 	}
 
-	println("Verification URL: " + verificationURL)
-
 	q := req.URL.Query()
 	q.Add("format", "json")
 	q.Add("api_key", os.Getenv("LOGIN_API_KEY"))

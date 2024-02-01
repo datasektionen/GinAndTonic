@@ -28,23 +28,15 @@ type TicketRelease struct {
 }
 
 func (tr *TicketRelease) ValidatePayWithin() bool {
-	payWithin := *tr.PayWithin
-	println(payWithin)
-
 	if tr.PayWithin == nil {
-		println("PayWithin is not nil")
 		return false
 	}
 
 	if tr.PayWithin != nil && *tr.PayWithin < 0 {
-		println("PayWithin is not less than 0")
 		return false
 	}
 
-	println("Event date: ", tr.Event.Date.Unix())
-
 	if tr.Event.Date.Unix() < time.Now().Add(time.Duration(*tr.PayWithin)*time.Hour).Unix() {
-		println("Event date is not less than pay within")
 		return false
 	}
 

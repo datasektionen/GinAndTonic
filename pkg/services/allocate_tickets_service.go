@@ -75,6 +75,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 				}
 
 				if err != nil {
+					tx.Rollback()
 					fmt.Println(err)
 					return err
 				}
@@ -104,6 +105,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 				}
 
 				if err != nil {
+					tx.Rollback()
 					fmt.Println(err)
 					return err
 				}

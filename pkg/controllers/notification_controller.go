@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -34,8 +35,8 @@ func (nc *NotificationController) SendTestEmail(c *gin.Context) {
 		to send an email to the user that the ticket allocation was created.
 	*/
 	var user models.User
-	if err := nc.DB.Where("email = ?", "lucdow7@gmail.com").First(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User with email not found"})
+	if err := nc.DB.First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -45,7 +46,7 @@ func (nc *NotificationController) SendTestEmail(c *gin.Context) {
 		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
 		OrganizationName:  "DKM",
 		OrganizationEmail: "test@datasektionen.se",
-		PayWithin:         "24",
+		PayBefore:         time.Now().Format("2006-01-02 15:04:05"),
 	}
 
 	tmpl, err := template.ParseFiles("templates/emails/ticket_allocation_created.html")

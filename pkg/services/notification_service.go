@@ -10,6 +10,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
 )
 
@@ -18,12 +19,12 @@ func GenerateEmailTable(tickets []types.EmailTicket) (string, error) {
 	var emailTemplate string = `<ul class="cost-summary">`
 
 	for _, ticket := range tickets {
-		emailTemplate += fmt.Sprintf(`<li style="justify-content: space-between;background-color:#d1ded0;display:flex;border-bottom:1px solid #ccc;padding:10px 0"><span style="margin: 0 10px;">%s</span><span style="margin: 0 10px;">%s SEK</span></li>`, ticket.Name, ticket.Price)
+		emailTemplate += fmt.Sprintf("<li><span style=\"margin: 0 10px;\">%s</span><span style=\"margin: 0 10px;\">%s SEK</span></li>", ticket.Name, ticket.Price)
 	}
 
 	emailTemplate += "</ul>"
 
-	return string(emailTemplate), nil
+	return emailTemplate, nil
 }
 
 // ParseTemplate parses a template file and returns the HTML content
@@ -100,13 +101,19 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId, payWithin int) error 
 		return fmt.Errorf("user email is empty")
 	}
 
+	var payBeforeString string
+
+	if payWithin != 0 {
+		payBeforeString = utils.ConvertPayWithinToString(payWithin, ticket.UpdatedAt)
+	}
+
 	data := types.EmailTicketAllocationCreated{
 		FullName:          user.FullName(),
 		EventName:         event.Name,
 		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
 		OrganizationName:  event.Organization.Name,
 		OrganizationEmail: event.Organization.Email,
-		PayWithin:         fmt.Sprintf("%d", payWithin),
+		PayBefore:         payBeforeString,
 	}
 
 	htmlContent, err := ParseTemplate("templates/emails/ticket_allocation_created.html", data)
@@ -155,7 +162,7 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 		FullName:          user.FullName(),
 		EventName:         event.Name,
 		TicketsHTML:       template.HTML(emailTicketString), // Convert string to template.HTML
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/ticket-requests",
 		OrganizationEmail: event.Organization.Email,
 	}
 

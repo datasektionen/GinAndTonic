@@ -39,7 +39,7 @@ func createLogDirAndLogFiles() {
 	}
 
 	if _, err := os.Stat("logs/notification.log"); os.IsNotExist(err) {
-		os.Create("logs/email_job.log")
+		os.Create("logs/notification.log")
 	}
 }
 

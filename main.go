@@ -27,7 +27,25 @@ import (
 
 var log = logrus.New()
 
+func createLogDirAndLogFiles() {
+	// Create logs directory if it doesn't exist
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs", 0755)
+	}
+
+	// Create log files if they don't exist
+	if _, err := os.Stat("logs/allocate_reserve_tickets_job.log"); os.IsNotExist(err) {
+		os.Create("logs/allocate_reserve_tickets_job.log")
+	}
+
+	if _, err := os.Stat("logs/notification.log"); os.IsNotExist(err) {
+		os.Create("logs/email_job.log")
+	}
+}
+
 func init() {
+	createLogDirAndLogFiles()
+
 	// Load environment variables from .env file
 	var err error
 	if os.Getenv("ENV") == "dev" {
@@ -57,22 +75,6 @@ func CORSConfig() cors.Config {
 	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers", "Content-Type", "X-XSRF-TOKEN", "Accept", "Origin", "X-Requested-With", "Authorization")
 	corsConfig.AddAllowMethods("GET", "POST", "PUT", "DELETE")
 	return corsConfig
-}
-
-func createLogDirAndLogFiles() {
-	// Create logs directory if it doesn't exist
-	if _, err := os.Stat("logs"); os.IsNotExist(err) {
-		os.Mkdir("logs", 0755)
-	}
-
-	// Create log files if they don't exist
-	if _, err := os.Stat("logs/allocate_reserve_tickets_job.log"); os.IsNotExist(err) {
-		os.Create("logs/allocate_reserve_tickets_job.log")
-	}
-
-	if _, err := os.Stat("logs/notification.log"); os.IsNotExist(err) {
-		os.Create("logs/email_job.log")
-	}
 }
 
 func setupCronJobs(db *gorm.DB) *cron.Cron {

@@ -96,11 +96,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.PUT("/events/:eventID",
 		authentication.RequireRole("user", db),
-		middleware.AuthorizeEventAccess(db),
 		eventController.UpdateEvent)
 	r.DELETE("/events/:eventID",
 		authentication.RequireRole("user", db),
-		middleware.AuthorizeEventAccess(db),
 		eventController.DeleteEvent)
 
 	r.POST("/complete-event-workflow",
@@ -162,8 +160,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/ticket-release-methods", authentication.RequireRole("super_admin", db), ticketReleaseMethodsController.CreateTicketReleaseMethod)
 
 	// Ticket Types routes
-	r.GET("/ticket-types", authentication.ValidateTokenMiddleware(), ticketTypeController.ListAllTicketTypes)
-	r.POST("/ticket-types", authentication.ValidateTokenMiddleware(), ticketTypeController.CreateTicketTypes)
+	r.GET("/ticket-types",
+		authentication.RequireRole("super_admin", db),
+		ticketTypeController.ListAllTicketTypes)
+	r.POST("/ticket-types", authentication.RequireRole("super_admin", db),
+		ticketTypeController.CreateTicketTypes)
 
 	// User Food Preference routes
 	r.PUT("/user-food-preferences", userFoodPreferenceController.Update)

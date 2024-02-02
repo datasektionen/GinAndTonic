@@ -1,13 +1,20 @@
 package utils
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 func ConvertUNIXTimeToDateTime(unixTime int64) time.Time {
 	return time.Unix(unixTime, 0)
 }
 
 func MustPayBefore(payWithin int, ticketUpdatedAt time.Time) time.Time {
-	location, _ := time.LoadLocation("Europe/Paris")
+	location, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		log.Fatalf("Failed to load location: %v", err)
+	} // TODO Continue here
+
 	ticketUpdatedAt = ticketUpdatedAt.In(location)
 
 	roundedTime := ticketUpdatedAt.Add(time.Duration(payWithin+1) * time.Hour)

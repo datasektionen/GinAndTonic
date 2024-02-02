@@ -84,7 +84,7 @@ func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 	}
 
 	// This is your Stripe CLI webhook secret for testing your endpoint locally.
-	endpointSecret := "whsec_2309398cebd9c0c933640eb8e331e09741fbd877471396be6bf122674fb18be5"
+	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
 
 	// Pass the request body and Stripe-Signature header to ConstructEvent, along
 	// with the webhook signing key.

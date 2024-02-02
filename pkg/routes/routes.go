@@ -90,9 +90,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events", eventController.CreateEvent)
 	r.GET("/events", eventController.ListEvents)
 	r.GET("/events/:eventID", eventController.GetEvent)
-	r.GET("/events/:eventID/manage", middleware.AuthorizeEventAccess(db), gin.HandlerFunc(func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
-	}))
+	r.GET("/events/:eventID/manage", authentication.ValidateTokenMiddleware(),
+		middleware.AuthorizeEventAccess(db), gin.HandlerFunc(func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
+		}))
 
 	r.PUT("/events/:eventID",
 		authentication.RequireRole("user", db),

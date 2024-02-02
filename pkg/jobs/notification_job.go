@@ -3,6 +3,8 @@ package jobs
 import (
 	"context"
 	"encoding/json"
+	"log"
+	"net/url"
 	"os"
 	"time"
 
@@ -60,11 +62,34 @@ func CreateNotificationInDb(db *gorm.DB, notification *models.Notification) erro
 	return tx.Commit().Error
 }
 
+func connectAsynqClient() *asynq.Client {
+	// Parse the REDIS_URL
+	redisURL, err := url.Parse(os.Getenv("REDIS_URL"))
+	if err != nil {
+		log.Fatalf("Failed to parse REDIS_URL: %v", err)
+	}
+
+	// Extract host and password. Port is part of the host in the URL.
+	redisHost := redisURL.Host
+	redisPassword, _ := redisURL.User.Password()
+
+	// Create a new Asynq client instance with RedisClientOpt.
+	var client *asynq.Client
+
+	if os.Getenv("ENV") == "dev" {
+		client = asynq.NewClient(asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")})
+	} else {
+		client = asynq.NewClient(asynq.RedisClientOpt{Addr: redisHost, Password: redisPassword})
+	}
+
+	return client
+}
+
 func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string, evnetId *uint) error {
-	client := asynq.NewClient(asynq.RedisClientOpt{Addr: os.Getenv("REDIS_ADDR")})
+	client := connectAsynqClient()
 	defer client.Close()
 
-	payload, err := json.Marshal(tasks.EmailPayload{User: user, Subject: subject, Content: content})
+	payload, err := json.Marshal(tasks.EmailPayload{User: user, Subject: subject, Content: content, EventID: evnetId})
 	if err != nil {
 		return err
 	}
@@ -72,9 +97,12 @@ func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string,
 	task := asynq.NewTask(tasks.TypeEmail, payload)
 	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.Timeout(3*time.Minute), asynq.Deadline(time.Now().Add(20*time.Minute)))
 
-	notification_logger.WithFields(logrus.Fields{
-		"id": string(info.ID),
+	if err != nil {
+		return err
+	}
 
+	notification_logger.WithFields(logrus.Fields{
+		"id":    string(info.ID),
 		"queue": info.Queue,
 	}).Info("Added email task to queue")
 

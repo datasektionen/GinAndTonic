@@ -32,6 +32,7 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Print cookie
 		cookie, err := c.Request.Cookie("auth_token")
+		println("cookie", cookie)
 		// View cookie error
 		if err != nil {
 			fmt.Println("Error getting cookie:", err)

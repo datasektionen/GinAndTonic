@@ -89,11 +89,23 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	//Event routes
 	r.POST("/events", eventController.CreateEvent)
 	r.GET("/events", eventController.ListEvents)
-	r.GET("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.GetEvent)
-	r.PUT("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.UpdateEvent)
-	r.DELETE("/events/:eventID", middleware.AuthorizeEventAccess(db), eventController.DeleteEvent)
+	r.GET("/events/:eventID", eventController.GetEvent)
+	r.GET("/events/:eventID/manage", middleware.AuthorizeEventAccess(db), gin.HandlerFunc(func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
+	}))
 
-	r.POST("/complete-event-workflow", eventWorkflowController.CreateEvent)
+	r.PUT("/events/:eventID",
+		authentication.RequireRole("user", db),
+		middleware.AuthorizeEventAccess(db),
+		eventController.UpdateEvent)
+	r.DELETE("/events/:eventID",
+		authentication.RequireRole("user", db),
+		middleware.AuthorizeEventAccess(db),
+		eventController.DeleteEvent)
+
+	r.POST("/complete-event-workflow",
+		authentication.RequireRole("user", db),
+		eventWorkflowController.CreateEvent)
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)
@@ -131,8 +143,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.EditTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
 
-	r.POST("/organizations", authentication.RequireRole("super_admin"), organizationController.CreateOrganization)
-	r.GET("/organizations", authentication.RequireRole("super_admin"), organizationController.ListOrganizations)
+	r.POST("/organizations", authentication.RequireRole("super_admin", db), organizationController.CreateOrganization)
+	r.GET("/organizations", authentication.RequireRole("super_admin", db), organizationController.ListOrganizations)
 	r.GET("my-organizations", organizationController.ListMyOrganizations)
 	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.GetOrganization)
 	r.PUT("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.UpdateOrganization)
@@ -147,7 +159,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket Release Methods routes
 	r.GET("/ticket-release-methods", ticketReleaseMethodsController.ListTicketReleaseMethods)
-	r.POST("/ticket-release-methods", authentication.RequireRole("super_admin"), ticketReleaseMethodsController.CreateTicketReleaseMethod)
+	r.POST("/ticket-release-methods", authentication.RequireRole("super_admin", db), ticketReleaseMethodsController.CreateTicketReleaseMethod)
 
 	// Ticket Types routes
 	r.GET("/ticket-types", authentication.ValidateTokenMiddleware(), ticketTypeController.ListAllTicketTypes)
@@ -158,9 +170,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
 	r.GET("/food-preferences", userFoodPreferenceController.ListFoodPreferences)
 
-	r.POST("/admin/create-user", authentication.RequireRole("super_admin"), userController.CreateUser)
+	r.POST("/admin/create-user", authentication.RequireRole("super_admin", db), userController.CreateUser)
 
 	// Testing
-	r.POST("send-test-email", authentication.RequireRole("super_admin"), notificationController.SendTestEmail)
+	r.POST("send-test-email", authentication.RequireRole("super_admin", db), notificationController.SendTestEmail)
 	return r
 }

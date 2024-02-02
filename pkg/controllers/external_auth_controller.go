@@ -88,8 +88,14 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 	username := generateExternalUsername(externalSignupRequest.FirstName, externalSignupRequest.LastName)
 
 	pwHash, err := utils.HashPassword(externalSignupRequest.Password)
-	println("pwHash: ", pwHash)
 	if err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	var role models.Role
+	if err := eac.DB.Where("name = ?", "external").First(&role).Error; err != nil {
 		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
@@ -103,7 +109,7 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 		Email:        externalSignupRequest.Email,
 		PasswordHash: &pwHash,
 		IsExternal:   true,
-		RoleID:       2,
+		Role:         role,
 	}
 
 	err = models.CreateUserIfNotExist(eac.DB, user)
@@ -140,6 +146,7 @@ func (eac *ExternalAuthController) LoginExternalUser(c *gin.Context) {
 	}
 
 	// Generate a token
+	println("role name", user.Role.Name)
 	tokenString, err := authentication.GenerateToken(user.UGKthID, user.Role.Name)
 
 	if err != nil {

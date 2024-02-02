@@ -25,8 +25,6 @@ func createDefaultRole(db *gorm.DB) {
 	var role *models.Role
 	role = factory.NewRole("validRoleName")
 
-	println(role.Name)
-
 	err := db.Create(*role)
 	if err != nil {
 		fmt.Println("Error creating role", err)

@@ -50,6 +50,11 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
 
+	if user.IsExternal && !ticketRelease.AllowExternal {
+		log.Println("External user cannot request tickets to this event")
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "External user cannot request these tickets"}
+	}
+
 	if ticketRelease.HasAllocatedTickets {
 		log.Println("Ticket release has allocated tickets")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release has allocated tickets"}
@@ -190,11 +195,7 @@ func (trs *TicketRequestService) userAlreadyHasATicketToEvent(user *models.User,
 		Select("SUM(ticket_requests.ticket_amount)").
 		Row().Scan(&totalRequestedAmount)
 
-	println(totalRequestedAmount, requestedAmount, ticketReleaseMethodDetail.MaxTicketsPerUser)
-
 	newRequestedTicketsAmount := int64(ticketReleaseMethodDetail.MaxTicketsPerUser) - int64(requestedAmount)
-
-	println(newRequestedTicketsAmount)
 
 	return totalRequestedAmount > newRequestedTicketsAmount
 }

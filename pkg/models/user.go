@@ -12,6 +12,8 @@ type User struct {
 	FirstName             string                 `json:"first_name"`
 	LastName              string                 `json:"last_name"`
 	Email                 string                 `gorm:"uniqueIndex" json:"email"`
+	IsExternal            bool                   `gorm:"default:false" json:"is_external"` // External users do not have a KTH account
+	PasswordHash          *string                `json:"-" gorm:"column:password_hash;default:NULL" json:"-"`
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
 	Organizations         []Organization         `gorm:"many2many:organization_users;" json:"organizations"`

@@ -9,8 +9,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	mrand "math/rand" // aliased because it's used less frequently or it's not the standard rand in your app
 	"os"
+	"strings"
+	"time"
 )
+
+func init() {
+	// Initialize the random number generator with a time-based seed.
+	mrand.Seed(time.Now().UnixNano())
+}
 
 func HashString(s string) (string, error) {
 	secretKey := os.Getenv("SECRET_KEY")
@@ -32,6 +40,7 @@ func CompareHashAndString(hash, s string) (bool, error) {
 
 	return hmac.Equal([]byte(hash), []byte(expectedHash)), nil
 }
+
 func GenerateSecretToken() (string, error) {
 	token := make([]byte, 32) // Generate a 32 characters long token
 	_, err := rand.Read(token)
@@ -84,4 +93,17 @@ func DecryptSecretToken(encryptedToken, secretKey string) (string, error) {
 	stream.XORKeyStream(ciphertext, ciphertext)
 
 	return string(ciphertext), nil
+}
+
+func GenerateRandomString(n int) string {
+	const characters = "DATSEKIONabcdefghijklmnopqrstuvwxyz0123456789"
+	var result strings.Builder
+	length := len(characters)
+
+	for i := 0; i < n; i++ {
+		randomIndex := mrand.Intn(length)
+		result.WriteByte(characters[randomIndex])
+	}
+
+	return result.String()
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"gorm.io/gorm"
 )
 
@@ -56,49 +57,49 @@ func (ts *TicketService) EditTicket(eventID, ticketID int, updatedTicket models.
 	return ticket, nil
 }
 
-func (ts *TicketService) GetTicketForUser(UGKthID string) ([]models.Ticket, *ErrorResponse) {
+func (ts *TicketService) GetTicketForUser(UGKthID string) ([]models.Ticket, *types.ErrorResponse) {
 	tickets, err := models.GetAllValidUsersTicket(ts.DB, UGKthID)
 
 	if err != nil {
-		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
 	}
 
 	return tickets, nil
 }
 
-func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *ErrorResponse {
+func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.ErrorResponse {
 	// Get ticket
 	var ticket models.Ticket
 	if err := ts.DB.
 		Preload("User").
 		Preload("TicketRequest.TicketRelease.Event.Organization").
 		Where("id = ?", ticketID).First(&ticket).Error; err != nil {
-		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket"}
+		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket"}
 	}
 
 	// Check if user is owner of ticket
 	if ticket.User.UGKthID != ugKthID {
-		return &ErrorResponse{StatusCode: http.StatusForbidden, Message: "You are not the owner of this ticket"}
+		return &types.ErrorResponse{StatusCode: http.StatusForbidden, Message: "You are not the owner of this ticket"}
 	}
 
 	// Check if ticket is already refunded
 	if ticket.Refunded {
-		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already refunded"}
+		return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already refunded"}
 	}
 
 	// Check if ticket is paid
 	if ticket.IsPaid {
-		return &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already paid"}
+		return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already paid"}
 	}
 
 	// Delete ticket
 	if err := ts.DB.Delete(&ticket).Error; err != nil {
-		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting ticket"}
+		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting ticket"}
 	}
 
 	// Notify user
 	if err := Notify_TicketCancelled(ts.DB, &ticket.User, &ticket.TicketRequest.TicketRelease.Event.Organization, ticket.TicketRequest.TicketRelease.Event.Name); err != nil {
-		return &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error notifying user"}
+		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error notifying user"}
 	}
 
 	return nil

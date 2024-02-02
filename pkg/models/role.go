@@ -22,6 +22,7 @@ func InitializeRoles(db *gorm.DB) error {
 	roles := []Role{
 		{Name: "super_admin"},
 		{Name: "user"},
+		{Name: "external"},
 	}
 
 	// Check each role and create it if it doesn't exist

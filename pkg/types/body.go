@@ -62,7 +62,13 @@ type TicketTypePostReq struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 }
-	
+
+
+
+type ErrorResponse struct {
+	StatusCode int    // HTTP status code
+	Message    string // Error message
+}
 
 type CompleteEventWorkflowRequest struct {
 }

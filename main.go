@@ -109,6 +109,7 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 	// Create a new Asynq server instance with RedisClientOpt.
 	var srv *asynq.Server
 
+	fmt.Println("Starting Asynq server...")
 	if os.Getenv("ENV") == "dev" {
 		srv = asynq.NewServer(
 			asynq.RedisClientOpt{
@@ -124,7 +125,6 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 			},
 		)
 	} else {
-		println("Starting Asynq server with password")
 		srv = asynq.NewServer(
 			asynq.RedisClientOpt{
 				Addr:     redisHost,

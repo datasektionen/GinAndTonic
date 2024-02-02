@@ -85,7 +85,7 @@ func Logout(c *gin.Context) {
 	// Remove the cookie
 	setCookie(c, "", -1)
 
-	c.Redirect(http.StatusSeeOther, "/")
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
 // Login redirects to the external login page

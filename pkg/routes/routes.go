@@ -41,6 +41,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/postman-login", controllers.LoginPostman)
 	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)
 
+	externalAuthService := services.NewExternalAuthService(db)
+	externalAuthController := controllers.NewExternalAuthController(db, externalAuthService)
+
+	r.POST("/external/signup", externalAuthController.SignupExternalUser)
+	r.POST("/external/login", externalAuthController.LoginExternalUser)
+
 	r.GET("/login", controllers.Login)
 	r.GET("/login-complete/:token", controllers.LoginComplete)
 	r.GET("/current-user", authentication.ValidateTokenMiddleware(), controllers.CurrentUser)

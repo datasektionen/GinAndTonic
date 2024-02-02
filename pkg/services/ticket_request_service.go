@@ -7,19 +7,10 @@ import (
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
-
-type ErrorResponse struct {
-	StatusCode int    // HTTP status code
-	Message    string // Error message
-}
-
-// Error implements error.
-func (*ErrorResponse) Error() string {
-	panic("unimplemented")
-}
 
 type TicketRequestService struct {
 	DB *gorm.DB
@@ -29,7 +20,7 @@ func NewTicketRequestService(db *gorm.DB) *TicketRequestService {
 	return &TicketRequestService{DB: db}
 }
 
-func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.TicketRequest) (modelTicketRequests []models.TicketRequest, err *ErrorResponse) {
+func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.TicketRequest) (modelTicketRequests []models.TicketRequest, err *types.ErrorResponse) {
 	// Start transaction
 	trx := trs.DB.Begin()
 
@@ -46,48 +37,48 @@ func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.Ti
 	return modelTicketRequests, nil
 }
 
-func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.TicketRequest, transaction *gorm.DB) (mTicketRequest *models.TicketRequest, err *ErrorResponse) {
+func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.TicketRequest, transaction *gorm.DB) (mTicketRequest *models.TicketRequest, err *types.ErrorResponse) {
 	var user models.User
 
 	if err := transaction.Where("ug_kth_id = ?", ticketRequest.UserUGKthID).First(&user).Error; err != nil {
-		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
 	}
 
 	var ticketRelease models.TicketRelease
 	if err := transaction.Preload("ReservedUsers").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")
-		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
 
 	if ticketRelease.HasAllocatedTickets {
 		log.Println("Ticket release has allocated tickets")
-		return nil, &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release has allocated tickets"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release has allocated tickets"}
 	}
 
 	if !trs.isTicketReleaseOpen(ticketRequest.TicketReleaseID) {
 		log.Println("Ticket release is not open")
-		return nil, &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release is not open"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release is not open"}
 	}
 
 	if !trs.isTicketTypeValid(ticketRequest.TicketTypeID, ticketRequest.TicketReleaseID) {
 		log.Println("Ticket type is not valid for ticket release")
-		return nil, &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket type is not valid for ticket release"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket type is not valid for ticket release"}
 	}
 
 	var ticketReleaseMethodDetail models.TicketReleaseMethodDetail
 	if err := transaction.Where("id = ?", ticketRelease.TicketReleaseMethodDetailID).First(&ticketReleaseMethodDetail).Error; err != nil {
 		log.Println("Error getting ticket release method detail")
-		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release method detail"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release method detail"}
 	}
 
 	if trs.userAlreadyHasATicketToEvent(&user, &ticketRelease, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
 		log.Println("User cannot request more tickets to this event")
-		return nil, &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
 	}
 
 	if !trs.checkReservedTicketRelease(&ticketRelease, &user) {
 		log.Println("User does not have access to this ticket release")
-		return nil, &ErrorResponse{StatusCode: http.StatusBadRequest, Message: "You dont have access to this ticket release"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "You dont have access to this ticket release"}
 	}
 
 	mTicketRequest = &models.TicketRequest{
@@ -99,17 +90,17 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 
 	if err := transaction.Create(mTicketRequest).Error; err != nil {
 		log.Println("Error creating ticket request")
-		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
 	}
 
 	return mTicketRequest, nil
 }
 
-func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string) ([]models.TicketRequest, *ErrorResponse) {
+func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string) ([]models.TicketRequest, *types.ErrorResponse) {
 	ticketRequests, err := models.GetAllValidUsersTicketRequests(trs.DB, UGKthID)
 
 	if err != nil {
-		return nil, &ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
 	}
 
 	return ticketRequests, nil

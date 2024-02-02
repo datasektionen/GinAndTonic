@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -35,6 +38,29 @@ func generateExternalUGKthID() string {
 	*/
 	return "external-" + utils.GenerateRandomString(8)
 }
+
+func scramble(s string) string {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	runes := []rune(s)
+	for i := len(runes) - 1; i > 0; i-- {
+		j := r.Intn(i + 1)
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
+}
+
+func generateExternalUsername(firstName string, lastName string) string {
+	firstName = strings.ToLower(firstName)
+	lastName = strings.ToLower(lastName)
+
+	// remove spaces
+	firstName = strings.ReplaceAll(firstName, " ", "")
+
+	scrambledName := scramble(firstName + lastName)
+
+	return scrambledName
+}
+
 func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 	/*
 		Handler that creates a new user with the given information.
@@ -51,20 +77,18 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 		return
 	}
 
-	// Validate that Username and email doesnt already exist
-	if err := eac.DB.Where("username = ?", externalSignupRequest.UserName).First(&models.User{}).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
-		return
-	}
-
 	if err := eac.DB.Where("email = ?", externalSignupRequest.Email).First(&models.User{}).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
 		return
 	}
 
 	newUGKthID := generateExternalUGKthID()
+	// Scramble user firstname and lastname to create a username
+	// This is done to avoid username conflicts
+	username := generateExternalUsername(externalSignupRequest.FirstName, externalSignupRequest.LastName)
 
 	pwHash, err := utils.HashPassword(externalSignupRequest.Password)
+	println("pwHash: ", pwHash)
 	if err != nil {
 		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
@@ -73,7 +97,7 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 
 	var user models.User = models.User{
 		UGKthID:      newUGKthID,
-		Username:     externalSignupRequest.UserName,
+		Username:     username,
 		FirstName:    externalSignupRequest.FirstName,
 		LastName:     externalSignupRequest.LastName,
 		Email:        externalSignupRequest.Email,

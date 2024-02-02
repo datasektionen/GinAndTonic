@@ -464,3 +464,27 @@
 {"id":7,"level":"info","msg":"Starting to process ticket release","time":"2024-02-01T22:39:38Z"}
 {"id":7,"level":"info","msg":"Finished processing ticket release","time":"2024-02-01T22:39:38Z"}
 {"level":"info","msg":"AllocateReserveTicketsJob took 8.534436ms","time":"2024-02-01T22:39:38Z"}
+{"level":"info","msg":"Starting to process closed ticket releases","number_of_closed_ticket_releases":5,"time":"2024-02-02T11:12:19Z"}
+{"id":2,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":2,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":4,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":4,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":5,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":5,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":6,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":6,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":7,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:12:19Z"}
+{"id":7,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:12:19Z"}
+{"level":"info","msg":"AllocateReserveTicketsJob took 10.2996ms","time":"2024-02-02T11:12:19Z"}
+{"level":"info","msg":"Starting to process closed ticket releases","number_of_closed_ticket_releases":5,"time":"2024-02-02T11:42:19Z"}
+{"id":2,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":2,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":4,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":4,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":5,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":5,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":6,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":6,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":7,"level":"info","msg":"Starting to process ticket release","time":"2024-02-02T11:42:19Z"}
+{"id":7,"level":"info","msg":"Finished processing ticket release","time":"2024-02-02T11:42:19Z"}
+{"level":"info","msg":"AllocateReserveTicketsJob took 8.51752ms","time":"2024-02-02T11:42:19Z"}

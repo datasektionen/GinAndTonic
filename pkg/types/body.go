@@ -47,6 +47,7 @@ type TicketReleasePostReq struct {
 	Description           string `json:"description"`
 	Open                  int64  `json:"open"`
 	Close                 int64  `json:"close"`
+	AllowExternal         bool   `json:"allow_external"`
 	OpenWindowDuration    int    `json:"open_window_duration,omitempty"`
 	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
 	NotificationMethod    string `json:"notification_method"`
@@ -62,8 +63,6 @@ type TicketTypePostReq struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 }
-
-
 
 type ErrorResponse struct {
 	StatusCode int    // HTTP status code

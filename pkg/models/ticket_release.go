@@ -15,10 +15,11 @@ type TicketRelease struct {
 	Description                 string                    `json:"description"`
 	Open                        int64                     `json:"open"`
 	Close                       int64                     `json:"close"`
+	AllowExternal               bool                      `gorm:"default:false" json:"allow_external"` // Allow external users to buy tickets
 	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
 	TicketsAvailable            int                       `json:"tickets_available"`
-	IsReserved                  bool                      `json:"is_reserved" default:"false"`
+	IsReserved                  bool                      `gorm:"default:false" json:"is_reserved"`
 	PromoCode                   *string                   `gorm:"default:NULL" json:"promo_code"`
 	PayWithin                   *int64                    `json:"pay_within" default:"NULL"`
 	HasAllocatedTickets         bool                      `json:"has_allocated_tickets"`

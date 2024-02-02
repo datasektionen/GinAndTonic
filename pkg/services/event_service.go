@@ -102,6 +102,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  data.TicketRelease.IsReserved,
 		PromoCode:                   &promoCode,
+		AllowExternal:               data.TicketRelease.AllowExternal,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -205,6 +206,7 @@ func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlow
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  data.TicketRelease.IsReserved,
 		PromoCode:                   &promoCode,
+		AllowExternal:               data.TicketRelease.AllowExternal,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {

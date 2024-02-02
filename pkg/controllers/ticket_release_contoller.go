@@ -24,6 +24,7 @@ type TicketReleaseRequest struct {
 	Description           string `json:"description"`
 	Open                  int    `json:"open"`
 	Close                 int    `json:"close"`
+	AllowExternal         bool   `json:"allow_external"`
 	TicketReleaseMethodID int    `json:"ticket_release_method_id"`
 	OpenWindowDuration    int    `json:"open_window_duration"`
 	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
@@ -116,6 +117,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		IsReserved:                  req.IsReserved,
 		PromoCode:                   promoCode,
 		TicketsAvailable:            req.TicketsAvailable,
+		AllowExternal:               req.AllowExternal,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -317,6 +319,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketRelease.TicketsAvailable = req.TicketsAvailable
 	ticketRelease.IsReserved = req.IsReserved
 	ticketRelease.PromoCode = &req.PromoCode
+	ticketRelease.AllowExternal = req.AllowExternal
 
 	// Update ticket release method details
 	var ticketReleaseMethodDetails models.TicketReleaseMethodDetail

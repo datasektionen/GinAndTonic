@@ -80,7 +80,7 @@ func CORSConfig() cors.Config {
 
 func setupCronJobs(db *gorm.DB) *cron.Cron {
 	c := cron.New()
-	_, err := c.AddFunc("@every 30m", func() {
+	_, err := c.AddFunc("@every 20s", func() {
 		jobs.AllocateReserveTicketsJob(db)
 	})
 	if err != nil {

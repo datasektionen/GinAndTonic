@@ -8,8 +8,8 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
-	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -60,7 +60,7 @@ func (nc *NotificationController) SendTestEmail(c *gin.Context) {
 		Price: "100.00",
 	})
 
-	str, _ := services.GenerateEmailTable(tickets)
+	str, _ := utils.GenerateEmailTable(tickets)
 
 	var data = types.EmailTicketNotPaidInTime{
 		FullName:          "Tsst",

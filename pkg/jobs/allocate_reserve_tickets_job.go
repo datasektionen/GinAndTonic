@@ -103,9 +103,6 @@ func ManuallyProcessAllocateReserveTicketsJob(db *gorm.DB, ticketReleaseID uint)
 
 func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	// Start by getting all ticket releases that have not allocated tickets
-	allocator_logger.WithFields(logrus.Fields{
-		"id": ticketRelease.ID,
-	}).Info("Starting to process ticket release")
 
 	tx := db.Begin()
 	defer func() {
@@ -131,8 +128,7 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		return nil
 	}
 
-	// If the ticket release has a promo code then we skip it
-	if ticketRelease.PromoCode != nil {
+	if ticketRelease.HasPromoCode() {
 		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Info("Ticket release has a promo code")
@@ -164,8 +160,17 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		return err
 	}
 
+	allocator_logger.WithFields(logrus.Fields{
+		"id":                          ticketRelease.ID,
+		"number_of_allocated_tickets": len(allocatedTickets),
+		"number_of_reserved_tickets":  len(reservedTickets),
+	}).Info("Got all allocated and reserved tickets")
+
 	// Initialize newReserveTickets by taking the tickets available and subtracting the number of allocated tickets that hasnt been deleted
 	var newReserveTickets int64 = int64(ticketRelease.TicketsAvailable) - int64(len(allocatedTickets))
+
+	var newlyAllocatedTicketIDs []int
+	var newlyRemovedTicket []*models.Ticket
 
 	for _, ticket := range allocatedTickets {
 		// We start by iterating through all allocated tickets
@@ -200,8 +205,11 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			continue
 		}
 
-		// TODO: Notify user that ticket has been deleted
+		allocator_logger.WithFields(logrus.Fields{
+			"id": ticketRelease.ID,
+		}).Infof("Deleted ticket with ID %d", ticket.ID)
 
+		newlyRemovedTicket = append(newlyRemovedTicket, &ticket)
 		// Increment number of new tickets to be allocated from the reserve list
 		newReserveTickets++
 	}
@@ -242,19 +250,43 @@ func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
 				continue
 			}
 
-			// TODO Notify user that ticket has been allocated
+			allocator_logger.WithFields(logrus.Fields{
+				"id": ticketRelease.ID,
+			}).Infof("Allocated ticket with ID %d", ticket.ID)
 
+			newlyAllocatedTicketIDs = append(newlyAllocatedTicketIDs, int(ticket.ID))
 		}
 
 	}
 
 	err = tx.Commit().Error
+
 	if err != nil {
 		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error committing transaction: %s", err.Error())
 
 		return err
+	}
+
+	for _, ticketID := range newlyAllocatedTicketIDs {
+		err := Notify_ReserveTicketConvertedAllocation(db, ticketID)
+
+		if err != nil {
+			allocator_logger.WithFields(logrus.Fields{
+				"id": ticketRelease.ID,
+			}).Errorf("Error notifying user about ticket allocation: %s", err.Error())
+		}
+	}
+
+	for _, ticket := range newlyRemovedTicket {
+		err := Notify_TicketNotPaidInTime(db, ticket)
+
+		if err != nil {
+			allocator_logger.WithFields(logrus.Fields{
+				"id": ticketRelease.ID,
+			}).Errorf("Error notifying user about ticket not being paid in time: %s", err.Error())
+		}
 	}
 
 	allocator_logger.WithFields(logrus.Fields{

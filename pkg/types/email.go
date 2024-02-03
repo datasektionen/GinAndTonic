@@ -83,3 +83,13 @@ type EmailTicketNotPaidInTime struct {
 	TicketsHTML       template.HTML
 	OrganizationEmail string
 }
+
+type EmailReserveTicketConvertedAllocation struct {
+	FullName          string
+	EventName         string
+	OrganizationEmail string
+	OrganizationName  string
+	
+}
+
+

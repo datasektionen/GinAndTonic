@@ -113,6 +113,19 @@ func (tr *TicketRelease) UserUnlockReservedTicketRelease(user *User) {
 	tr.ReservedUsers = append(tr.ReservedUsers, *user)
 }
 
+func (tr *TicketRelease) HasPromoCode() bool {
+
+	if tr.PromoCode == nil {
+		return false
+	}
+
+	if *tr.PromoCode == "" {
+		return false
+	}
+
+	return true
+}
+
 func GetOpenTicketReleases(db *gorm.DB) (ticketReleases []TicketRelease, err error) {
 	err = db.Where("open <= ? AND close >= ?", time.Now().Unix(), time.Now().Unix()).Find(&ticketReleases).Error
 

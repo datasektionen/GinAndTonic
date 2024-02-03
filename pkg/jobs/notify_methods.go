@@ -96,3 +96,47 @@ func Notify_TicketNotPaidInTime(db *gorm.DB, ticket *models.Ticket) error {
 	AddEmailJobToQueue(db, &user, fmt.Sprintf("Your ticket was not paid in time to %s!", event.Name), htmlContent, nil)
 	return nil
 }
+
+func Notify_UpdateReserveNumbers(db *gorm.DB, ticketId int) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var ticket models.Ticket
+	err := db.
+		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.User").
+		First(&ticket, ticketId).Error
+	if err != nil {
+		return err
+	}
+
+	user := ticket.TicketRequest.User
+	ticketRelease := ticket.TicketRequest.TicketRelease
+	event := ticketRelease.Event
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	var newReserveNumber int = int(ticket.ReserveNumber)
+
+	data := types.EmailReserveUpdateNumber{
+		FullName:          user.FullName(),
+		EventName:         event.Name,
+		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		OrganizationName:  event.Organization.Name,
+		OrganizationEmail: event.Organization.Email,
+		ReserveNumber:     fmt.Sprintf("%d", newReserveNumber),
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/reserve_update_number.html", data)
+
+	if err != nil {
+		return err
+	}
+
+	AddEmailJobToQueue(db, &user, fmt.Sprintf("Your current reserve number to %s", event.Name), htmlContent, nil)
+
+	return nil
+}

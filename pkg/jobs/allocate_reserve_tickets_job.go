@@ -24,7 +24,7 @@ func init() {
 
 	allocator_log_file, err := os.OpenFile("logs/allocate_reserve_tickets_job.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		notification_logger.Fatal(err)
+		allocator_logger.Fatal(err)
 	}
 
 	// Set log output to the file
@@ -55,7 +55,7 @@ func AllocateReserveTicketsJob(db *gorm.DB) error {
 	}).Info("Starting to process closed ticket releases")
 
 	for _, ticketRelease := range closedTicketReleases {
-		err := process(db, ticketRelease)
+		err := process_mpartj(db, ticketRelease)
 		if err != nil {
 			// Depending on your error handling strategy, you can decide whether
 			// to continue processing the next ticket release or return the error.
@@ -90,7 +90,7 @@ func ManuallyProcessAllocateReserveTicketsJob(db *gorm.DB, ticketReleaseID uint)
 		"ticket_release_id": ticketReleaseID,
 	}).Info("Starting to process ticket release")
 
-	err = process(db, *ticketRelease)
+	err = process_mpartj(db, *ticketRelease)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func ManuallyProcessAllocateReserveTicketsJob(db *gorm.DB, ticketReleaseID uint)
 	return nil
 }
 
-func process(db *gorm.DB, ticketRelease models.TicketRelease) error {
+func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	// Start by getting all ticket releases that have not allocated tickets
 
 	tx := db.Begin()

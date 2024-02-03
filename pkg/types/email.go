@@ -89,7 +89,13 @@ type EmailReserveTicketConvertedAllocation struct {
 	EventName         string
 	OrganizationEmail string
 	OrganizationName  string
-	
 }
 
-
+type EmailReserveUpdateNumber struct {
+	FullName          string
+	EventName         string
+	TicketURL         string
+	OrganizationEmail string
+	OrganizationName  string
+	ReserveNumber     string
+}

@@ -3,7 +3,7 @@ package jobs
 import (
 	"bytes"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -50,8 +50,6 @@ func SendEmail(user *models.User, subject, content string) error {
 	}
 	payloadBuffer := bytes.NewBuffer(payloadBytes)
 
-	// Define the URL
-
 	// Create a new request
 	req, err := http.NewRequest("POST", SpamURL, payloadBuffer)
 	if err != nil {
@@ -62,21 +60,14 @@ func SendEmail(user *models.User, subject, content string) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return err
-	}
-
-	// Read and print the response body
-	_, err = io.ReadAll(resp.Body)
-	if err != nil {
-		return err
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	return nil

@@ -138,6 +138,50 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId, payWithin int) error 
 	return nil
 }
 
+func Notify_ReserveTicketAllocationCreated(db *gorm.DB, ticketId int) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var ticket models.Ticket
+	err := db.
+		Preload("TicketRequest.User").
+		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketType").
+		First(&ticket, ticketId).Error
+	if err != nil {
+		return err
+	}
+
+	user := ticket.TicketRequest.User
+	ticketRelease := ticket.TicketRequest.TicketRelease
+	event := ticketRelease.Event
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	var reserveNumberString string = fmt.Sprintf("%d", ticket.ReserveNumber)
+
+	data := types.EmailTicketAllocationReserveCreated{
+		FullName:          user.FullName(),
+		EventName:         event.Name,
+		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		OrganizationName:  event.Organization.Name,
+		OrganizationEmail: event.Organization.Email,
+		ReserveNumber:     reserveNumberString,
+	}
+
+	htmlContent, err := ParseTemplate("templates/emails/ticket_allocation_reserve_created.html", data)
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, &user, fmt.Sprintf("Your reserve ticket to %s", event.Name), htmlContent)
+
+	return nil
+}
+
 // Notify_TicketRequestCreated notifies the user that their ticket request has been created
 func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 	if os.Getenv("ENV") == "test" {

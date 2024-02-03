@@ -14,7 +14,7 @@ func MustPayBefore(payWithin int, ticketUpdatedAt time.Time) time.Time {
 	location, err := time.LoadLocation("Europe/Paris")
 	if err != nil {
 		log.Fatalf("Failed to load location: %v", err)
-	} // TODO Continue here
+	}
 
 	ticketUpdatedAt = ticketUpdatedAt.In(location)
 

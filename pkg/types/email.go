@@ -18,11 +18,12 @@ type EmailTicketAllocationCreated struct {
 }
 
 // Associated with ticket_reserve_created
-type EmalTicketReserveCreated struct {
+type EmailTicketAllocationReserveCreated struct {
 	FullName          string
 	ReserveNumber     string
 	EventName         string
 	TicketURL         string
+	OrganizationName  string
 	OrganizationEmail string
 }
 

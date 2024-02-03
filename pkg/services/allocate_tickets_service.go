@@ -74,8 +74,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 
 					err = Notify_TicketAllocationCreated(tx, int(ticket.ID), payWithin)
 				} else {
-					// TODO
-					// err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
+					err = Notify_ReserveTicketAllocationCreated(tx, int(ticket.ID))
 				}
 
 				if err != nil {
@@ -100,11 +99,9 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			for _, ticket := range tickets {
 				var err error
 				if !ticket.IsReserve {
-
 					err = Notify_TicketAllocationCreated(tx, int(ticket.ID), 0) // TODO Check if this is okay
 				} else {
-					// TODO
-					// err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
+					err = Notify_ReserveTicketAllocationCreated(tx, int(ticket.ID))
 				}
 
 				if err != nil {

@@ -15,8 +15,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const YOUR_CALLBACK_URL = "http://localhost:8080/login-complete"
-
 var db *gorm.DB
 var jwtKey []byte
 
@@ -183,7 +181,7 @@ func LoginComplete(c *gin.Context) {
 			setCookie(c, tokenString, 60*60*24*7) //  7 days
 
 			// referer := c.Request.Referer()
-			c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"?auth=success")
+			c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"/handle-login-callback?auth=success")
 
 			return
 		}
@@ -237,10 +235,10 @@ func LoginComplete(c *gin.Context) {
 
 		setCookie(c, tokenString, 60*60*24*7) //  7 days
 
-		c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"?auth=success")
+		c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"/handle-login-callback?auth=success")
 	} else {
 		println("Error: " + res.Status)
-		http.Redirect(c.Writer, c.Request, os.Getenv("FRONTEND_BASE_URL")+"?auth=failed", http.StatusSeeOther)
+		http.Redirect(c.Writer, c.Request, os.Getenv("FRONTEND_BASE_URL")+"/handle-login-callback?auth=failed", http.StatusSeeOther)
 	}
 }
 

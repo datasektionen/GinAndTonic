@@ -7,3 +7,4 @@ main
 tmp/
 # **.log
 pkg/tests/test_service/logs/*.log
+logs/*.log

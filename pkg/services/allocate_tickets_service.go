@@ -61,8 +61,6 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			return err
 		}
 
-		tx.Commit()
-
 		if len(tickets) > 0 {
 			// Notify the users that the tickets have been allocated
 			for _, ticket := range tickets {
@@ -74,7 +72,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 						payWithin = int(*ticketRelease.PayWithin)
 					}
 
-					err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID), payWithin)
+					err = Notify_TicketAllocationCreated(tx, int(ticket.ID), payWithin)
 				} else {
 					// TODO
 					// err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
@@ -97,15 +95,13 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			return err
 		}
 
-		tx.Commit()
-
 		if len(tickets) > 0 {
 			// Notify the users that the tickets have been allocated
 			for _, ticket := range tickets {
 				var err error
 				if !ticket.IsReserve {
 
-					err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID), 0) // TODO Check if this is okay
+					err = Notify_TicketAllocationCreated(tx, int(ticket.ID), 0) // TODO Check if this is okay
 				} else {
 					// TODO
 					// err = Notify_TicketAllocationCreated(ats.DB, int(ticket.ID))
@@ -120,13 +116,12 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 		}
 
 		break
-
 	default:
 		tx.Rollback()
 		return errors.New("Unknown ticket release method")
 	}
 
-	return nil
+	return tx.Commit().Error
 }
 
 func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(

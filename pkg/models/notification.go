@@ -25,7 +25,6 @@ type Notification struct {
 	Type        string `json:"type"`
 	Subject     string `json:"subject"`
 	Status      string `json:"status" gorm:"default:'pending'"`
-	Content     string `json:"content"` // Contains the email body in html format
 	EventID     *uint  `json:"event_id" gorm:"default:NULL"`
 }
 

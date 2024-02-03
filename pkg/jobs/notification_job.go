@@ -120,7 +120,6 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 			UserUGKthID: p.User.UGKthID,
 			Type:        models.EmailNotification,
 			Subject:     p.Subject,
-			Content:     p.Content,
 			EventID:     p.EventID,
 		}
 

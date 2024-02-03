@@ -3,7 +3,7 @@ package jobs
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -74,7 +74,7 @@ func SendEmail(user *models.User, subject, content string) error {
 	}
 
 	// Read and print the response body
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

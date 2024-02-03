@@ -146,7 +146,6 @@ func (eac *ExternalAuthController) LoginExternalUser(c *gin.Context) {
 	}
 
 	// Generate a token
-	println("role name", user.Role.Name)
 	tokenString, err := authentication.GenerateToken(user.UGKthID, user.Role.Name)
 
 	if err != nil {

@@ -44,6 +44,7 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
 	}
 
+	// TODO prehaps create log file this?
 	var ticketRelease models.TicketRelease
 	if err := transaction.Preload("ReservedUsers").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")

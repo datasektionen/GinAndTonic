@@ -3,6 +3,7 @@ package utils
 import (
 	"log"
 	"time"
+	_ "time/tzdata"
 )
 
 func ConvertUNIXTimeToDateTime(unixTime int64) time.Time {

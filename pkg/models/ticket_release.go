@@ -7,12 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// TicketRelease is a struct that represents a ticket release in the database
 type TicketRelease struct {
 	gorm.Model
 	EventID                     int                       `gorm:"index" json:"event_id"`
 	Event                       Event                     `json:"event"`
 	Name                        string                    `json:"name"`
-	Description                 string                    `json:"description"`
+	Description                 string                    `json:"description" gorm:"type:text"`
 	Open                        int64                     `json:"open"`
 	Close                       int64                     `json:"close"`
 	AllowExternal               bool                      `gorm:"default:false" json:"allow_external"` // Allow external users to buy tickets

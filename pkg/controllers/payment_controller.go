@@ -3,7 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -77,7 +77,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 	const MaxBodyBytes = int64(65536)
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
-	payload, err := ioutil.ReadAll(c.Request.Body)
+	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.String(http.StatusServiceUnavailable, "Error reading request body: %v", err)
 		return

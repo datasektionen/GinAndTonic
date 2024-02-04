@@ -3,7 +3,9 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
@@ -354,4 +356,46 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{"ticket_release": ticketRelease})
+}
+
+// ManuallyTryToAllocateReserveTickets manually tries to allocate reserve tickets
+func (trmc *TicketReleaseController) ManuallyTryToAllocateReserveTickets(c *gin.Context) {
+	var ticketRelease models.TicketRelease
+
+	ticketReleaseID := c.Param("ticketReleaseID")
+	eventID := c.Param("eventID")
+	// Convert the ticketRelease ID to an integer
+	ticketReleaseIDInt, err := strconv.Atoi(ticketReleaseID)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release ID"})
+		return
+	}
+
+	eventIDInt, err := strconv.Atoi(eventID)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	if err := trmc.DB.First(&ticketRelease, "event_id = ? AND id = ?", eventIDInt, ticketReleaseIDInt).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket release not found"})
+		return
+	}
+
+	if ticketRelease.IsReserved {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release is reserved"})
+		return
+	}
+
+	// Check that ticket release is closed
+	if ticketRelease.Close > time.Now().Unix() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release is not closed"})
+		return
+	}
+
+	err = jobs.ManuallyProcessAllocateReserveTicketsJob(trmc.DB, uint(ticketReleaseIDInt))
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully tried to allocate reserve tickets"})
 }

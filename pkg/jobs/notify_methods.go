@@ -43,6 +43,7 @@ func Notify_ReserveTicketConvertedAllocation(db *gorm.DB, ticketId int) error {
 	data := types.EmailTicketAllocationCreated{
 		FullName:          user.FullName(),
 		EventName:         event.Name,
+		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
 		OrganizationName:  event.Organization.Name,
 		OrganizationEmail: event.Organization.Email,
 		PayBefore:         payBeforeString,

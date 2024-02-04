@@ -1,0 +1,36 @@
+<div
+  style="
+    font-family: Verdana, sans-serif;
+    padding: 10px;
+    background-color: #e1e1e1;
+    color: #303030;
+  "
+>
+  <h1 style="font-size: 24px; color: #272727">Welcome, {{ .FullName }}!</h1>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    Welcome to tessera! The computer science chapter's event and ticketing
+    platform.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    We're excited to have you on board. Since you have signup as an external
+    user, we need to verify your email address before you can start using
+    tessera. Please verify your email address by clicking the link below:
+  </p>
+
+  <style>
+    a {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 20px 0;
+      color: #00494e;
+      text-decoration: none;
+    }
+  </style>
+  <a href="{{ .VerificationLink }}"> {{ .VerificationLink }} </a>
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

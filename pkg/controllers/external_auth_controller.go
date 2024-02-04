@@ -101,15 +101,23 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 		return
 	}
 
+	// generate verify email token
+	verifyEmailToken, err := utils.GenerateSecretToken()
+
+	currentTime := time.Now()
+
 	var user models.User = models.User{
-		UGKthID:      newUGKthID,
-		Username:     username,
-		FirstName:    externalSignupRequest.FirstName,
-		LastName:     externalSignupRequest.LastName,
-		Email:        externalSignupRequest.Email,
-		PasswordHash: &pwHash,
-		IsExternal:   true,
-		Role:         role,
+		UGKthID:                 newUGKthID,
+		Username:                username,
+		FirstName:               externalSignupRequest.FirstName,
+		LastName:                externalSignupRequest.LastName,
+		Email:                   externalSignupRequest.Email,
+		PasswordHash:            &pwHash,
+		IsExternal:              true,
+		Role:                    role,
+		VerifiedEmail:           false,
+		EmailVerificationToken:  verifyEmailToken,
+		EmailVerificationSentAt: &currentTime,
 	}
 
 	err = models.CreateUserIfNotExist(eac.DB, user)
@@ -119,9 +127,12 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 		return
 	}
 
+	services.Notify_ExternalUserSignupVerification(eac.DB, &user)
+
 	c.JSON(http.StatusCreated, gin.H{"message": "User created"})
 }
 
+// LoginExternalUser authenticates an external user and returns a token
 func (eac *ExternalAuthController) LoginExternalUser(c *gin.Context) {
 	/*
 		Handler that authenticates an external user and returns a token
@@ -136,6 +147,11 @@ func (eac *ExternalAuthController) LoginExternalUser(c *gin.Context) {
 	var user models.User
 	if err := eac.DB.Preload("Role").Where("email = ?", loginRequest.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+		return
+	}
+
+	if !user.VerifiedEmail {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email not verified"})
 		return
 	}
 
@@ -160,4 +176,42 @@ func (eac *ExternalAuthController) LoginExternalUser(c *gin.Context) {
 		"token": tokenString,
 		"user":  user,
 	})
+}
+
+// VerifiedEmailBody is the body of the request to verify an email
+type VerifiedEmailBody struct {
+	Token string `json:"token"`
+}
+
+// VerifyEmail verifies the email of an external user
+func (eac *ExternalAuthController) VerifyEmail(c *gin.Context) {
+	/*
+		Handler that verifies the email of an external user
+	*/
+	// get token from body
+	var body VerifiedEmailBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Find the user via the token
+	var user models.User
+	if err := eac.DB.Where("email_verification_token = ?", body.Token).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+		return
+	}
+
+	if user.VerifiedEmail {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already verified"})
+		return
+	}
+
+	// Update the user
+	if err := eac.DB.Model(&user).Update("verified_email", true).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Email verified"})
 }

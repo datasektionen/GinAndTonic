@@ -99,3 +99,14 @@ type EmailReserveUpdateNumber struct {
 	OrganizationName  string
 	ReserveNumber     string
 }
+
+// EmailWelcome is the struct for the welcome email
+type EmailWelcome struct {
+	FullName string
+}
+
+// EmailExternalUserSignupVerification is the struct for the external user signup verification email
+type EmailExternalUserSignupVerification struct {
+	FullName         string
+	VerificationLink string
+}

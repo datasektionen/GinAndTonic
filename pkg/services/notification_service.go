@@ -251,3 +251,48 @@ func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
 
 	return nil
 }
+
+// Notify_Welcome notifies the user that they have been registered
+func Notify_Welcome(db *gorm.DB, user *models.User) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	data := types.EmailWelcome{
+		FullName: user.FullName(),
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/welcome_to_tessera.html", data)
+
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, user, "Welcome to Tessera!", htmlContent)
+
+	return nil
+}
+
+// Notify_ExternalUserSignupVerification notifies the user that they have been registered
+func Notify_ExternalUserSignupVerification(db *gorm.DB, user *models.User) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var verificationURL string = os.Getenv("FRONTEND_BASE_URL") + "/verify-email/" + user.EmailVerificationToken
+
+	data := types.EmailExternalUserSignupVerification{
+		FullName:         user.FullName(),
+		VerificationLink: verificationURL,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/external_user_signup_verification.html", data)
+
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, user, "Verify your email", htmlContent)
+
+	return nil
+}

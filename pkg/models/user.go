@@ -6,14 +6,20 @@ import (
 	"gorm.io/gorm"
 )
 
+// User is a struct that represents a user in the database
 type User struct {
-	UGKthID               string                 `gorm:"primaryKey" json:"ug_kth_id"`
-	Username              string                 `gorm:"uniqueIndex" json:"username"`
-	FirstName             string                 `json:"first_name"`
-	LastName              string                 `json:"last_name"`
-	Email                 string                 `gorm:"uniqueIndex" json:"email"`
-	IsExternal            bool                   `gorm:"default:false" json:"is_external"` // External users do not have a KTH account
-	PasswordHash          *string                `json:"-" gorm:"column:password_hash;default:NULL" json:"-"`
+	UGKthID   string `gorm:"primaryKey" json:"ug_kth_id"`
+	Username  string `gorm:"uniqueIndex" json:"username"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `gorm:"uniqueIndex" json:"email"`
+
+	IsExternal              bool       `gorm:"default:false" json:"is_external"` // External users do not have a KTH account
+	VerifiedEmail           bool       `json:"verified_email"`
+	EmailVerificationToken  string     `gorm:"size:255" json:"-"`
+	EmailVerificationSentAt *time.Time `json:"-"`
+	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL" json:"-"`
+
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
 	Organizations         []Organization         `gorm:"many2many:organization_users;" json:"organizations"`
@@ -49,22 +55,26 @@ func CreateUserIfNotExist(db *gorm.DB, user User) error {
 	return nil
 }
 
+// GetUserByUGKthIDIfExist returns a user by UGKthID if it exists
 func GetUserByUGKthIDIfExist(db *gorm.DB, UGKthID string) (User, error) {
 	var user User
 	err := db.Preload("Role").Preload("Organizations").Where("ug_kth_id = ?", UGKthID).First(&user).Error
 	return user, err
 }
 
+// GetUserByEmailIfExists returns a user by email if it exists
 func GetUserByEmailIfExists(db *gorm.DB, email string) (User, error) {
 	var user User
 	err := db.Preload("Role").Where("email = ?", email).First(&user).Error
 	return user, err
 }
 
+// FullName returns the full name of the user
 func (u *User) FullName() string {
 	return u.FirstName + " " + u.LastName
 }
 
+// IsSuperAdmin returns true if the user is a super admin
 func (u *User) IsSuperAdmin() bool {
 	// Preload role
 	return u.RoleID == 1

@@ -9,6 +9,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/database"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -186,6 +187,8 @@ func LoginComplete(c *gin.Context) {
 			return
 		}
 
+		// User does not exist
+
 		var role models.Role
 		if body.Emails == "turetek@kth.se" || body.Emails == "dow@kth.se" { // Given super_admin role
 			role, err = models.GetRole(db, "super_admin")
@@ -201,13 +204,14 @@ func LoginComplete(c *gin.Context) {
 		}
 
 		user = models.User{
-			Username:  body.User,
-			FirstName: body.FirstName,
-			LastName:  body.LastName,
-			Email:     body.Emails,
-			UGKthID:   body.UGKthID,
-			RoleID:    role.ID,
-			Role:      role,
+			Username:      body.User,
+			FirstName:     body.FirstName,
+			LastName:      body.LastName,
+			Email:         body.Emails,
+			UGKthID:       body.UGKthID,
+			RoleID:        role.ID,
+			Role:          role,
+			VerifiedEmail: true,
 		}
 
 		tokenString, err := authentication.GenerateToken(body.UGKthID, user.Role.Name)
@@ -235,6 +239,8 @@ func LoginComplete(c *gin.Context) {
 
 		setCookie(c, tokenString, 60*60*24*7) //  7 days
 
+		services.Notify_Welcome(db, &user)
+
 		c.Redirect(http.StatusSeeOther, os.Getenv("FRONTEND_BASE_URL")+"/handle-login-callback?auth=success")
 	} else {
 		println("Error: " + res.Status)
@@ -242,6 +248,7 @@ func LoginComplete(c *gin.Context) {
 	}
 }
 
+// LoginCompletePostman handles the callback from the external login system
 func LoginCompletePostman(c *gin.Context) {
 	token := c.Param("token")
 	client := &http.Client{}
@@ -319,13 +326,14 @@ func LoginCompletePostman(c *gin.Context) {
 		}
 
 		user = models.User{
-			Username:  body.User,
-			FirstName: body.FirstName,
-			LastName:  body.LastName,
-			Email:     body.Emails,
-			UGKthID:   body.UGKthID,
-			RoleID:    role.ID,
-			Role:      role,
+			Username:      body.User,
+			FirstName:     body.FirstName,
+			LastName:      body.LastName,
+			Email:         body.Emails,
+			UGKthID:       body.UGKthID,
+			RoleID:        role.ID,
+			Role:          role,
+			VerifiedEmail: true,
 		}
 
 		tokenString, err := authentication.GenerateToken(body.UGKthID, user.Role.Name)

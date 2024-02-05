@@ -29,11 +29,10 @@ func rateLimitMiddleware(c *gin.Context) {
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 	config := cors.DefaultConfig()
-	env := os.Getenv("ENV")
-	if env == "dev" {
+	if os.Getenv("ENV") == "dev" {
 		config.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080"}
-	} else if env == "prod" {
-		config.AllowOrigins = []string{"https://tessera.datasektionen.se", "http://tessera.betasektionen.se"}
+	} else if os.Getenv("ENV") == "prod" {
+		config.AllowOrigins = []string{"https://tessera.datasektionen.se"}
 	}
 
 	config.AllowCredentials = true

@@ -69,7 +69,14 @@ func init() {
 	log.SetFormatter(&logrus.JSONFormatter{})
 }
 
-
+func CORSConfig() cors.Config {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080", "http://tessera.datasektionen.se"}
+	corsConfig.AllowCredentials = true
+	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers", "Content-Type", "X-XSRF-TOKEN", "Accept", "Origin", "X-Requested-With", "Authorization")
+	corsConfig.AddAllowMethods("GET", "POST", "PUT", "DELETE")
+	return corsConfig
+}
 
 func setupCronJobs(db *gorm.DB) *cron.Cron {
 	c := cron.New()

@@ -32,7 +32,7 @@ func getDomain() string {
 	if os.Getenv("ENV") == "dev" {
 		return "localhost"
 	} else if os.Getenv("ENV") == "prod" {
-		return ".betasektionen.se"
+		return ".datasektionen.se"
 	}
 
 	return "localhost"

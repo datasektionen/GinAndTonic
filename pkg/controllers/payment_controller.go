@@ -12,6 +12,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/gin-gonic/gin"
 	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/customer"
 	"github.com/stripe/stripe-go/v72/paymentintent"
 	"github.com/stripe/stripe-go/webhook"
 	"gorm.io/gorm"
@@ -49,17 +50,64 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 
 	if err := pc.DB.
 		Preload("TicketRequest.TicketType").
+		Preload("TicketRequest.User").
+		Preload("TicketRequest.TicketRelease.Event").
 		Where("id = ? AND user_ug_kth_id = ?", ticketId, ugkthid).First(&ticket).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	price := (int64)(ticket.TicketRequest.TicketType.Price * 100)
+	user := ticket.TicketRequest.User
+
+	// Sum price
+	var totalPrice int64
+	totalPrice += (int64)(ticket.TicketRequest.TicketType.Price*100) * (int64)(ticket.TicketRequest.TicketAmount)
+
+	// Define the customer parameters
+	customerParams := &stripe.CustomerListParams{}
+	customerParams.Filters.AddFilter("email", "", user.Email)
+	customerParams.Single = true
+
+	// Try to find existing customer
+	existingCustomerIter := customer.List(customerParams)
+	var cust *stripe.Customer
+	for existingCustomerIter.Next() {
+		cust = existingCustomerIter.Customer()
+	}
+
+	if cust == nil {
+		// No customer found, creating a new one
+		newCustomerParams := &stripe.CustomerParams{
+			Email: stripe.String(user.Email),
+		}
+		newCust, err := customer.New(newCustomerParams)
+		if err != nil {
+			fmt.Println("Customer creation failed:", err)
+			return
+		}
+		cust = newCust
+	}
 
 	params := &stripe.PaymentIntentParams{
-		Amount:             stripe.Int64(price),
+		Params: stripe.Params{
+			Metadata: map[string]string{
+				"ticket_id":       strconv.Itoa(ticketId),
+				"recipient_email": ticket.TicketRequest.User.Email,
+				"event_name":      ticket.TicketRequest.TicketRelease.Event.Name,
+				"ticket_release":  ticket.TicketRequest.TicketRelease.Name,
+				"ticket_type":     ticket.TicketRequest.TicketType.Name,
+				"ticket_amount":   strconv.Itoa(ticket.TicketRequest.TicketAmount),
+				"ticket_price":    fmt.Sprintf("%f", ticket.TicketRequest.TicketType.Price),
+			},
+		},
+		Customer:           stripe.String(cust.ID),
+		Amount:             stripe.Int64(totalPrice),
 		Currency:           stripe.String(string(stripe.CurrencySEK)),
 		PaymentMethodTypes: []*string{stripe.String("card")},
+		ReceiptEmail:       stripe.String(ticket.TicketRequest.User.Email),
+		Description: stripe.String(fmt.Sprintf("Event Name: %s, Ticket Type: %s",
+			ticket.TicketRequest.TicketType.Name,
+			ticket.TicketRequest.TicketType.Name)),
 	}
 
 	params.AddMetadata("ticket_id", strconv.Itoa(ticketId))

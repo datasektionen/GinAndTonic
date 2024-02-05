@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
@@ -11,11 +13,44 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
+	"github.com/hibiken/asynqmon"
 	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
 
 var limiter = rate.NewLimiter(1, 5)
+
+func setupAsynqMon() *asynqmon.HTTPHandler {
+	// Parse the REDIS_URL
+	redisURL, err := url.Parse(os.Getenv("REDIS_URL"))
+	if err != nil {
+		log.Fatalf("Failed to parse REDIS_URL: %v", err)
+	}
+
+	// Extract host and password. Port is part of the host in the URL.
+	redisHost := redisURL.Host
+	redisPassword, _ := redisURL.User.Password()
+
+	// Setup asynqmon based on the environment
+	var h *asynqmon.HTTPHandler
+	if os.Getenv("ENV") == "dev" {
+		h = asynqmon.New(asynqmon.Options{
+			RootPath:     "/admin/monitoring",
+			RedisConnOpt: asynq.RedisClientOpt{Addr: os.Getenv("REDIS_URL")},
+		})
+	} else {
+		h = asynqmon.New(asynqmon.Options{
+			RootPath: "/admin/monitoring",
+			RedisConnOpt: asynq.RedisClientOpt{
+				Addr:     redisHost,
+				Password: redisPassword,
+			},
+		})
+	}
+
+	return h
+}
 
 func rateLimitMiddleware(c *gin.Context) {
 	if !limiter.Allow() {
@@ -87,6 +122,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.Use(authentication.ValidateTokenMiddleware())
 	r.Use(middleware.UserLoader(db))
+
+	synqMonHandler := setupAsynqMon()
+	r.GET("/admin/monitoring/*any", authentication.RequireRole("super_admin", db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
 
 	//Event routes
 	r.POST("/events", eventController.CreateEvent)

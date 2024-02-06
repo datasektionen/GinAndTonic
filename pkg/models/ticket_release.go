@@ -27,6 +27,7 @@ type TicketRelease struct {
 	TicketReleaseMethodDetailID uint                      `gorm:"index" json:"ticket_release_method_detail_id"`
 	TicketReleaseMethodDetail   TicketReleaseMethodDetail `json:"ticket_release_method_detail"`
 	ReservedUsers               []User                    `gorm:"many2many:user_unlocked_ticket_releases;" json:"-"`
+	UserReminders               []TicketReleaseReminder   `gorm:"foreignKey:TicketReleaseID" json:"user_reminders"`
 }
 
 func (tr *TicketRelease) ValidatePayWithin() bool {

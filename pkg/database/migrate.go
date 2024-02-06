@@ -23,6 +23,7 @@ func Migrate(db *gorm.DB) error {
 		&models.OrganizationUserRole{},
 		&models.Transaction{},
 		&models.Notification{},
+		&models.TicketReleaseReminder{},
 		&tr_methods.LotteryConfig{},
 	)
 	return err

@@ -95,7 +95,35 @@ func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string,
 	}
 
 	task := asynq.NewTask(tasks.TypeEmail, payload)
-	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.Timeout(3*time.Minute), asynq.Deadline(time.Now().Add(20*time.Minute)))
+	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.Timeout(3*time.Minute), asynq.Deadline(time.Now().Add(10*time.Minute)))
+
+	if err != nil {
+		return err
+	}
+
+	notification_logger.WithFields(logrus.Fields{
+		"id":    string(info.ID),
+		"queue": info.Queue,
+	}).Info("Added email task to queue")
+
+	return err
+}
+
+func AddReminderEmailJobToQueueAt(db *gorm.DB, user *models.User,
+	subject, content string, reminderId uint, scheduleTime time.Time) error {
+	client := connectAsynqClient()
+	defer client.Close()
+
+	payload, err := json.Marshal(tasks.EmailReminderPayload{User: user, Subject: subject, Content: content, ReminderID: reminderId})
+	if err != nil {
+		return err
+	}
+
+	// Calculate the delay
+	delay := scheduleTime.Sub(time.Now())
+
+	task := asynq.NewTask(tasks.TypeReminderEmail, payload)
+	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.ProcessIn(delay))
 
 	if err != nil {
 		return err
@@ -150,6 +178,75 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 		notification.Status = models.NotificationStatusSent
 
 		CreateNotificationInDb(db, &notification)
+
+		notification_logger.WithFields(logrus.Fields{
+			"notification": notification,
+			"email":        p.User.Email,
+		}).Info("Email sent successfully")
+
+		return nil
+	}
+}
+
+func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error {
+	return func(ctx context.Context, t *asynq.Task) error {
+		var p tasks.EmailReminderPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return err
+		}
+
+		var ticketReleaseReminder *models.TicketReleaseReminder
+		if err := db.Where("id = ?", p.ReminderID).First(&ticketReleaseReminder).Error; err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"reminder_id": p.ReminderID,
+			}).Error("Reminder has been deleted")
+
+			return nil
+		}
+
+		var notification = models.Notification{
+			UserUGKthID: p.User.UGKthID,
+			Type:        models.EmailNotification,
+			Subject:     p.Subject,
+		}
+
+		if err := notification.Validate(); err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"notification": notification,
+				"error":        err,
+			}).Error("Error validating notification")
+
+			return err
+		}
+
+		err := SendEmail(p.User, p.Subject, p.Content)
+		if err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"notification": notification,
+				"email":        p.User.Email,
+				"error":        err,
+			}).Error("Error sending email")
+
+			notification.Status = models.NotificationStatusFailed
+
+			CreateNotificationInDb(db, &notification)
+
+			return err
+		}
+		// It was a success, create notification in db
+		notification.Status = models.NotificationStatusSent
+
+		CreateNotificationInDb(db, &notification)
+
+		ticketReleaseReminder.IsSent = true
+		if err := db.Save(&ticketReleaseReminder).Error; err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"reminder_id": p.ReminderID,
+				"error":       err,
+			}).Error("Error saving ticket release reminder")
+
+			return err
+		}
 
 		notification_logger.WithFields(logrus.Fields{
 			"notification": notification,

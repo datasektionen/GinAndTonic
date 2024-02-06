@@ -155,6 +155,7 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeEmail, jobs.HandleEmailJob(db))
+	mux.HandleFunc(tasks.TypeReminderEmail, jobs.HandleReminderJob(db))
 
 	go func() {
 		if err := srv.Run(mux); err != nil {

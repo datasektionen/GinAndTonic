@@ -110,3 +110,11 @@ type EmailExternalUserSignupVerification struct {
 	FullName         string
 	VerificationLink string
 }
+
+type EmailTicketReleaseReminder struct {
+	FullName          string
+	EventName         string
+	TicketReleaseName string
+	EventURL          string
+	OpensAt           string
+}

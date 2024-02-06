@@ -5,6 +5,7 @@ import (
 	"html/template" // Use this for HTML templates
 	"math"
 	"os"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -293,6 +294,41 @@ func Notify_ExternalUserSignupVerification(db *gorm.DB, user *models.User) error
 	}
 
 	AddEmailJob(db, user, "Verify your email", htmlContent)
+
+	return nil
+}
+
+func Notify_RemindUserOfTicketRelease(db *gorm.DB, trReminder *models.TicketReleaseReminder) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var ticketRelease models.TicketRelease
+	err := db.Preload("Event.Organization").First(&ticketRelease, trReminder.TicketReleaseID).Error
+	if err != nil {
+		return fmt.Errorf("ticket release not found")
+	}
+
+	var user models.User
+	err = db.Where("ug_kth_id = ?", trReminder.UserUGKthID).First(&user).Error
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+
+	data := types.EmailTicketReleaseReminder{
+		FullName:          user.FullName(),
+		EventName:         ticketRelease.Event.Name,
+		TicketReleaseName: ticketRelease.Name,
+		EventURL:          os.Getenv("FRONTEND_BASE_URL") + "/events/" + fmt.Sprintf("%d", ticketRelease.EventID),
+		OpensAt:           (time.Unix(ticketRelease.Open, 0)).Format("2006-01-02 15:04:05"),
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_release_reminder.html", data)
+	if err != nil {
+		return err
+	}
+
+	jobs.AddEmailJobToQueueAt(db, &user, fmt.Sprintf("Ticket release reminder for %s", ticketRelease.Event.Name), htmlContent, trReminder.ReminderTime)
 
 	return nil
 }

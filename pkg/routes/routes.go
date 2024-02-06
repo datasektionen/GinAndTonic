@@ -116,6 +116,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	constantOptionsController := controllers.NewConstantOptionsController(db)
 	paymentsController := controllers.NewPaymentController(db)
 	notificationController := controllers.NewNotificationController(db)
+	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -157,6 +158,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/manually-allocate-reserve-tickets",
 		middleware.AuthorizeEventAccess(db),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
+
+	// Ticket release reminder
+	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/reminder",
+		ticketReleaseReminderController.CreateTicketReleaseReminder)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/reminder",
+		ticketReleaseReminderController.GetTicketReleaseReminder)
+	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID/reminder",
+		ticketReleaseReminderController.DeleteTicketReleaseReminder)
 
 	// Promo code routes
 	r.GET("/activate-promo-code/:eventID", ticketReleasePromoCodeController.Create)

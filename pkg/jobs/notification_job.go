@@ -95,7 +95,34 @@ func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string,
 	}
 
 	task := asynq.NewTask(tasks.TypeEmail, payload)
-	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.Timeout(3*time.Minute), asynq.Deadline(time.Now().Add(20*time.Minute)))
+	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.Timeout(3*time.Minute), asynq.Deadline(time.Now().Add(10*time.Minute)))
+
+	if err != nil {
+		return err
+	}
+
+	notification_logger.WithFields(logrus.Fields{
+		"id":    string(info.ID),
+		"queue": info.Queue,
+	}).Info("Added email task to queue")
+
+	return err
+}
+
+func AddEmailJobToQueueAt(db *gorm.DB, user *models.User, subject, content string, scheduleTime time.Time) error {
+	client := connectAsynqClient()
+	defer client.Close()
+
+	payload, err := json.Marshal(tasks.EmailPayload{User: user, Subject: subject, Content: content})
+	if err != nil {
+		return err
+	}
+
+	// Calculate the delay
+	delay := scheduleTime.Sub(time.Now())
+
+	task := asynq.NewTask(tasks.TypeEmail, payload)
+	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.ProcessIn(delay))
 
 	if err != nil {
 		return err

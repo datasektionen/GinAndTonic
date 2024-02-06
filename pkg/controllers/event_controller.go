@@ -247,4 +247,3 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets, "ticket_requests": ticketRequests})
 }
-

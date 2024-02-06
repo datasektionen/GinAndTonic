@@ -25,6 +25,47 @@ const From = "tessera-no-reply@datasektionen.se"
 // SpamURL is the URL to the spam API
 const SpamURL = "https://spam.datasektionen.se/api/sendmail"
 
+// SendContactEmail sends an email to the contact email
+func SendContactEmail(name, email, subject, content string) error {
+	// Create the data to be sent
+	data := MailData{
+		Key:     os.Getenv("SPAM_API_KEY"),
+		To:      "lucdow7@gmai.com",
+		From:    email,
+		Subject: subject,
+		Content: content,
+	}
+
+	// Marshal the data into a JSON payload
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	payloadBuffer := bytes.NewBuffer(payloadBytes)
+
+	// Create a new request
+	req, err := http.NewRequest("POST", SpamURL, payloadBuffer)
+	if err != nil {
+		return err
+	}
+
+	// Set the appropriate headers (Content-Type)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 // SendEmail sends an email to the user
 func SendEmail(user *models.User, subject, content string) error {
 	// Create the data to be sent

@@ -328,7 +328,9 @@ func Notify_RemindUserOfTicketRelease(db *gorm.DB, trReminder *models.TicketRele
 		return err
 	}
 
-	jobs.AddEmailJobToQueueAt(db, &user, fmt.Sprintf("Ticket release reminder for %s", ticketRelease.Event.Name), htmlContent, trReminder.ReminderTime)
+	jobs.AddReminderEmailJobToQueueAt(db, &user,
+		fmt.Sprintf("Ticket release reminder for %s", ticketRelease.Event.Name),
+		htmlContent, trReminder.ID, trReminder.ReminderTime)
 
 	return nil
 }

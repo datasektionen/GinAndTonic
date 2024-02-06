@@ -6,7 +6,8 @@ import (
 
 // Define task types.
 const (
-	TypeEmail = "email:send"
+	TypeEmail         = "email:send"
+	TypeReminderEmail = "email:reminder"
 )
 
 // Define task payloads.
@@ -15,4 +16,11 @@ type EmailPayload struct {
 	Subject string
 	Content string
 	EventID *uint
+}
+
+type EmailReminderPayload struct {
+	User       *models.User
+	Subject    string
+	Content    string
+	ReminderID uint
 }

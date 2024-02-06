@@ -99,13 +99,18 @@ func (erc *TicketReleaseReminderController) DeleteTicketReleaseReminder(c *gin.C
 		return
 	}
 
-	var eventReminders models.TicketReleaseReminder
-	if err := erc.DB.Where("ticket_release_id = ? AND user_ug_kth_id = ?", ticketReleaseID, ugkthid).First(&eventReminders).Error; err != nil {
+	var trReminder models.TicketReleaseReminder
+	if err := erc.DB.Where("ticket_release_id = ? AND user_ug_kth_id = ?", ticketReleaseID, ugkthid).First(&trReminder).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No reminder found"})
 		return
 	}
 
-	if err := erc.DB.Delete(&eventReminders).Error; err != nil {
+	if trReminder.IsSent {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Reminder has already been sent"})
+		return
+	}
+
+	if err := erc.DB.Delete(&trReminder).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

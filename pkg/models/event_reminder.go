@@ -29,7 +29,7 @@ func (trr *TicketReleaseReminder) Validate(db *gorm.DB) error {
 		return fmt.Errorf("ticket release not found")
 	}
 
-	if time.Now().Before(trr.ReminderTime) {
+	if time.Now().After(trr.ReminderTime) {
 		return fmt.Errorf("reminder time is in the past")
 	}
 

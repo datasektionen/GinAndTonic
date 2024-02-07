@@ -1,0 +1,28 @@
+<div
+  style="
+    font-family: Verdana, sans-serif;
+    padding: 10px;
+    background-color: #e1e1e1;
+    color: #303030;
+  "
+>
+  <p style="font-size: 16px; line-height: 1.5">
+    {{ .FullName }} has send you a message. You can reply to this email to
+    respond to the message.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    <strong>Subject:</strong> {{ .Subject }}
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">{{ .Message }}</p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    Reply here,
+    <a href="mailto:{{ .Email }}?subject=Re: {{ .Subject }}">{{ .Email }}</a>
+  </p>
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

@@ -111,6 +111,14 @@ type EmailExternalUserSignupVerification struct {
 	VerificationLink string
 }
 
+// EmailContact is the struct for the contact email
+type EmailContact struct {
+	FullName string
+	Subject  string
+	Message  string
+	Email    string
+}
+
 type EmailTicketReleaseReminder struct {
 	FullName          string
 	EventName         string

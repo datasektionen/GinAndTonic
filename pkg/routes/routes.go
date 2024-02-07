@@ -116,6 +116,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	constantOptionsController := controllers.NewConstantOptionsController(db)
 	paymentsController := controllers.NewPaymentController(db)
 	notificationController := controllers.NewNotificationController(db)
+	contactController := controllers.NewContactController(db)
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
@@ -146,6 +147,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/complete-event-workflow",
 		authentication.RequireRole("user", db),
 		eventWorkflowController.CreateEvent)
+
+	// Contact
+	r.POST("/contact", contactController.CreateContact)
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)

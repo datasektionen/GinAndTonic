@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -20,25 +20,68 @@ func init() {
 	mrand.Seed(time.Now().UnixNano())
 }
 
-func HashString(s string) (string, error) {
-	secretKey := os.Getenv("SECRET_KEY")
-	if secretKey == "" {
+// Encrypts text with the given key
+func EncryptString(text string) (string, error) {
+	key := os.Getenv("SECRET_KEY")
+	if key == "" {
 		panic("SECRET_KEY environment variable not set")
 	}
 
-	h := hmac.New(sha256.New, []byte(secretKey))
-	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil)), nil
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	plaintext := []byte(text)
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+
+	return base64.URLEncoding.EncodeToString(ciphertext), nil
+}
+
+// Decrypts text with the given key
+func DecryptString(cryptoText string) (string, error) {
+	key := os.Getenv("SECRET_KEY")
+	if key == "" {
+		panic("SECRET_KEY environment variable not set")
+	}
+
+	ciphertext, err := base64.URLEncoding.DecodeString(cryptoText)
+	if err != nil {
+		return "", err
+	}
+
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	if len(ciphertext) < aes.BlockSize {
+		return "", err
+	}
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(ciphertext, ciphertext)
+
+	return string(ciphertext), nil
 }
 
 // CompareHashAndString compares a HMAC-SHA256 hash with a string
 func CompareHashAndString(hash, s string) (bool, error) {
-	expectedHash, err := HashString(s)
+	decryptedString, err := DecryptString(hash)
 	if err != nil {
 		return false, err
 	}
 
-	return hmac.Equal([]byte(hash), []byte(expectedHash)), nil
+	return hmac.Equal([]byte(decryptedString), []byte(s)), nil
 }
 
 func GenerateSecretToken() (string, error) {

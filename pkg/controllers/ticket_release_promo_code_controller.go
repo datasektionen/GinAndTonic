@@ -42,13 +42,6 @@ func (ctrl *TicketReleasePromoCodeController) Create(c *gin.Context) {
 		return
 	}
 
-	hashedPromoCode, err := utils.HashString(promoCode)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing promo code"})
-		return
-	}
-
 	// Check if the user is a super admin
 	var event models.Event
 	if err := ctrl.DB.First(&event, eventID).Error; err != nil {
@@ -57,20 +50,34 @@ func (ctrl *TicketReleasePromoCodeController) Create(c *gin.Context) {
 	}
 
 	// Find ticket release based on promo code
-	var ticketRelease models.TicketRelease
-	if err := ctrl.DB.Where("event_id = ? AND promo_code = ?", intEventID, hashedPromoCode).First(&ticketRelease).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid promo code"})
+	var ticketReleases []models.TicketRelease
+	if err := ctrl.DB.Where("event_id = ?", intEventID).Find(&ticketReleases).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
 
-	// Add user to reserved ticket release
-	ticketRelease.UserUnlockReservedTicketRelease(&user)
+	for _, ticketRelease := range ticketReleases {
+		if ticketRelease.PromoCode != nil {
+			decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
 
-	// Save ticket release
-	if err := ctrl.DB.Save(&ticketRelease).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving ticket release"})
-		return
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error decrypting promo code"})
+				return
+			}
+
+			if decryptedPromoCode == promoCode {
+				ticketRelease.UserUnlockReservedTicketRelease(&user)
+
+				// Save ticket release
+				if err := ctrl.DB.Save(&ticketRelease).Error; err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving ticket release"})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"message": "User has successfully unlocked the ticket release!"})
+				return
+			}
+		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User has successfully unlocked the ticket release!"})
+	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid promo code"})
 }

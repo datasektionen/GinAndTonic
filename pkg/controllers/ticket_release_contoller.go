@@ -98,7 +98,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Promo code is required for reserved ticket releases"})
 			return
 		} else {
-			hashedPromoCode, err := utils.HashString(req.PromoCode)
+			hashedPromoCode, err := utils.EncryptString(req.PromoCode)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash promo code"})
 				return
@@ -282,6 +282,21 @@ func (trmc *TicketReleaseController) DeleteTicketRelease(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ticket_release": ticketRelease})
 }
 
+func handlePromoCode(req *TicketReleaseRequest, c *gin.Context) (*string, bool) {
+	if req.PromoCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Promo code is required for reserved ticket releases"})
+		return nil, false
+	}
+
+	hashedPromoCode, err := utils.EncryptString(req.PromoCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash promo code"})
+		return nil, false
+	}
+
+	return &hashedPromoCode, true
+}
+
 func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	var req TicketReleaseRequest
 
@@ -313,6 +328,24 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 		return
 	}
 
+	var promoCode *string
+	var ok bool
+	if !ticketRelease.IsReserved && req.IsReserved {
+		// This means that the ticket release is not reserved and the request is to reserve it
+		promoCode, ok = handlePromoCode(&req, c)
+		if !ok {
+			return
+		}
+	} else if ticketRelease.IsReserved && !req.IsReserved {
+		promoCode = nil
+	} else if ticketRelease.IsReserved && req.IsReserved {
+		// This means that the ticket release is reserved and the request is to update the promo code
+		promoCode, ok = handlePromoCode(&req, c)
+		if !ok {
+			return
+		}
+	}
+
 	// update
 	ticketRelease.Open = int64(req.Open)
 	ticketRelease.Close = int64(req.Close)
@@ -320,7 +353,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketRelease.Description = req.Description
 	ticketRelease.TicketsAvailable = req.TicketsAvailable
 	ticketRelease.IsReserved = req.IsReserved
-	ticketRelease.PromoCode = &req.PromoCode
+	ticketRelease.PromoCode = promoCode
 	ticketRelease.AllowExternal = req.AllowExternal
 
 	// Update ticket release method details

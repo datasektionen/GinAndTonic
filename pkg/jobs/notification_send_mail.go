@@ -30,8 +30,8 @@ func SendContactEmail(name, email, subject, content string) error {
 	// Create the data to be sent
 	data := MailData{
 		Key:     os.Getenv("SPAM_API_KEY"),
-		To:      "lucdow7@gmai.com",
-		From:    email,
+		To:      "lucdow7@gmail.com",
+		From:    "tessera-contact@datasektionen.se",
 		Subject: subject,
 		Content: content,
 	}

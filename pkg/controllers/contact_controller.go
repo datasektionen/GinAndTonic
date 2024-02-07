@@ -36,17 +36,11 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 		return
 	}
 
-	err := jobs.SendContactEmail(contact.Name, contact.Email, contact.Subject, contact.Message)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error sending the email"})
-		return
-	}
-
 	var data types.EmailContact = types.EmailContact{
 		FullName: contact.Name,
 		Subject:  contact.Subject,
 		Message:  contact.Message,
+		Email:    contact.Email,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/contact.html", data)
@@ -57,5 +51,5 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 
 	jobs.SendContactEmail(contact.Name, contact.Email, contact.Subject, htmlContent)
 
-	c.JSON(http.StatusCreated, contact)
+	c.JSON(http.StatusOK, contact)
 }

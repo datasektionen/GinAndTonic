@@ -116,4 +116,5 @@ type EmailContact struct {
 	FullName string
 	Subject  string
 	Message  string
+	Email    string
 }

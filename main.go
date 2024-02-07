@@ -71,7 +71,7 @@ func init() {
 
 func CORSConfig() cors.Config {
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080", "http://tessera.betasektionen.se"}
+	corsConfig.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080", "http://tessera.datasektionen.se"}
 	corsConfig.AllowCredentials = true
 	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers", "Content-Type", "X-XSRF-TOKEN", "Accept", "Origin", "X-Requested-With", "Authorization")
 	corsConfig.AddAllowMethods("GET", "POST", "PUT", "DELETE")
@@ -155,6 +155,7 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 	// mux maps a type to a handler
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeEmail, jobs.HandleEmailJob(db))
+	mux.HandleFunc(tasks.TypeReminderEmail, jobs.HandleReminderJob(db))
 
 	go func() {
 		if err := srv.Run(mux); err != nil {

@@ -118,3 +118,11 @@ type EmailContact struct {
 	Message  string
 	Email    string
 }
+
+type EmailTicketReleaseReminder struct {
+	FullName          string
+	EventName         string
+	TicketReleaseName string
+	EventURL          string
+	OpensAt           string
+}

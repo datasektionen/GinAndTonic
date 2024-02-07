@@ -149,6 +149,19 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		}
 	}
 
+	for i, ticketRelease := range event.TicketReleases {
+		if ticketRelease.UserHasAccessToTicketRelease(ec.DB, user.UGKthID) {
+			if ticketRelease.PromoCode != nil {
+				decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrypting the promo code"})
+					return
+				}
+				event.TicketReleases[i].PromoCode = &decryptedPromoCode
+			}
+		}
+	}
+
 	// Remove ticket releases that have the property IsReserved set to true
 	var ticketReleasesFiltered []models.TicketRelease = []models.TicketRelease{}
 
@@ -247,4 +260,3 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets, "ticket_requests": ticketRequests})
 }
-

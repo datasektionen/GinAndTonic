@@ -83,7 +83,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 			return errors.New("Promo code is required for reserved ticket releases")
 		}
 
-		promoCode, err = utils.HashString(data.TicketRelease.PromoCode)
+		promoCode, err = utils.EncryptString(data.TicketRelease.PromoCode)
 		if err != nil {
 			tx.Rollback()
 			return errors.New("Could not hash promo code")
@@ -187,7 +187,7 @@ func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlow
 			return errors.New("Promo code is required for reserved ticket releases")
 		}
 
-		promoCode, err = utils.HashString(data.TicketRelease.PromoCode)
+		promoCode, err = utils.EncryptString(data.TicketRelease.PromoCode)
 		if err != nil {
 			tx.Rollback()
 			return errors.New("Could not hash promo code")

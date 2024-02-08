@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/stripe/stripe-go/v72"
@@ -28,12 +29,17 @@ func (ts *TransactionService) CreateTransaction(pi stripe.PaymentIntent, ticket 
 		return err
 	}
 
+	var PayedAt int64 = time.Now().Unix()
+	if pi.Created != 0 {
+		PayedAt = pi.Created
+	}
+
 	// Create the Transaction instance
 	transaction := models.Transaction{
 		TicketID:    uint(ticketID),
 		Amount:      int(pi.Amount),
 		Currency:    pi.Currency,
-		PayedAt:     pi.Created,
+		PayedAt:     PayedAt,
 		Refunded:    false, // Set this based on your logic
 		UserUGKthID: ticket.UserUGKthID,
 	}

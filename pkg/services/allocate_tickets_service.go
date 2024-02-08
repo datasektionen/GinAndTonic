@@ -216,7 +216,10 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	// Fetch all ticket requests directly from the database
 	var reserveNumber uint = 1
 	var allTicketRequests []models.TicketRequest
-	if err := tx.Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, false).Find(&allTicketRequests).Order("created_at").Error; err != nil {
+	if err := tx.Preload("TicketType").
+		Preload("TicketRelease.Event").
+		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, false).Find(&allTicketRequests).Order("created_at").Error; err != nil {
 		return nil, err
 	}
 
@@ -251,16 +254,25 @@ func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketReq
 	}
 
 	// If the price of the ticket is 0, set it to have been paid
+	if ticketRequest.TicketType.ID == 0 {
+		// Fatal error
+		fmt.Println("No ticket type specified")
+		return nil, errors.New("No ticket type specified")
+	}
+
 	var isPaid bool = false
 	if ticketRequest.TicketType.Price == 0 {
 		isPaid = true
 	}
+
+	var qrCode string = utils.GenerateRandomString(16)
 
 	ticket := models.Ticket{
 		TicketRequestID: ticketRequest.ID,
 		IsReserve:       false,
 		UserUGKthID:     ticketRequest.UserUGKthID,
 		IsPaid:          isPaid,
+		QrCode:          &qrCode,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {

@@ -19,7 +19,11 @@ type TicketRequest struct {
 
 func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {
 	var ticketRequests []TicketRequest
-	if err := db.Where("ticket_release_id = ? AND is_handled = ?", ticketReleaseID, false).Find(&ticketRequests).Error; err != nil {
+	if err := db.
+		Preload("TicketType").
+		Preload("TicketRelease.Event").
+		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Where("ticket_release_id = ? AND is_handled = ?", ticketReleaseID, false).Find(&ticketRequests).Error; err != nil {
 		return nil, err
 	}
 

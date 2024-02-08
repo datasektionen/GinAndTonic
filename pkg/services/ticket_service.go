@@ -1,7 +1,9 @@
 package services
 
 import (
+	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
@@ -103,4 +105,32 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 	}
 
 	return nil
+}
+
+func (ts *TicketService) CheckInViaQrCode(qrCode string) (ticket *models.Ticket, err *types.ErrorResponse) {
+	// Get ticket
+	if err := ts.DB.
+		Preload("User").
+		Where("qr_code = ?", qrCode).First(&ticket).Error; err != nil {
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket"}
+	}
+
+	if *ticket.QrCode != qrCode {
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Invalid QR code"}
+	}
+
+	if ticket.CheckedIn {
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already checked in"}
+	}
+
+	// Check in ticket
+	ticket.CheckedIn = true
+	ticket.CheckedInAt = sql.NullTime{Time: time.Now(), Valid: true}
+
+	// Save ticket
+	if err := ts.DB.Save(&ticket).Error; err != nil {
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error saving ticket"}
+	}
+
+	return ticket, nil
 }

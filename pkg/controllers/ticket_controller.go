@@ -129,3 +129,24 @@ func (tc *TicketController) CancelTicket(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{})
 }
+
+type QrCodeCheckInRequest struct {
+	QrCode string `json:"qr_code"`
+}
+
+// QrCodeCheckIn checks in a ticket using a QR code
+func (tc *TicketController) QrCodeCheckIn(c *gin.Context) {
+	var req QrCodeCheckInRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ticket, errResponse := tc.Service.CheckInViaQrCode(req.QrCode)
+	if errResponse != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": errResponse.Message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User" + ticket.User.FullName() + " checked in successfully!"})
+}

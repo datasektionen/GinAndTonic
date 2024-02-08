@@ -36,7 +36,13 @@ func (suite *AllocateReserveTicketsTestSuite) createTicketRelease(totalTickets i
 	payWithin := int64(24)
 	return models.TicketRelease{
 		TicketTypes: []models.TicketType{
-			{},
+			{
+				EventID:         1,
+				Name:            "Standard",
+				Description:     "Standard ticket",
+				Price:           420,
+				TicketReleaseID: 1,
+			},
 		},
 		TicketReleaseMethodDetail: models.TicketReleaseMethodDetail{
 			TicketReleaseMethod: models.TicketReleaseMethod{
@@ -54,6 +60,7 @@ func (suite *AllocateReserveTicketsTestSuite) createAndSaveTicketRequests(tr mod
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
 			TicketReleaseID: tr.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(timeOffset * time.Duration(i)),
 			},
@@ -99,6 +106,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestNotAllocatedReserveTicketsWhen
 	// Mock ticket requests
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
+			TicketTypeID:    1,
 			TicketReleaseID: tr.ID,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
@@ -145,6 +153,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateReserveTicketsWhenRemo
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
 			TicketReleaseID: tr.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}
@@ -198,6 +207,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocatedTicketsOnTicketsThatH
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
 			TicketReleaseID: tr.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}
@@ -253,6 +263,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestNotAllocatedTicketsOnTicketsTh
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
 			TicketReleaseID: tr.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}
@@ -308,6 +319,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateTicketsWithNoRequests(
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
 			TicketReleaseID: tr.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}
@@ -349,6 +361,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateTicketsWithEqualTicket
 	for i := 0; i < requests; i++ {
 		req := models.TicketRequest{
 			TicketReleaseID: tr.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}
@@ -396,11 +409,13 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateTicketsWithMultipleTic
 	for i := 0; i < requests; i++ {
 		req1 := models.TicketRequest{
 			TicketReleaseID: tr1.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}
 		req2 := models.TicketRequest{
 			TicketReleaseID: tr2.ID,
+			TicketTypeID:    1,
 			Model: gorm.Model{
 				CreatedAt: time.Now().Add(time.Duration(-i) * time.Second),
 			}}

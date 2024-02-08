@@ -177,7 +177,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 
 	event.TicketReleases = ticketReleasesFiltered
 
-	c.JSON(http.StatusOK, gin.H{"event": event})
+	c.JSON(http.StatusOK, gin.H{"event": event, "timestamp": time.Now().Unix()})
 }
 
 // UpdateEvent handles updating an event by ID

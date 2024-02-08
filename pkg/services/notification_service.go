@@ -179,8 +179,7 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 	for _, ticket := range ticketRequests {
 		tickets = append(tickets, types.EmailTicket{
 			Name:  ticket.TicketType.Name,
-			Price: fmt.Sprintf("%f", math.Round(100*ticket.TicketType.Price)/100),
-		})
+			Price: fmt.Sprintf("%.2f", math.Round(100*ticket.TicketType.Price)/100)})
 	}
 
 	emailTicketString, _ := utils.GenerateEmailTable(tickets)
@@ -231,7 +230,7 @@ func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
 	var tickets []types.EmailTicket
 	tickets = append(tickets, types.EmailTicket{
 		Name:  ticket.TicketRequest.TicketType.Name,
-		Price: fmt.Sprintf("%f", math.Round(100*ticket.TicketRequest.TicketType.Price)/100),
+		Price: fmt.Sprintf("%.2f", math.Round(100*ticket.TicketRequest.TicketType.Price)/100),
 	})
 
 	emailTicketString, _ := utils.GenerateEmailTable(tickets)

@@ -38,6 +38,7 @@ func init() {
 	notification_logger.SetLevel(logrus.DebugLevel)
 }
 
+// CreateNotificationInDb creates a notification in the database
 func CreateNotificationInDb(db *gorm.DB, notification *models.Notification) error {
 	// Validate
 	// Start transaction
@@ -47,6 +48,8 @@ func CreateNotificationInDb(db *gorm.DB, notification *models.Notification) erro
 			tx.Rollback()
 		}
 	}()
+
+	notification.Status = models.NotificationStatusSent
 
 	// Create notification
 	if err := tx.Create(&notification).Error; err != nil {

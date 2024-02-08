@@ -239,8 +239,14 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 
 			// We want to allocate the ticket
 			// We set the ticket to not be a reserve ticket and set the reserve number to 0
+			var isPaid bool = false
+			if ticket.TicketRequest.TicketType.Price == 0 {
+				isPaid = true
+			}
+
 			ticket.IsReserve = false
 			ticket.ReserveNumber = 0
+			ticket.IsPaid = isPaid
 
 			if err := tx.Save(&ticket).Error; err != nil {
 				allocator_logger.WithFields(logrus.Fields{

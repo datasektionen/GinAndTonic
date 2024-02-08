@@ -250,10 +250,17 @@ func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketReq
 		return nil, err
 	}
 
+	// If the price of the ticket is 0, set it to have been paid
+	var isPaid bool = false
+	if ticketRequest.TicketType.Price == 0 {
+		isPaid = true
+	}
+
 	ticket := models.Ticket{
 		TicketRequestID: ticketRequest.ID,
 		IsReserve:       false,
 		UserUGKthID:     ticketRequest.UserUGKthID,
+		IsPaid:          isPaid,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {

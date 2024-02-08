@@ -15,11 +15,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
-	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
-
-var limiter = rate.NewLimiter(1, 5)
 
 func setupAsynqMon() *asynqmon.HTTPHandler {
 	// Parse the REDIS_URL
@@ -52,15 +49,6 @@ func setupAsynqMon() *asynqmon.HTTPHandler {
 	return h
 }
 
-func rateLimitMiddleware(c *gin.Context) {
-	if !limiter.Allow() {
-		c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Too many requests"})
-		return
-	}
-
-	c.Next()
-}
-
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 	config := cors.DefaultConfig()
@@ -88,11 +76,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/login-complete/:token", controllers.LoginComplete)
 	r.GET("/current-user", authentication.ValidateTokenMiddleware(), controllers.CurrentUser)
 	r.GET("/logout", authentication.ValidateTokenMiddleware(), controllers.Logout)
-	r.GET("/event", gin.HandlerFunc(func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	}))
 
 	eventController := controllers.NewEventController(db)
 
@@ -178,9 +161,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.AllocateTickets)
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.ListAllocatedTickets)
 
+	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
+
 	// Ticket request event routes
 	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)
-	r.POST("/events/:eventID/ticket-requests", rateLimitMiddleware, ticketRequestController.Create)
+	r.POST("/events/:eventID/ticket-requests", rlm.MiddlewareFunc(), ticketRequestController.Create)
 	r.DELETE("/events/:eventID/ticket-requests/:ticketRequestID", ticketRequestController.CancelTicketRequest)
 
 	// Ticket events routes

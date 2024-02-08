@@ -107,7 +107,6 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 
 func (ts *TicketService) CheckInViaQrCode(qrCode string) (ticket *models.Ticket, err *types.ErrorResponse) {
 	// Get ticket
-	println(qrCode)
 	if err := ts.DB.
 		Preload("User").
 		Where("qr_code = ?", qrCode).First(&ticket).Error; err != nil {
@@ -124,6 +123,7 @@ func (ts *TicketService) CheckInViaQrCode(qrCode string) (ticket *models.Ticket,
 
 	// Check in ticket
 	ticket.CheckedIn = true
+	// ticket.CheckedInAt = time.Now()
 
 	// Save ticket
 	if err := ts.DB.Save(&ticket).Error; err != nil {

@@ -111,7 +111,7 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 		Username:                username,
 		FirstName:               externalSignupRequest.FirstName,
 		LastName:                externalSignupRequest.LastName,
-		Email:                   externalSignupRequest.Email,
+		Email:                   strings.ToLower(externalSignupRequest.Email),
 		PasswordHash:            &pwHash,
 		IsExternal:              true,
 		Role:                    role,
@@ -145,7 +145,8 @@ func (eac *ExternalAuthController) LoginExternalUser(c *gin.Context) {
 
 	// Find the user
 	var user models.User
-	if err := eac.DB.Preload("Role").Where("email = ?", loginRequest.Email).First(&user).Error; err != nil {
+	if err := eac.DB.Preload("Role").Where("email = ?", strings.ToLower(loginRequest.Email)).
+		First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return
 	}

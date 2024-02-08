@@ -25,6 +25,8 @@ type Ticket struct {
 	User            User          `json:"user"`
 	Transaction     Transaction   `json:"transaction"`
 	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
+	CheckedIn       bool          `json:"checked_in" default:"false"`
+	QrCode          *string       `json:"qr_code"`
 }
 
 func (t *Ticket) Delete(db *gorm.DB) error {

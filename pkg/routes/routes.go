@@ -170,6 +170,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket events routes
 	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db), eventController.ListTickets)
+	r.POST("/events/:eventID/tickets/qr-check-in", middleware.AuthorizeEventAccess(db), ticketsController.QrCodeCheckIn)
 
 	// My tickets
 	r.GET("/my-ticket-requests", ticketRequestController.UsersList)

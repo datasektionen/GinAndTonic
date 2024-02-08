@@ -256,11 +256,14 @@ func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketReq
 		isPaid = true
 	}
 
+	var qrCode string = utils.GenerateRandomString(16)
+
 	ticket := models.Ticket{
 		TicketRequestID: ticketRequest.ID,
 		IsReserve:       false,
 		UserUGKthID:     ticketRequest.UserUGKthID,
 		IsPaid:          isPaid,
+		QrCode:          &qrCode,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {

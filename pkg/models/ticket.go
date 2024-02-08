@@ -1,7 +1,7 @@
 package models
 
 import (
-	"time"
+	"database/sql"
 
 	"gorm.io/gorm"
 )
@@ -28,7 +28,7 @@ type Ticket struct {
 	Transaction     Transaction   `json:"transaction"`
 	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
 	CheckedIn       bool          `json:"checked_in" default:"false"`
-	CheckedInAt     time.Time     `json:"checked_in_at"`
+	CheckedInAt     sql.NullTime  `json:"checked_in_at"`
 	QrCode          *string       `json:"qr_code"`
 }
 

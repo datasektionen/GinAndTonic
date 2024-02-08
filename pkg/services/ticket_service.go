@@ -1,7 +1,9 @@
 package services
 
 import (
+	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
@@ -123,7 +125,7 @@ func (ts *TicketService) CheckInViaQrCode(qrCode string) (ticket *models.Ticket,
 
 	// Check in ticket
 	ticket.CheckedIn = true
-	// ticket.CheckedInAt = time.Now()
+	ticket.CheckedInAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 	// Save ticket
 	if err := ts.DB.Save(&ticket).Error; err != nil {

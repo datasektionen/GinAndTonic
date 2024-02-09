@@ -40,6 +40,11 @@ func (ctrl *UserFoodPreferenceController) Update(c *gin.Context) {
 	existingUserFoodPreference.NutAllergy = userFoodPreference.NutAllergy
 	existingUserFoodPreference.ShellfishAllergy = userFoodPreference.ShellfishAllergy
 	existingUserFoodPreference.AdditionalInfo = userFoodPreference.AdditionalInfo
+	existingUserFoodPreference.GDPRAgreed = userFoodPreference.GDPRAgreed
+
+	if userFoodPreference.NeedsToRenewGDPR {
+		existingUserFoodPreference.NeedsToRenewGDPR = false
+	}
 
 	if err := ctrl.DB.Save(&existingUserFoodPreference).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error saving the user food preference"})
@@ -70,4 +75,8 @@ func (ctrl *UserFoodPreferenceController) ListFoodPreferences(c *gin.Context) {
 	alternatives = models.GetFoodPreferencesAlternatives()
 
 	c.JSON(http.StatusOK, gin.H{"food_preferences": alternatives})
+}
+
+type UserFoodPreferenceRenewal struct {
+	Renew bool `json:"renew"`
 }

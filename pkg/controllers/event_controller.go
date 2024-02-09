@@ -238,7 +238,7 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 		Preload("Transaction").
 		Preload("User.FoodPreferences").
 		Preload("TicketRequest.TicketType").
-		Preload("TicketRequest.TicketRelease").
+		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ?", eventID).
@@ -250,7 +250,7 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 	if err := ec.DB.
 		Preload("User.FoodPreferences").
 		Preload("TicketType").
-		Preload("TicketRelease").
+		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ? AND NOT EXISTS (SELECT 1 FROM tickets WHERE tickets.ticket_request_id = ticket_requests.id)", eventID).
 		Find(&ticketRequests).Error; err != nil {

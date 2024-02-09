@@ -29,7 +29,7 @@ type Ticket struct {
 	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
 	CheckedIn       bool          `json:"checked_in" default:"false"`
 	CheckedInAt     sql.NullTime  `json:"checked_in_at"`
-	QrCode          *string       `json:"qr_code"`
+	QrCode          string        `json:"qr_code" gorm:"unique;not null"`
 }
 
 func (t *Ticket) Delete(db *gorm.DB) error {

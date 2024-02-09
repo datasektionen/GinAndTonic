@@ -141,3 +141,28 @@ func Notify_UpdateReserveNumbers(db *gorm.DB, ticketId int) error {
 
 	return nil
 }
+
+func Notify_GDPRFoodPreferencesRenewal(db *gorm.DB, user *models.User) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	data := types.EmailGDPRFoodPreferencesRenewal{
+		FullName:   user.FullName(),
+		ProfileURL: os.Getenv("FRONTEND_BASE_URL") + "/profile",
+		RenewalURL: os.Getenv("FRONTEND_BASE_URL") + "/profile/food-preferences/renewal",
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/gdpr_food_preferences_renewal.html", data)
+	if err != nil {
+		return err
+	}
+
+	AddEmailJobToQueue(db, user, "Renew your food preferences consent", htmlContent, nil)
+
+	return nil
+}

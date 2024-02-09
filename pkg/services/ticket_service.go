@@ -115,7 +115,7 @@ func (ts *TicketService) CheckInViaQrCode(qrCode string) (ticket *models.Ticket,
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket"}
 	}
 
-	if *ticket.QrCode != qrCode {
+	if ticket.QrCode != qrCode {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Invalid QR code"}
 	}
 

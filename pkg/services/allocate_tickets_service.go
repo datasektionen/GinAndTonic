@@ -272,7 +272,7 @@ func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketReq
 		IsReserve:       false,
 		UserUGKthID:     ticketRequest.UserUGKthID,
 		IsPaid:          isPaid,
-		QrCode:          &qrCode,
+		QrCode:          qrCode,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {

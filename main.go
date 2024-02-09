@@ -94,6 +94,27 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 		jobs.NotifyReserveNumberJob(db)
 	})
 
+	// Run 1 month before the end of year
+	_, err = c.AddFunc("0 0 1 12 *", func() {
+		jobs.GDPRRenewalNotifyJob(db)
+	})
+
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("Failed to add GDPRRenewalNotifyJob to cron")
+	}
+	
+	_, err = c.AddFunc("0 0 1 1 *", func() {
+		jobs.GDPRCheckRenewalJob(db)
+	})
+
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("Failed to add GDPRCheckRenewalJob to cron")
+	}
+
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"error": err,
@@ -129,9 +150,7 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 			asynq.Config{
 				Concurrency: 1,
 				Queues: map[string]int{
-					"critical": 6,
-					"default":  3,
-					"low":      1,
+					"default": 1,
 				},
 			},
 		)

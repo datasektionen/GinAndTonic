@@ -26,11 +26,18 @@ const From = "tessera-no-reply@datasektionen.se"
 const SpamURL = "https://spam.datasektionen.se/api/sendmail"
 
 // SendContactEmail sends an email to the contact email
-func SendContactEmail(name, email, subject, content string) error {
+func SendContactEmail(name, email_to, from, subject, content string) error {
 	// Create the data to be sent
+	var to string
+	if os.Getenv("ENV") == "dev" {
+		to = os.Getenv("SPAM_TEST_EMAIL")
+	} else {
+		to = email_to
+	}
+
 	data := MailData{
 		Key:     os.Getenv("SPAM_API_KEY"),
-		To:      "lucdow7@gmail.com",
+		To:      to,
 		From:    "tessera-contact@datasektionen.se",
 		Subject: subject,
 		Content: content,

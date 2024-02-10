@@ -113,10 +113,11 @@ type EmailExternalUserSignupVerification struct {
 
 // EmailContact is the struct for the contact email
 type EmailContact struct {
-	FullName string
-	Subject  string
-	Message  string
-	Email    string
+	FullName         string
+	OrganizationName string
+	Subject          string
+	Message          string
+	Email            string
 }
 
 type EmailTicketReleaseReminder struct {

@@ -2,10 +2,9 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'gin-app'
+  - job_name: "gin-app"
     static_configs:
-      - targets: ['app:8080']  # Assumes your Gin application exposes metrics on :8080/metrics
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis:6379']  # Adjust if you have Redis metrics exposed
+      - targets: ["app:8080"] # Assumes your Gin application exposes metrics on :8080/metrics
+
+
   # Add more scrape_configs for other services like PostgreSQL if they expose metrics

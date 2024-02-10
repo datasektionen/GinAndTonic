@@ -338,3 +338,25 @@ func Notify_RemindUserOfTicketRelease(db *gorm.DB, trReminder *models.TicketRele
 
 	return nil
 }
+
+func Notify_PasswordReset(db *gorm.DB, pwReset *models.UserPasswordReset) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var resetURL string = os.Getenv("FRONTEND_BASE_URL") + "/reset-password/" + pwReset.Token
+
+	data := types.EmailPasswordReset{
+		ResetLink: resetURL,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/password_reset.html", data)
+
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, &pwReset.User, "Reset your password", htmlContent)
+
+	return nil
+}

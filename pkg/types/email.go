@@ -126,3 +126,7 @@ type EmailTicketReleaseReminder struct {
 	EventURL          string
 	OpensAt           string
 }
+
+type EmailPasswordReset struct {
+	ResetLink string
+}

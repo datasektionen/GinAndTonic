@@ -104,7 +104,7 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 			"error": err,
 		}).Fatal("Failed to add GDPRRenewalNotifyJob to cron")
 	}
-	
+
 	_, err = c.AddFunc("0 0 1 1 *", func() {
 		jobs.GDPRCheckRenewalJob(db)
 	})

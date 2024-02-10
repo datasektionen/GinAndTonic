@@ -28,7 +28,7 @@ services:
 
   db:
     container_name: postgres-db
-    image: postgres:16
+    image: postgres:15
     ports:
       - "5432:5432"
     environment:
@@ -48,6 +48,22 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
+
+  prometheus:
+    image: prom/prometheus:v2.26.0  # Use an appropriate version
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Mount the configuration
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app  # Ensure Prometheus starts after your application
+
+  grafana:
+    image: grafana/grafana:8.2.1  # Use an appropriate version
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus  # Ensure Grafana starts after Prometheus
 
 volumes:
   postgres-data:

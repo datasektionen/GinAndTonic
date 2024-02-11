@@ -67,7 +67,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.Use(ginprom.PromMiddleware(nil))
 
 	// register the `/metrics` route.
-	r.GET("/metrics", ginprom.PromHandler(promhttp.Handler()))
+
+	r.GET("/metrics",
+		authentication.BasicAuthMiddleware(os.Getenv("PROMETHUES_USER"), os.Getenv("PROMETHUES_PASSWORD")),
+		ginprom.PromHandler(promhttp.Handler()))
 
 	r.GET("/postman-login", controllers.LoginPostman)
 	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)

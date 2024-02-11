@@ -11,6 +11,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	"github.com/chenjiandongx/ginprom"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -61,9 +62,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	config.AllowCredentials = true
 
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
 	r.Use(cors.New(config))
+
+	r.Use(ginprom.PromMiddleware(nil))
+
+	// register the `/metrics` route.
+	r.GET("/metrics", ginprom.PromHandler(promhttp.Handler()))
 
 	r.GET("/postman-login", controllers.LoginPostman)
 	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)

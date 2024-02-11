@@ -87,6 +87,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventService := services.NewEventService(db)
 	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db, eventService)
 	userController := controllers.NewUserController(db)
+	sendOutService := services.NewSendOutService(db)
 
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
@@ -106,6 +107,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	notificationController := controllers.NewNotificationController(db)
 	contactController := controllers.NewContactController(db)
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
+	sendOutcontroller := controllers.NewSendOutController(db, sendOutService)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -183,6 +185,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket routes
 	r.DELETE("/my-tickets/:ticketID", ticketsController.CancelTicket)
+
+	// send outs
+	r.POST("/events/:eventID/send-out", middleware.AuthorizeEventAccess(db), sendOutcontroller.SendOut)
 
 	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)

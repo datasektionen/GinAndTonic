@@ -69,5 +69,25 @@ type ErrorResponse struct {
 	Message    string // Error message
 }
 
+// Error implements error.
+func (*ErrorResponse) Error() string {
+	panic("unimplemented")
+}
+
 type CompleteEventWorkflowRequest struct {
+}
+
+type TicketFilter struct {
+	CheckedIn bool `json:"checked_in"`
+	IsHandled bool `json:"is_handled"`
+	IsPaid    bool `json:"is_paid"`
+	IsReserve bool `json:"is_reserve"`
+	Refunded  bool `json:"refunded"`
+}
+
+type SendOutRequest struct {
+	Subject          string       `json:"subject"`
+	Message          string       `json:"message"`
+	TicketReleaseIDs []int        `json:"ticket_release_ids"`
+	Filters          TicketFilter `json:"filters"`
 }

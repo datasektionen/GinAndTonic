@@ -131,3 +131,8 @@ type EmailTicketReleaseReminder struct {
 type EmailPasswordReset struct {
 	ResetLink string
 }
+
+type EmailEventSendOut struct {
+	Message          template.HTML
+	OrganizationName string
+}

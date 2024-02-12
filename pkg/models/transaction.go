@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -24,7 +23,7 @@ type Transaction struct {
 	User              User               `json:"user"`
 	Amount            int                `json:"amount"`
 	Currency          string             `json:"currency"`
-	PayedAt           *time.Time         `json:"payed_at"`
+	PayedAt           *int64             `json:"payed_at"`
 	Refunded          bool               `json:"refunded" default:"false"`
 	RefundedAt        *int64             `json:"refunded_at"`
 	Status            *TransactionStatus `json:"status"`

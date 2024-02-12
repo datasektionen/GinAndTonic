@@ -64,7 +64,7 @@ func (ts *TransactionService) SuccessfulPayment(pi stripe.PaymentIntent) error {
 		return err
 	}
 
-	now := time.Now()
+	now := time.Now().Unix()
 
 	status := models.TransactionStatusCompleted
 

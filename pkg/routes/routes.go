@@ -88,7 +88,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db, eventService)
 	userController := controllers.NewUserController(db)
 	sendOutService := services.NewSendOutService(db)
-
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
 
@@ -108,6 +107,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	contactController := controllers.NewContactController(db)
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
 	sendOutcontroller := controllers.NewSendOutController(db, sendOutService)
+	salesReportController := controllers.NewSalesReportController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -193,6 +193,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.EditTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
+
+	// Sales report
+	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db), salesReportController.GenerateSalesReport)
 
 	r.POST("/organizations", authentication.RequireRole("super_admin", db), organizationController.CreateOrganization)
 	r.GET("/organizations", organizationController.ListOrganizations)

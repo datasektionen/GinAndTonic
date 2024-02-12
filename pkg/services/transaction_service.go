@@ -18,7 +18,12 @@ func NewTransactionService(db *gorm.DB) *TransactionService {
 	return &TransactionService{DB: db}
 }
 
-func (ts *TransactionService) CreateTransaction(pi stripe.PaymentIntent, ticket *models.Ticket) error {
+func (ts *TransactionService) CreateTransaction(
+	pi stripe.PaymentIntent,
+	ticket *models.Ticket,
+	eventId int,
+	transactionStatus models.TransactionStatus,
+) error {
 	// Extracting the ticket ID from metadata
 	ticketIDStr, ok := pi.Metadata["ticket_id"]
 	if !ok {
@@ -29,23 +34,44 @@ func (ts *TransactionService) CreateTransaction(pi stripe.PaymentIntent, ticket 
 		return err
 	}
 
-	var PayedAt int64 = time.Now().Unix()
-	if pi.Created != 0 {
-		PayedAt = pi.Created
-	}
-
 	// Create the Transaction instance
 	transaction := models.Transaction{
-		TicketID:    uint(ticketID),
-		Amount:      int(pi.Amount),
-		Currency:    pi.Currency,
-		PayedAt:     PayedAt,
-		Refunded:    false, // Set this based on your logic
-		UserUGKthID: ticket.UserUGKthID,
+		PaymentIntentID: &pi.ID,
+		EventID:         &eventId,
+		TicketID:        &ticketID,
+		Amount:          int(pi.Amount),
+		Currency:        pi.Currency,
+		Refunded:        false, // Set this based on your logic
+		UserUGKthID:     ticket.UserUGKthID,
+		Status:          &transactionStatus,
+	}
+
+	if err := transaction.Validate(); err != nil {
+		return err
 	}
 
 	// Assuming you have a way to save the Transaction in your service
 	if err := ts.DB.Create(&transaction).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ts *TransactionService) SuccessfulPayment(pi stripe.PaymentIntent) error {
+	var transaction models.Transaction
+	if err := ts.DB.Where("payment_intent_id = ?", pi.ID).Find(&transaction).Error; err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	status := models.TransactionStatusCompleted
+
+	transaction.Status = &status
+	transaction.PayedAt = &now
+
+	if err := ts.DB.Save(&transaction).Error; err != nil {
 		return err
 	}
 

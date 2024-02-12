@@ -25,7 +25,7 @@ type Ticket struct {
 	Refunded        bool          `json:"refunded" default:"false"`
 	UserUGKthID     string        `json:"user_ug_kth_id"` // Maybe not needed
 	User            User          `json:"user"`
-	Transaction     Transaction   `json:"transaction"`
+	Transaction     *Transaction  `json:"transaction"`
 	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
 	CheckedIn       bool          `json:"checked_in" default:"false"`
 	CheckedInAt     sql.NullTime  `json:"checked_in_at"`

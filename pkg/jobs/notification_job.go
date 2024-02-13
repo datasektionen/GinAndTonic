@@ -170,7 +170,7 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 			return err
 		}
 
-		err := SendEmail(p.User, p.Subject, p.Content)
+		err := SendEmail(p.User, p.Subject, p.Content, db)
 		if err != nil {
 			notification_logger.WithFields(logrus.Fields{
 				"notification": notification,
@@ -229,7 +229,7 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 			return err
 		}
 
-		err := SendEmail(p.User, p.Subject, p.Content)
+		err := SendEmail(p.User, p.Subject, p.Content, db)
 		if err != nil {
 			notification_logger.WithFields(logrus.Fields{
 				"notification": notification,

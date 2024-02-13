@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"gorm.io/gorm"
 )
 
 // MailData is the data that is sent to the spam API
@@ -74,13 +75,13 @@ func SendContactEmail(name, email_to, from, subject, content string) error {
 }
 
 // SendEmail sends an email to the user
-func SendEmail(user *models.User, subject, content string) error {
+func SendEmail(user *models.User, subject, content string, db *gorm.DB) error {
 	// Create the data to be sent
 	var to string
 	if os.Getenv("ENV") == "dev" {
 		to = os.Getenv("SPAM_TEST_EMAIL")
 	} else {
-		to = user.GetUserEmail()
+		to = user.GetUserEmail(db)
 	}
 
 	data := MailData{

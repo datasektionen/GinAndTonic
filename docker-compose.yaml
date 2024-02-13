@@ -38,6 +38,33 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus:/etc/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - ./nginx/auth:/etc/nginx/auth
+    ports:
+      - "9090:9090"
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: changeme123  # Change this to your desired admin password
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+
   nyckeln:
     container_name: nyckeln-service
     image: ghcr.io/datasektionen/nyckeln-under-dorrmattan
@@ -51,3 +78,5 @@ services:
 
 volumes:
   postgres-data:
+  grafana-data:
+  prometheus-data:

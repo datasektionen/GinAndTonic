@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gorm.io/gorm"
 )
 
@@ -59,6 +60,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	}
 
 	config.AllowCredentials = true
+
+	authorized := r.Group("/", gin.BasicAuth(gin.Accounts{
+		"metricsUser": "metricsPassword", // Replace with your desired username and password
+	}))
+
+	authorized.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	r.Use(cors.New(config))
 

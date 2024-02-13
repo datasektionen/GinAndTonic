@@ -136,3 +136,7 @@ type EmailEventSendOut struct {
 	Message          template.HTML
 	OrganizationName string
 }
+
+type EmailRequestChangePreferredEmail struct {
+	VerificationLink string
+}

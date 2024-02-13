@@ -38,9 +38,9 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 	}()
 
 	var existingUser models.User
-	if err := tx.Joins("INNER JOIN preferred_emails ON users.id = preferred_emails.user_id").
-		Preload("PrefferedEmail").
-		Where("users.ug_kth_id != ? AND (users.email = ? OR preferred_emails.email = ?)", user.UGKthID, email, email).Error; err != nil {
+	if err := tx.Joins("INNER JOIN preferred_emails ON users.ug_kth_id = preferred_emails.user_ug_kth_id").
+		Preload("PreferredEmail").
+		Where("users.ug_kth_id = ?", user.UGKthID).First(&existingUser).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			tx.Rollback()
 			return &types.ErrorResponse{
@@ -50,19 +50,34 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 		}
 	}
 
-	if existingUser.Email == email {
-		tx.Rollback()
-		return &types.ErrorResponse{
-			StatusCode: 400,
-			Message:    "Email already in use",
+	if existingUser.UGKthID != "" {
+		if existingUser.Email == email {
+			tx.Rollback()
+			return &types.ErrorResponse{
+				StatusCode: 400,
+				Message:    "Email already in use",
+			}
 		}
 	}
 
-	if existingUser.PreferredEmail.IsVerified {
-		tx.Rollback()
-		return &types.ErrorResponse{
-			StatusCode: 400,
-			Message:    "Email already in use",
+	var existingPrefferedEmail models.PreferredEmail
+	if err := tx.Where("user_ug_kth_id = ?", user.UGKthID).First(&existingPrefferedEmail).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			tx.Rollback()
+			return &types.ErrorResponse{
+				StatusCode: 500,
+				Message:    err.Error(),
+			}
+		}
+	}
+
+	if existingPrefferedEmail.ID != 0 {
+		if existingPrefferedEmail.Email == email && existingPrefferedEmail.IsVerified {
+			tx.Rollback()
+			return &types.ErrorResponse{
+				StatusCode: 400,
+				Message:    "You already have this email as your preffered email",
+			}
 		}
 	}
 
@@ -78,7 +93,36 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 		IsVerified:  false,
 	}
 
-	if err := tx.Create(&prefferedEmail).Error; err != nil {
+	if existingPrefferedEmail.ID != 0 {
+		// deletee the old preffered email
+		if err := tx.Delete(&existingPrefferedEmail).Error; err != nil {
+			tx.Rollback()
+			return &types.ErrorResponse{
+				StatusCode: 500,
+				Message:    err.Error(),
+			}
+		}
+
+		if err := tx.Create(&prefferedEmail).Error; err != nil {
+			tx.Rollback()
+			return &types.ErrorResponse{
+				StatusCode: 500,
+				Message:    err.Error(),
+			}
+		}
+	} else {
+		if err := tx.Create(&prefferedEmail).Error; err != nil {
+			tx.Rollback()
+			return &types.ErrorResponse{
+				StatusCode: 500,
+				Message:    err.Error(),
+			}
+		}
+	}
+
+	err := Notify_RequestChangePreferredEmail(tx, user, &prefferedEmail)
+
+	if err != nil {
 		tx.Rollback()
 		return &types.ErrorResponse{
 			StatusCode: 500,
@@ -86,7 +130,7 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 		}
 	}
 
-	err := tx.Commit().Error
+	err = tx.Commit().Error
 	if err != nil {
 		return &types.ErrorResponse{
 			StatusCode: 500,
@@ -98,7 +142,6 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 }
 
 func (pes *PreferredEmailService) ConfirmPrefferedEmailChange(
-	user *models.User,
 	token string,
 ) (r *types.ErrorResponse) {
 	// Handles a request to confirm the preffered email change
@@ -110,11 +153,19 @@ func (pes *PreferredEmailService) ConfirmPrefferedEmailChange(
 	}()
 
 	var prefferedEmail models.PreferredEmail
-	if err := tx.Where("user_ug_kth_id = ? AND token = ?", user.UGKthID, token).First(&prefferedEmail).Error; err != nil {
+	if err := tx.Where("token = ?", token).First(&prefferedEmail).Error; err != nil {
 		tx.Rollback()
 		return &types.ErrorResponse{
 			StatusCode: 400,
 			Message:    "Invalid token",
+		}
+	}
+
+	if prefferedEmail.IsVerified {
+		tx.Rollback()
+		return &types.ErrorResponse{
+			StatusCode: 204,
+			Message:    "Email already verified",
 		}
 	}
 
@@ -146,66 +197,3 @@ func (pes *PreferredEmailService) ConfirmPrefferedEmailChange(
 
 	return nil
 }
-
-// type UserUpdateRequest struct {
-// 	Email string `json:"email"`
-// }
-
-// func (uc *UserController) ChangePrefferedEmail(c *gin.Context) {
-// 	// Check if the user is a super admin
-// 	ugkthid := c.MustGet("ugkthid").(string)
-
-// 	var req UserUpdateRequest
-// 	if err := c.ShouldBindJSON(&req); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	if models.ValidateEmail(req.Email) != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
-// 		return
-// 	}
-
-// 	tx := uc.DB.Begin()
-
-// 	var user models.User
-// 	if err := tx.Where("ug_kth_id = ?", ugkthid).First(&user).Error; err != nil {
-// 		tx.Rollback()
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	if !user.VerifiedEmail {
-// 		tx.Rollback()
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "User email not verified"})
-// 		return
-// 	}
-
-// 	var existingUser models.User
-// 	if err := tx.Where("ug_kth_id != ? AND (email = ? OR preffered_email = ?)", ugkthid, req.Email, req.Email).First(&existingUser).Error; err != nil {
-// 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-// 			tx.Rollback()
-// 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 			return
-// 		}
-// 	} else {
-// 		tx.Rollback()
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
-// 		return
-// 	}
-
-// 	if user.IsExternal {
-// 		user.Email = req.Email
-// 	} else {
-// 		user.PrefferedEmail = &req.Email
-// 	}
-
-// 	if err := tx.Save(&user).Error; err != nil {
-// 		tx.Rollback()
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	tx.Commit()
-// 	c.JSON(http.StatusOK, gin.H{"message": "Preffered email updated successfully"})
-// }

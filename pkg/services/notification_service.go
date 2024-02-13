@@ -384,3 +384,27 @@ func Notify_EventSendOut(db *gorm.DB, user *models.User, organizationName, subje
 
 	return nil
 }
+
+func Notify_RequestChangePreferredEmail(db *gorm.DB,
+	user *models.User,
+	preferredEmail *models.PreferredEmail) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var verificationURL string = os.Getenv("FRONTEND_BASE_URL") + "/verify-preferred-email/" + preferredEmail.Token
+
+	data := types.EmailRequestChangePreferredEmail{
+		VerificationLink: verificationURL,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/request_change_preferred_email.html", data)
+
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, user, "New preferred email validation", htmlContent)
+
+	return nil
+}

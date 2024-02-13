@@ -13,8 +13,8 @@ type PreferredEmail struct {
 	UserUGKthID string     `json:"user_ug_kth_id"`
 	Email       string     `json:"email"`
 	IsVerified  bool       `json:"is_verified"`
-	Token       string     `json:"token"`
-	ExpiresAt   *time.Time `json:"expires_at"`
+	Token       string     `json:"-"`
+	ExpiresAt   *time.Time `json:"-"`
 }
 
 // Validate

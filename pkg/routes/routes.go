@@ -114,6 +114,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
+	r.POST("/preferred-email/verify", preferredEmailController.Verify)
+
 	r.Use(authentication.ValidateTokenMiddleware())
 	r.Use(middleware.UserLoader(db))
 
@@ -233,7 +235,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Preferred email
 	r.POST("/preferred-email/request", preferredEmailController.Request)
-	// r.POST("/preferred-email/verify", preferredEmailController.VerifyPreferredEmail)
 
 	r.POST("send-test-email", authentication.RequireRole("super_admin", db), notificationController.SendTestEmail)
 	return r

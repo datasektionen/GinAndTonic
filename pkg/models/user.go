@@ -35,6 +35,12 @@ type User struct {
 func CreateUserIfNotExist(db *gorm.DB, user User) error {
 	// Start transaction
 	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// 1. Create user
 	if err := tx.Create(&user).Error; err != nil {
 		tx.Rollback()

@@ -53,7 +53,7 @@ func InitDB() (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(90)
 
 	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetConnMaxLifetime(time.Minute * 3)
 
 	return db, nil
 }

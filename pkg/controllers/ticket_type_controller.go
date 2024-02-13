@@ -40,6 +40,12 @@ func (ttc *TicketTypeController) CreateTicketTypes(c *gin.Context) {
 	}
 
 	tx := ttc.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	for idx, ticketType := range ticketTypes {
 		// Check that event exists
 		if !checkEventExists(ttc, ticketType.EventID) {
@@ -122,6 +128,11 @@ func (ttc *TicketTypeController) UpdateEventTicketTypes(c *gin.Context) {
 	}
 
 	tx := ttc.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Get all ticket types for the event and ticket release
 	var existingTicketTypes []models.TicketType

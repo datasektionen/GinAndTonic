@@ -150,7 +150,8 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 			asynq.Config{
 				Concurrency: 1,
 				Queues: map[string]int{
-					"default": 1,
+					"email":        5,
+					"sales_report": 1,
 				},
 			},
 		)
@@ -163,9 +164,8 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 			asynq.Config{
 				Concurrency: 5,
 				Queues: map[string]int{
-					"critical": 6,
-					"default":  3,
-					"low":      1,
+					"email":        5,
+					"sales_report": 1,
 				},
 			},
 		)
@@ -175,6 +175,7 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeEmail, jobs.HandleEmailJob(db))
 	mux.HandleFunc(tasks.TypeReminderEmail, jobs.HandleReminderJob(db))
+	mux.HandleFunc(tasks.SalesReportType, jobs.HandleSalesReportJob(db))
 
 	go func() {
 		if err := srv.Run(mux); err != nil {

@@ -25,6 +25,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Notification{},
 		&models.TicketReleaseReminder{},
 		&models.UserPasswordReset{},
+		&models.EventSalesReport{},
 		&tr_methods.LotteryConfig{},
 	)
 	return err

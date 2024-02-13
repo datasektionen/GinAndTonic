@@ -13,7 +13,7 @@ func NewTicketPaymentService(db *gorm.DB) *TicketPaymentService {
 	return &TicketPaymentService{DB: db}
 }
 
-	func (tps *TicketPaymentService) HandleSuccessfullTicketPayment(
+func (tps *TicketPaymentService) HandleSuccessfullTicketPayment(
 	ticketId int,
 ) (ticket *models.Ticket, err error) {
 	// Handles a successfull ticket payment

@@ -112,25 +112,52 @@ func (ec *OrganisationController) GetOrganization(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"organization": organization})
 }
 
+type UpdateOrganizationRequest struct {
+	ID    int    `json:"id"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
 func (ec *OrganisationController) UpdateOrganization(c *gin.Context) {
-	var organization models.Organization
-	id := c.Param("organizationID")
+	var req UpdateOrganizationRequest
 
-	if err := ec.DB.First(&organization, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Organization not found"})
-		return
-	}
-
-	if err := c.ShouldBindJSON(&organization); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Check if new email is in use
-	if ec.DB.Where("email = ?", organization.Email).First(&organization).RowsAffected > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+	var organization models.Organization
+	id := c.Param("organizationID")
+
+	ID, err := strconv.Atoi(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organization ID"})
 		return
 	}
+
+	if err := ec.DB.First(&organization, ID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Organization not found"})
+		return
+	}
+
+	if req.Email != organization.Email {
+		var existingOrganization models.Organization
+		if ec.DB.Where("email = ?  ", req.Email).First(&existingOrganization).RowsAffected > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+			return
+		}
+	}
+
+	if req.Name != organization.Name {
+		var existingOrganization models.Organization
+		if ec.DB.Where("name = ?  ", req.Name).First(&existingOrganization).RowsAffected > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Name already in use"})
+			return
+		}
+	}
+
+	organization.Email = req.Email
+	organization.Name = req.Name
 
 	if err := ec.DB.Save(&organization).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

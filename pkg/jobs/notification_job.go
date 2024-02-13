@@ -97,8 +97,15 @@ func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string,
 		return err
 	}
 
+	// Calculate the schedule time
+	deadline := time.Now().Add(10 * time.Minute)
+
 	task := asynq.NewTask(tasks.TypeEmail, payload)
-	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.Timeout(3*time.Minute), asynq.Deadline(time.Now().Add(10*time.Minute)))
+	info, err := client.Enqueue(task,
+		asynq.Queue("email"),
+		asynq.MaxRetry(3),
+		asynq.Deadline(deadline),
+		asynq.Timeout(3*time.Minute))
 
 	if err != nil {
 		return err
@@ -126,7 +133,7 @@ func AddReminderEmailJobToQueueAt(db *gorm.DB, user *models.User,
 	delay := scheduleTime.Sub(time.Now())
 
 	task := asynq.NewTask(tasks.TypeReminderEmail, payload)
-	info, err := client.Enqueue(task, asynq.MaxRetry(3), asynq.ProcessIn(delay))
+	info, err := client.Enqueue(task, asynq.Queue("email"), asynq.MaxRetry(3), asynq.ProcessIn(delay))
 
 	if err != nil {
 		return err

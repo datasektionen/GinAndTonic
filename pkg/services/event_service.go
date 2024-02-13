@@ -21,6 +21,12 @@ func NewEventService(db *gorm.DB) *EventService {
 func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, createdBy string) error {
 	// Start a transaction
 	tx := es.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -133,6 +139,12 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlowRequest, eventID int, UGKthId string) error {
 	// Start a transaction
 	tx := es.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	if tx.Error != nil {
 		return tx.Error
 	}

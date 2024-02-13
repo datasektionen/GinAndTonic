@@ -29,6 +29,12 @@ func (os *OrganisationService) AddUserToOrganization(username string, organizati
 
 	// Start transaction
 	tx := os.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// 1. Associate user with organization
 	if err := tx.Model(&organization).Association("Users").Append(&user); err != nil {
 		tx.Rollback()
@@ -137,6 +143,11 @@ func (os *OrganisationService) ChangeUserRoleInOrganization(username string, org
 
 	// Start transaction
 	tx := os.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Update the role
 	if err := tx.Model(&organizationUserRole).Update("organization_role_name", string(newRole)).Error; err != nil {

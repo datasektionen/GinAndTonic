@@ -31,6 +31,12 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 	}
 
 	tx := pes.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	var existingUser models.User
 	if err := tx.Joins("INNER JOIN preferred_emails ON users.id = preferred_emails.user_id").
 		Preload("PrefferedEmail").
@@ -97,6 +103,11 @@ func (pes *PreferredEmailService) ConfirmPrefferedEmailChange(
 ) (r *types.ErrorResponse) {
 	// Handles a request to confirm the preffered email change
 	tx := pes.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	var prefferedEmail models.PreferredEmail
 	if err := tx.Where("user_ug_kth_id = ? AND token = ?", user.UGKthID, token).First(&prefferedEmail).Error; err != nil {

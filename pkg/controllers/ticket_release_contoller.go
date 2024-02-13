@@ -74,6 +74,11 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 
 	// Start transaction
 	tx := trmc.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	if err := tx.Create(&ticketReleaseMethodDetails).Error; err != nil {
 		tx.Rollback()
@@ -318,6 +323,11 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 
 	// start transaction
 	tx := trmc.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Convert the ticketRelease ID to an integer
 	ticketReleaseIDInt, err := strconv.Atoi(ticketReleaseID)

@@ -46,6 +46,11 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 	// We use transaction to ensure that the ticket release is closed
 
 	tx := ats.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	if err := tx.Model(ticketRelease).Update("has_allocated_tickets", true).Error; err != nil {
 		tx.Rollback()

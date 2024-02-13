@@ -8,11 +8,12 @@ import (
 
 // User is a struct that represents a user in the database
 type User struct {
-	UGKthID   string `gorm:"primaryKey" json:"ug_kth_id"`
-	Username  string `gorm:"uniqueIndex" json:"username"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `gorm:"uniqueIndex" json:"email"`
+	UGKthID        string          `gorm:"primaryKey" json:"ug_kth_id"`
+	Username       string          `gorm:"uniqueIndex" json:"username"`
+	FirstName      string          `json:"first_name"`
+	LastName       string          `json:"last_name"`
+	Email          string          `gorm:"uniqueIndex" json:"email"`
+	PreferredEmail *PreferredEmail `gorm:"foreignKey:UserUGKthID" json:"preferred_email"`
 
 	IsExternal              bool       `gorm:"default:false" json:"is_external"` // External users do not have a KTH account
 	VerifiedEmail           bool       `json:"verified_email"`
@@ -67,6 +68,18 @@ func GetUserByEmailIfExists(db *gorm.DB, email string) (User, error) {
 	var user User
 	err := db.Preload("Role").Where("email = ?", email).First(&user).Error
 	return user, err
+}
+
+func (u *User) GetUserEmail() string {
+	if u.PreferredEmail == nil {
+		return u.Email
+	}
+
+	if !u.PreferredEmail.IsVerified {
+		return u.Email
+	}
+
+	return u.PreferredEmail.Email
 }
 
 // FullName returns the full name of the user

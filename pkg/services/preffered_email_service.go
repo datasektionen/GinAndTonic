@@ -23,10 +23,10 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 	email string,
 ) (r *types.ErrorResponse) {
 	// Handles a request to change the preffered email
-	if !user.VerifiedEmail {
+	if user.IsExternal {
 		return &types.ErrorResponse{
 			StatusCode: 400,
-			Message:    "User email not verified",
+			Message:    "External users cannot change their preffered email",
 		}
 	}
 

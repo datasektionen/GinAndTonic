@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -79,17 +81,26 @@ func GetUserByEmailIfExists(db *gorm.DB, email string) (User, error) {
 	err := db.Preload("Role").Where("email = ?", email).First(&user).Error
 	return user, err
 }
-
-func (u *User) GetUserEmail() string {
-	if u.PreferredEmail == nil {
+func (u *User) GetUserEmail(db *gorm.DB) string {
+	// Get preferred email if it exists and is verified
+	var pe PreferredEmail
+	if err := db.Where("user_ug_kth_id = ?", u.UGKthID).First(&pe).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Preferred email not found, return user's default email
+			return u.Email
+		}
+		// Log other database errors
+		fmt.Println(err.Error())
 		return u.Email
 	}
 
-	if !u.PreferredEmail.IsVerified {
+	if !pe.IsVerified {
+		// Preferred email is not verified, return user's default email
 		return u.Email
 	}
 
-	return u.PreferredEmail.Email
+	// Preferred email is found and verified, return it
+	return pe.Email
 }
 
 // FullName returns the full name of the user

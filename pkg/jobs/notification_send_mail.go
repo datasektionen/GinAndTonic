@@ -80,7 +80,7 @@ func SendEmail(user *models.User, subject, content string) error {
 	if os.Getenv("ENV") == "dev" {
 		to = os.Getenv("SPAM_TEST_EMAIL")
 	} else {
-		to = user.Email
+		to = user.GetUserEmail()
 	}
 
 	data := MailData{

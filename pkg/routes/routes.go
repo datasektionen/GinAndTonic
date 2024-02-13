@@ -90,6 +90,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	sendOutService := services.NewSendOutService(db)
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
+	preferredEmailService := services.NewPreferredEmailService(db)
 
 	organizationController := controllers.NewOrganizationController(db, organizationService)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
@@ -108,9 +109,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
 	sendOutcontroller := controllers.NewSendOutController(db, sendOutService)
 	salesReportController := controllers.NewSalesReportController(db)
+	preferredEmailController := controllers.NewPreferredEmailController(db, preferredEmailService)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
+
+	r.POST("/preferred-email/verify", preferredEmailController.Verify)
 
 	r.Use(authentication.ValidateTokenMiddleware())
 	r.Use(middleware.UserLoader(db))
@@ -229,7 +233,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.POST("/admin/create-user", authentication.RequireRole("super_admin", db), userController.CreateUser)
 
-	// Testing
+	// Preferred email
+	r.POST("/preferred-email/request", preferredEmailController.Request)
+
 	r.POST("send-test-email", authentication.RequireRole("super_admin", db), notificationController.SendTestEmail)
 	return r
 }

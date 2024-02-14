@@ -41,7 +41,8 @@ func InitDB() (*gorm.DB, error) {
 
 	const IDLE_IN_TRANSACTION_SESSION_TIMEOUT = "300000" // 300000 milliseconds = 5 minutes
 
-	err = db.Exec("SET idle_in_transaction_session_timeout = ?", IDLE_IN_TRANSACTION_SESSION_TIMEOUT).Error
+	// Directly interpolate the constant value into the SQL command
+	err = db.Exec(fmt.Sprintf("SET idle_in_transaction_session_timeout = %s", IDLE_IN_TRANSACTION_SESSION_TIMEOUT)).Error
 	if err != nil {
 		log.Fatalf("failed to set idle_in_transaction_session_timeout, got error: %v", err)
 	}

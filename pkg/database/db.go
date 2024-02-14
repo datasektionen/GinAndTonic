@@ -26,10 +26,13 @@ func InitDB() (*gorm.DB, error) {
 		dbname := os.Getenv("DB_NAME")
 		port := os.Getenv("DB_PORT")
 		sslmode := os.Getenv("DB_SSLMODE")
-		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC", host, user, password, dbname, port, sslmode)
+		idleInTransactionSessionTimeout := 300000 // 300000ms = 5 minutes
+		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC idle_in_transaction_session_timeout=%d",
+			host, user, password, dbname, port, sslmode, idleInTransactionSessionTimeout,
+		)
 	} else if os.Getenv("ENV") == "prod" {
 		dsn = os.Getenv("DATABASE_URL")
-
+		dsn += " TimeZone=UTC idle_in_transaction_session_timeout=180000"
 	} else {
 		log.Fatalf("Error loading .env file: %v", err)
 	}

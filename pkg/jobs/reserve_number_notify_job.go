@@ -70,8 +70,15 @@ func NotifyReserveNumberJob(db *gorm.DB) error {
 
 func process_ntnj(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 	tx := db.Begin()
+	if tx.Error != nil {
+		resnum_logger.WithFields(logrus.Fields{
+			"id": ticketRelease.ID,
+		}).Errorf("Error beginning transaction: %s", tx.Error.Error())
+		return tx.Error
+	}
+
 	defer func() {
-		if r := recover(); r != nil {
+		if r := recover(); r != nil || tx.Error != nil {
 			tx.Rollback()
 		}
 	}()
@@ -86,6 +93,7 @@ func process_ntnj(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 
 	// Check if the ticket release has been allocated
 	if !ticketRelease.HasAllocatedTickets {
+		tx.Rollback()
 		return nil
 	}
 
@@ -95,7 +103,7 @@ func process_ntnj(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 		resnum_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error getting all reserve tickets to ticket release with ID %d: %s", ticketRelease.ID, err.Error())
-
+		tx.Rollback()
 		return err
 	}
 
@@ -132,9 +140,9 @@ func process_ntnj(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 				"id": ticket.ID,
 			}).Errorf("Error notifying user with ID %s about their reserve number: %s", ticket.User.UGKthID, err.Error())
 
-			return err
+			continue
 		}
 	}
 
-	return nil
+	return tx.Commit().Error
 }

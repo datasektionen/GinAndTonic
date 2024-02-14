@@ -89,8 +89,7 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 			"error": err,
 		}).Fatal("Failed to add AllocateReserveTicketsJob to cron")
 	}
-
-	_, err = c.AddFunc("@every 24h", func() {
+	_, err = c.AddFunc("0 12 * * *", func() {
 		jobs.NotifyReserveNumberJob(db)
 	})
 

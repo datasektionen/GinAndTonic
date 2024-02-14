@@ -127,7 +127,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events", eventController.ListEvents)
 	r.GET("/events/:eventID", eventController.GetEvent)
 	r.GET("/events/:eventID/manage", authentication.ValidateTokenMiddleware(),
-		middleware.AuthorizeEventAccess(db), gin.HandlerFunc(func(c *gin.Context) {
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember), gin.HandlerFunc(func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
 		}))
 
@@ -147,14 +147,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)
-	r.POST("/events/:eventID/ticket-release", middleware.AuthorizeEventAccess(db), ticketReleaseController.CreateTicketRelease)
-	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.GetTicketRelease)
-	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.UpdateTicketRelease)
-	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db), ticketReleaseController.DeleteTicketRelease)
-	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db), ticketTypeController.GetEventTicketTypes)
-	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db), ticketTypeController.UpdateEventTicketTypes)
+	r.POST("/events/:eventID/ticket-release", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.CreateTicketRelease)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.GetTicketRelease)
+	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.UpdateTicketRelease)
+	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.DeleteTicketRelease)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketTypeController.GetEventTicketTypes)
+	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketTypeController.UpdateEventTicketTypes)
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/manually-allocate-reserve-tickets",
-		middleware.AuthorizeEventAccess(db),
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
 
 	// Ticket release reminder
@@ -169,8 +169,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/activate-promo-code/:eventID", ticketReleasePromoCodeController.Create)
 
 	// Allocate tickets routes
-	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.AllocateTickets)
-	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db), allocateTicketsController.ListAllocatedTickets)
+	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.AllocateTickets)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.ListAllocatedTickets)
 
 	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
 
@@ -180,8 +180,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.DELETE("/events/:eventID/ticket-requests/:ticketRequestID", ticketRequestController.CancelTicketRequest)
 
 	// Ticket events routes
-	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db), eventController.ListTickets)
-	r.POST("/events/:eventID/tickets/qr-check-in", middleware.AuthorizeEventAccess(db), ticketsController.QrCodeCheckIn)
+	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventController.ListTickets)
+	r.POST("/events/:eventID/tickets/qr-check-in", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.QrCodeCheckIn)
 
 	// My tickets
 	r.GET("/my-ticket-requests", ticketRequestController.UsersList)
@@ -191,23 +191,23 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.DELETE("/my-tickets/:ticketID", ticketsController.CancelTicket)
 
 	// send outs
-	r.POST("/events/:eventID/send-out", middleware.AuthorizeEventAccess(db), sendOutcontroller.SendOut)
+	r.POST("/events/:eventID/send-out", middleware.AuthorizeEventAccess(db, models.OrganizationMember), sendOutcontroller.SendOut)
 
 	// Ticket routes
-	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.GetTicket)
-	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db), ticketsController.EditTicket)
+	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
+	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.EditTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
 
 	// Sales report
-	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db), salesReportController.GenerateSalesReport)
+	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.GenerateSalesReport)
 
 	r.POST("/organizations", authentication.RequireRole("super_admin", db), organizationController.CreateOrganization)
 	r.GET("/organizations", organizationController.ListOrganizations)
 	r.GET("my-organizations", organizationController.ListMyOrganizations)
-	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.GetOrganization)
-	r.PUT("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.UpdateOrganization)
-	r.DELETE("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db), organizationController.DeleteOrganization)
-	r.GET("/organizations/:organizationID/events", middleware.AuthorizeOrganizationAccess(db), organizationController.ListOrganizationEvents)
+	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.GetOrganization)
+	r.PUT("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.UpdateOrganization)
+	r.DELETE("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.DeleteOrganization)
+	r.GET("/organizations/:organizationID/events", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.ListOrganizationEvents)
 
 	// Organization Users routes
 	r.GET("/organizations/:organizationID/users", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), organizationUsersController.GetOrganizationUsers)

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -9,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func AuthorizeOrganizationAccess(db *gorm.DB) gin.HandlerFunc {
+func AuthorizeOrganizationAccess(db *gorm.DB, requiredRole models.OrgRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		organizationIDStr := c.Param("organizationID")
 
@@ -27,7 +28,7 @@ func AuthorizeOrganizationAccess(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		authorized, err := CheckUserAuthorization(db, organizationID, c.GetString("ugkthid"))
+		authorized, err := CheckUserAuthorization(db, organizationID, c.GetString("ugkthid"), requiredRole)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
 			c.Abort()
@@ -46,13 +47,37 @@ func AuthorizeOrganizationAccess(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func CheckUserAuthorization(db *gorm.DB, organizationID uint, ugkthid string) (bool, error) {
-	var count int64
-	err := db.Table("organization_users").
-		Where("organization_id = ? AND user_ug_kth_id = ?", organizationID, ugkthid).
-		Count(&count).Error
+func CheckUserAuthorization(db *gorm.DB,
+	organizationID uint,
+	ugkthid string,
+	requiredRole models.OrgRole) (bool, error) {
+	var userOrgRole models.OrganizationUserRole
+	err := db.Where("user_ug_kth_id = ? AND organization_id = ?", ugkthid, organizationID).First(&userOrgRole).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// User is not found in the organization
+			return false, nil
+		}
+		// Other database error
+		return false, err
+	}
+
+	var orgRole models.OrganizationRole
+	err = db.Where("name  = ?", userOrgRole.OrganizationRoleName).First(&orgRole).Error
 	if err != nil {
 		return false, err
 	}
-	return count > 0, nil
+
+	var requiredOrgRole models.OrganizationRole
+	err = db.Where("name = ?", requiredRole).First(&requiredOrgRole).Error
+	if err != nil {
+		return false, err
+	}
+
+	// Check if the user has the required role
+	if orgRole.ID < requiredOrgRole.ID {
+		return false, nil
+	}
+
+	return true, nil
 }

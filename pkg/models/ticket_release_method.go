@@ -37,27 +37,3 @@ func InitializeTicketReleaseMethods(db *gorm.DB) error {
 	}
 	return nil
 }
-
-// func (m *TicketReleaseMethod) SerializeConfig(config interface{}) error {
-// 	data, err := json.Marshal(config)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	m.ConfigData = string(data)
-// 	return nil
-// }
-
-// func (m *TicketReleaseMethod) DeserializeConfig() (interface{}, error) {
-// 	var config interface{}
-// 	switch m.MethodType {
-// 	case "Lottery":
-// 		config = &tr_methods.LotteryConfig{}
-// 	default:
-// 		return nil, errors.New("unknown method type")
-// 	}
-// 	err := json.Unmarshal([]byte(m.ConfigData), &config)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return config, nil
-// }

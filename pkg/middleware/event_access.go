@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func AuthorizeEventAccess(db *gorm.DB) gin.HandlerFunc {
+func AuthorizeEventAccess(db *gorm.DB, requiredRole models.OrgRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ugkthid, exists := c.Get("ugkthid")
 		if !exists {
@@ -34,7 +34,7 @@ func AuthorizeEventAccess(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		authorized, err := CheckUserAuthorization(db, uint(event.OrganizationID), ugkthid.(string))
+		authorized, err := CheckUserAuthorization(db, uint(event.OrganizationID), ugkthid.(string), requiredRole)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
 			c.Abort()

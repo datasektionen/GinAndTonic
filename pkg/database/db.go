@@ -26,13 +26,9 @@ func InitDB() (*gorm.DB, error) {
 		dbname := os.Getenv("DB_NAME")
 		port := os.Getenv("DB_PORT")
 		sslmode := os.Getenv("DB_SSLMODE")
-		idleInTransactionSessionTimeout := 300000 // 300000ms = 5 minutes
-		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC idle_in_transaction_session_timeout=%d",
-			host, user, password, dbname, port, sslmode, idleInTransactionSessionTimeout,
-		)
+		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC", host, user, password, dbname, port, sslmode)
 	} else if os.Getenv("ENV") == "prod" {
 		dsn = os.Getenv("DATABASE_URL")
-		dsn += " TimeZone=UTC idle_in_transaction_session_timeout=180000"
 	} else {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
@@ -41,6 +37,13 @@ func InitDB() (*gorm.DB, error) {
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 		return nil, err
+	}
+
+	const IDLE_IN_TRANSACTION_SESSION_TIMEOUT = "300000" // 300000 milliseconds = 5 minutes
+
+	err = db.Exec("SET idle_in_transaction_session_timeout = ?", IDLE_IN_TRANSACTION_SESSION_TIMEOUT).Error
+	if err != nil {
+		log.Fatalf("failed to set idle_in_transaction_session_timeout, got error: %v", err)
 	}
 
 	sqlDB, err := db.DB()

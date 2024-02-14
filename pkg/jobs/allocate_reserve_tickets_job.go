@@ -125,6 +125,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Info("Ticket release has not allocated tickets")
+		tx.Rollback()
 		return nil
 	}
 
@@ -132,7 +133,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Info("Ticket release has a promo code")
-
+		tx.Rollback()
 		return nil
 	}
 
@@ -146,7 +147,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error getting all tickets to ticket release with ID %d: %s", ticketRelease.ID, err.Error())
-
+		tx.Rollback()
 		return err
 	}
 
@@ -156,7 +157,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		allocator_logger.WithFields(logrus.Fields{
 			"id": ticketRelease.ID,
 		}).Errorf("Error getting all reserve tickets to ticket release with ID %d: %s", ticketRelease.ID, err.Error())
-
+		tx.Rollback()
 		return err
 	}
 
@@ -180,10 +181,10 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		if payWithin != nil {
 			mustPayBefore = utils.MustPayBefore(int(*payWithin), ticket.UpdatedAt)
 		} else {
-			tx.Rollback()
 			allocator_logger.WithFields(logrus.Fields{
 				"id": ticketRelease.ID,
 			}).Error("Pay within is nil")
+			tx.Rollback()
 
 			return errors.New("Pay within is nil")
 		}

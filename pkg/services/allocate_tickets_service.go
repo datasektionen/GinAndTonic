@@ -296,11 +296,14 @@ func (ats *AllocateTicketsService) AllocateReserveTicket(
 		return nil, err
 	}
 
+	qrCode := utils.GenerateRandomString(16)
+
 	ticket := models.Ticket{
 		TicketRequestID: ticketRequest.ID,
 		ReserveNumber:   reserveNumber,
 		IsReserve:       true,
 		UserUGKthID:     ticketRequest.UserUGKthID,
+		QrCode:          qrCode,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {

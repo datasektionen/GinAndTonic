@@ -91,6 +91,7 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 
 	// Delete the fields that are not included in the request
 	for _, field := range existingFieldMap {
+		// Delete the field
 		if err := tx.Unscoped().Delete(&field).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

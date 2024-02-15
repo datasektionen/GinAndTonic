@@ -91,3 +91,8 @@ type SendOutRequest struct {
 	TicketReleaseIDs []int        `json:"ticket_release_ids"`
 	Filters          TicketFilter `json:"filters"`
 }
+
+type EventFormFieldResponseCreateRequest struct {
+	EventFormFieldID uint   `json:"event_form_field_id" binding:"required"`
+	Value            string `json:"value" binding:"required"`
+}

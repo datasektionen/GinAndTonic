@@ -176,7 +176,6 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	authorized := false
 
 	if event.IsPrivate {
-		fmt.Println("Event is private")
 		if user.IsSuperAdmin() {
 			authorized = true
 		} else {
@@ -320,4 +319,28 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets, "ticket_requests": ticketRequests})
+}
+
+// GetEventSecretToken returns the secret token for an event
+func (ec *EventController) GetEventSecretToken(c *gin.Context) {
+	eventIDstring := c.Param("eventID")
+	eventID, err := strconv.Atoi(eventIDstring)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	var event models.Event
+	if err := ec.DB.First(&event, eventID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+
+	if event.SecretToken == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event does not have a secret token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"secret_token": event.SecretToken})
 }

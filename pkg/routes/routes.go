@@ -131,6 +131,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
 		}))
 
+	r.GET("/events/:eventID/manage/secret-token",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		eventController.GetEventSecretToken)
+
 	r.PUT("/events/:eventID",
 		authentication.RequireRole("user", db),
 		eventController.UpdateEvent)

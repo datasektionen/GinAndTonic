@@ -119,6 +119,7 @@ func SeedUserFoodPreferences(db *gorm.DB) {
 		LactoseIntolerant: false,
 		NutAllergy:        false,
 		ShellfishAllergy:  false,
+		PreferMeat:        false,
 		AdditionalInfo:    "Additional Info",
 	}
 

@@ -13,6 +13,7 @@ type UserFoodPreference struct {
 	ShellfishAllergy  bool   `json:"shellfish_allergy" gorm:"default:false"`
 	Halal             bool   `json:"halal" gorm:"default:false"`
 	Kosher            bool   `json:"kosher" gorm:"default:false"`
+	PreferMeat        bool   `json:"prefer_meat" gorm:"default:false"`
 	AdditionalInfo    string `json:"additional_info" gorm:"default:''"`
 	GDPRAgreed        bool   `json:"gdpr_agreed" gorm:"default:false"`
 	NeedsToRenewGDPR  bool   `json:"needs_to_renew_gdpr" gorm:"default:false"`
@@ -30,5 +31,6 @@ func GetFoodPreferencesAlternatives() []string {
 		"halal",
 		"kosher",
 		"additional_info",
+		"prefer_meat",
 	}
 }

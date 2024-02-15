@@ -130,6 +130,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		Preload("TicketReleases.ReservedUsers").
 		Preload("TicketReleases.Event").
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("FormFields").
 		First(&event, id).Error
 
 	if err != nil {

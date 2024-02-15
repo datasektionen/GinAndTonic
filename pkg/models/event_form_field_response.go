@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -26,10 +25,6 @@ func (r *EventFormFieldResponse) GetValueAsType() (interface{}, error) {
 		return strconv.Atoi(r.Value)
 	case EventFormFieldTypeCheckbox:
 		return strconv.ParseBool(r.Value)
-	case EventFormFieldTypeJSON:
-		var result interface{}
-		err := json.Unmarshal([]byte(r.Value), &result)
-		return result, err
 	default:
 		return nil, errors.New("unknown field type")
 	}
@@ -51,12 +46,6 @@ func (r *EventFormFieldResponse) SetValueFromType(value interface{}) error {
 			return fmt.Errorf("expected bool, got %T", value)
 		}
 		r.Value = strconv.FormatBool(boolean)
-	case EventFormFieldTypeJSON:
-		bytes, err := json.Marshal(value)
-		if err != nil {
-			return err
-		}
-		r.Value = string(bytes)
 	default:
 		return errors.New("unknown field type")
 	}

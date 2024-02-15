@@ -31,6 +31,11 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 		return
 	}
 
+	// Add the event ID to the fields
+	for i := range fields {
+		fields[i].EventID = uint(eventID)
+	}
+
 	tx := effc.db.Begin()
 	if tx.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
@@ -66,6 +71,7 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 		if exists {
 			// Update the existing field
 			existingField.Type = field.Type
+			existingField.Description = field.Description // Add this line
 			if err := tx.Save(&existingField).Error; err != nil {
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

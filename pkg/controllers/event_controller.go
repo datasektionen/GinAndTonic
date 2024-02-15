@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/pkg/validation"
@@ -76,6 +78,7 @@ func (ec *EventController) CreateEvent(c *gin.Context) {
 
 func (ec *EventController) ListEvents(c *gin.Context) {
 	var events []models.Event
+	user := c.MustGet("user").(models.User)
 
 	// Pagination
 	limitStr := c.DefaultQuery("limit", "10")
@@ -106,8 +109,40 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 		query = query.Where("name = ?", name)
 	}
 
-	query.Where("is_private = ?", false).Find(&events)
-	c.JSON(http.StatusOK, events)
+	query.Find(&events)
+
+	ugkthid := c.GetString("ugkthid")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get user"})
+		return
+	}
+
+	var authorizedEvents []models.Event
+	for _, event := range events {
+		if event.IsPrivate {
+			if user.IsSuperAdmin() {
+				authorizedEvents = append(authorizedEvents, event)
+			} else {
+				authorized, err := middleware.CheckUserAuthorization(ec.DB,
+					uint(event.OrganizationID),
+					ugkthid,
+					models.OrganizationMember)
+
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
+					return
+				}
+
+				if authorized {
+					authorizedEvents = append(authorizedEvents, event)
+				}
+			}
+		} else {
+			authorizedEvents = append(authorizedEvents, event)
+		}
+	}
+
+	c.JSON(http.StatusOK, authorizedEvents)
 }
 
 // GetEvent handles retrieving an event by ID
@@ -138,15 +173,41 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	}
 
 	// Check if the event is private
-	if event.IsPrivate {
-		// Get the secret token from the request
-		secretToken := c.Query("secret_token")
+	authorized := false
 
-		// Check the secret token
-		if secretToken != event.SecretToken {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid secret token"})
-			return
+	if event.IsPrivate {
+		fmt.Println("Event is private")
+		if user.IsSuperAdmin() {
+			authorized = true
+		} else {
+			var err error
+			authorized, err = middleware.CheckUserAuthorization(ec.DB,
+				uint(event.OrganizationID),
+				user.UGKthID,
+				models.OrganizationMember)
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
+				return
+			}
+
+			// Get the secret token from the request
+			secretToken := c.Query("secret_token")
+			fmt.Println("secretToken", secretToken)
+			fmt.Println(secretToken == event.SecretToken)
+
+			// Check the secret token
+			if secretToken == event.SecretToken {
+				authorized = true
+			}
 		}
+	} else {
+		authorized = true
+	}
+
+	if !authorized {
+		c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+		return
 	}
 
 	for i, ticketRelease := range event.TicketReleases {

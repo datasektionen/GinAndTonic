@@ -42,6 +42,16 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		CreatedBy:      createdBy,
 	}
 
+	if event.IsPrivate {
+		token, err := utils.GenerateSecretToken()
+
+		if err != nil {
+			return err
+		}
+
+		event.SecretToken = token
+	}
+
 	if err := tx.Create(&event).Error; err != nil {
 		tx.Rollback()
 		return err

@@ -103,6 +103,10 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 
 	// generate verify email token
 	verifyEmailToken, err := utils.GenerateSecretToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
 
 	currentTime := time.Now()
 

@@ -16,7 +16,7 @@ type Event struct {
 	OrganizationID int             `gorm:"index" json:"organization_id"`
 	Organization   Organization    `json:"organization"`
 	TicketReleases []TicketRelease `gorm:"foreignKey:EventID" json:"ticket_releases"`
-	IsPrivate      bool            `json:"is_private"`
+	IsPrivate      bool            `json:"is_private" gorm:"default:false"`
 	SecretToken    string          `json:"-"`
 	CreatedBy      string          `json:"created_by"`
 }

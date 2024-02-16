@@ -195,8 +195,6 @@ func main() {
 		}).Fatal("Failed to connect to database")
 	}
 
-	createLogDirAndLogFiles()
-
 	err = models.CreateOrganizationUniqueIndex(db)
 	if err != nil {
 		log.WithFields(logrus.Fields{

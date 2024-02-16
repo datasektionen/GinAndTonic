@@ -56,11 +56,17 @@ func init() {
 			}).Fatal("Error loading .env file")
 
 		}
+	}
 
+	// Set log tile logs/main.log
+	logFile := "logs/main.log"
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
 	}
 
 	// Set log output to the file
-	log.SetOutput(os.Stdout)
+	log.SetOutput(file)
 
 	// Set log level
 	log.SetLevel(logrus.InfoLevel)

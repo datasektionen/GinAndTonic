@@ -40,6 +40,8 @@ func (ctrl *UserFoodPreferenceController) Update(c *gin.Context) {
 	existingUserFoodPreference.NutAllergy = userFoodPreference.NutAllergy
 	existingUserFoodPreference.ShellfishAllergy = userFoodPreference.ShellfishAllergy
 	existingUserFoodPreference.PreferMeat = userFoodPreference.PreferMeat
+	existingUserFoodPreference.Kosher = userFoodPreference.Kosher
+	existingUserFoodPreference.Halal = userFoodPreference.Halal
 	existingUserFoodPreference.AdditionalInfo = userFoodPreference.AdditionalInfo
 	existingUserFoodPreference.GDPRAgreed = userFoodPreference.GDPRAgreed
 

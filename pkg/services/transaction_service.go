@@ -58,9 +58,11 @@ func (ts *TransactionService) CreateTransaction(
 	return nil
 }
 
-func (ts *TransactionService) SuccessfulPayment(pi stripe.PaymentIntent) error {
+func SuccessfulPayment(
+	db *gorm.DB, // Allows transaction to be passed in
+	pi stripe.PaymentIntent) error {
 	var transaction models.Transaction
-	if err := ts.DB.Where("payment_intent_id = ?", pi.ID).Find(&transaction).Error; err != nil {
+	if err := db.Where("payment_intent_id = ?", pi.ID).Find(&transaction).Error; err != nil {
 		return err
 	}
 
@@ -71,7 +73,7 @@ func (ts *TransactionService) SuccessfulPayment(pi stripe.PaymentIntent) error {
 	transaction.Status = &status
 	transaction.PayedAt = &now
 
-	if err := ts.DB.Save(&transaction).Error; err != nil {
+	if err := db.Save(&transaction).Error; err != nil {
 		return err
 	}
 

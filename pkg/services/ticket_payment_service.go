@@ -13,17 +13,18 @@ func NewTicketPaymentService(db *gorm.DB) *TicketPaymentService {
 	return &TicketPaymentService{DB: db}
 }
 
-func (tps *TicketPaymentService) HandleSuccessfullTicketPayment(
+func HandleSuccessfullTicketPayment(
+	db *gorm.DB, // Allows transaction to be passed in
 	ticketId int,
 ) (ticket *models.Ticket, err error) {
 	// Handles a successfull ticket payment
-	if err := tps.DB.Preload("TicketRequest").Where("id = ?", ticketId).First(&ticket).Error; err != nil {
+	if err := db.Preload("TicketRequest").Where("id = ?", ticketId).First(&ticket).Error; err != nil {
 		return nil, err
 	}
 
 	ticket.IsPaid = true
 
-	if err := tps.DB.Save(&ticket).Error; err != nil {
+	if err := db.Save(&ticket).Error; err != nil {
 		return nil, err
 	}
 

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,11 +30,16 @@ func init() {
 type PaymentController struct {
 	DB                 *gorm.DB
 	tpService          *services.TicketPaymentService
+	pService           *services.PaymentService
 	transactionService *services.TransactionService
 }
 
 func NewPaymentController(db *gorm.DB) *PaymentController {
-	return &PaymentController{DB: db, tpService: services.NewTicketPaymentService(db), transactionService: services.NewTransactionService(db)}
+	pService := services.NewPaymentService(db)
+	return &PaymentController{DB: db,
+		tpService:          services.NewTicketPaymentService(db),
+		transactionService: services.NewTransactionService(db),
+		pService:           pService}
 }
 
 func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
@@ -65,7 +69,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	var existingTransaction models.Transaction
 
 	// Attempt to find an existing, unused payment intent for the ticket and user
-	if err := pc.DB.Where("ticket_id = ? AND user_ug_kth_id = ? AND status = ?", ticketId, ugkthid, models.TransactionStatusPending).First(&existingTransaction).Error; err == nil {
+	if err := pc.DB.Where("ticket_id = ? AND user_ug_kth_id = ?", ticketId, ugkthid).First(&existingTransaction).Error; err == nil {
 		paymentIntentID = *existingTransaction.PaymentIntentID
 	} else if err != gorm.ErrRecordNotFound {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve existing transaction"})
@@ -112,7 +116,6 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		}
 		cust = newCust
 	}
-
 	params := &stripe.PaymentIntentParams{
 		Params: stripe.Params{
 			Metadata: map[string]string{
@@ -139,6 +142,8 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 			ticket.TicketRequest.TicketType.Name)),
 	}
 
+	idempotencyKey := fmt.Sprintf("payment-intent-%d-%s", ticketId, ugkthid) // Just an example, ensure it's unique per intent
+	params.IdempotencyKey = stripe.String(idempotencyKey)
 	params.AddMetadata("ticket_id", strconv.Itoa(ticketId))
 
 	pi, err = paymentintent.New(params)
@@ -180,53 +185,34 @@ func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
 		return
 	}
 
+	var existingWebhookEvent models.WebhookEvent
+	if err := pc.DB.Where("stripe_event_id = ? AND processed = ?", event.ID, true).First(&existingWebhookEvent).Error; err == nil {
+		c.String(http.StatusOK, "Webhook event already processed")
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		c.String(http.StatusInternalServerError, "Error retrieving existing webhook event")
+		return
+	}
+
+	webhookEvent := models.WebhookEvent{
+		StripeID:  event.ID,
+		EventType: event.Type,
+		Processed: false, // Initially false, will be set to true once processed
+	}
+	pc.DB.Create(&webhookEvent)
+
 	// Unmarshal the event data into an appropriate struct depending on its Type
-	switch event.Type {
-	case "payment_intent.succeeded":
-		var paymentIntent stripe.PaymentIntent
-		err := json.Unmarshal(event.Data.Raw, &paymentIntent)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Error parsing webhook JSON: %v", err.Error())
+	peErr := pc.pService.ProcessEvent(&event)
+	if peErr != nil {
+		webhookEvent.LastError = peErr.Message
+
+		if err := pc.DB.Save(&webhookEvent).Error; err != nil {
+			c.String(http.StatusInternalServerError, "Error saving webhook event")
 			return
 		}
 
-		ticketIdstring, ok := paymentIntent.Metadata["ticket_id"]
-		if !ok {
-			c.String(http.StatusBadRequest, "Ticket ID not found in payment intent metadata")
-			return
-		}
-
-		ticketId, err := strconv.Atoi(ticketIdstring)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Invalid ticket ID")
-			return
-		}
-
-		ticket, err := pc.tpService.HandleSuccessfullTicketPayment(ticketId)
-		if err != nil {
-			c.String(http.StatusInternalServerError, "Error handling ticket payment")
-			return
-		}
-
-		if err := pc.transactionService.SuccessfulPayment(paymentIntent); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		err = services.Notify_TicketPaymentConfirmation(pc.DB, int(ticket.ID))
-		if err != nil {
-			fmt.Println(err)
-			c.String(http.StatusInternalServerError, "Error notifying user, but ticket payment was successful")
-			return
-		}
-
-		// Send notification to user
-
-		// Then define and call a function to handle the event payment_intent.succeeded
-		// ...
-	// ... handle other event types
-	default:
-		c.String(http.StatusOK, "Unhandled event type: %s", event.Type)
+		c.String(peErr.StatusCode, peErr.Message)
+		return
 	}
 
 	c.Status(http.StatusOK)

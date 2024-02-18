@@ -47,6 +47,30 @@ func (ps *PaymentService) processEventWithRetries(event *stripe.Event) error {
 	return lastError // Return the last error encountered
 }
 
+func (ps *PaymentService) createPendingTransaction(
+	ticketID int,
+	eventID int,
+	pi *stripe.PaymentIntent,
+	user *models.User,
+) error {
+	// Create the Transaction instance
+	transaction := models.Transaction{
+		PaymentIntentID: &pi.ID,
+		TicketID:        &ticketID,
+		EventID:         &eventID,
+		Amount:          int(pi.Amount),
+		Currency:        pi.Currency,
+		Status:          models.TransactionStatusPending,
+		UserUGKthID:     user.UGKthID,
+	}
+
+	if err := ps.DB.Create(&transaction).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (ps *PaymentService) ProcessEvent(
 	event *stripe.Event,
 ) *types.ErrorResponse {
@@ -59,7 +83,7 @@ func (ps *PaymentService) ProcessEvent(
 			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: fmt.Sprintf("Error parsing webhook JSON: %v", err.Error())}
 		}
 
-		ticketIdstring, ok := paymentIntent.Metadata["ticket_id"]
+		ticketIdstring, ok := paymentIntent.Metadata["tessera_ticket_id"]
 		if !ok {
 			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket ID not found in payment intent metadata"}
 		}
@@ -102,7 +126,48 @@ func (ps *PaymentService) ProcessEvent(
 		if txerr != nil {
 			return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error committing transaction"}
 		}
-		break
+	case "payment_intent.created":
+		var paymentIntent stripe.PaymentIntent
+		err := json.Unmarshal(event.Data.Raw, &paymentIntent)
+		if err != nil {
+			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: fmt.Sprintf("Error parsing webhook JSON: %v", err.Error())}
+		}
+
+		userID := paymentIntent.Metadata["tessera_user_id"]
+		var user models.User
+		if err := ps.DB.Where("ug_kth_id = ?", userID).First(&user).Error; err != nil {
+			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: fmt.Sprintf("Error finding user: %v", err.Error())}
+		}
+
+		ticketIDString, ok := paymentIntent.Metadata["tessera_ticket_id"]
+		if !ok {
+			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket ID not found in payment intent metadata"}
+		}
+
+		ticketID, err := strconv.Atoi(ticketIDString)
+		if err != nil {
+			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Invalid ticket ID"}
+		}
+
+		eventIDString, ok := paymentIntent.Metadata["tessera_event_id"]
+		if !ok {
+			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Event ID not found in payment intent metadata"}
+		}
+
+		eventID, err := strconv.Atoi(eventIDString)
+		if err != nil {
+			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Invalid event ID"}
+		}
+
+		// Implement the logic to create a pending transaction record.
+		// It's a good practice to encapsulate the logic in a method for clarity and reuse.
+		err = ps.createPendingTransaction(ticketID, eventID, &paymentIntent, &user)
+		if err != nil {
+			return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: fmt.Sprintf("Error creating pending transaction: %v", err)}
+		}
+	case "charge.succeeded":
+		// Implement the logic to handle a successful charge event
+		return nil
 	default:
 		return &types.ErrorResponse{StatusCode: http.StatusOK, Message: fmt.Sprintf("Unhandled event type: %s", event.Type)}
 	}

@@ -25,7 +25,7 @@ func (ts *TransactionService) CreateTransaction(
 	transactionStatus models.TransactionStatus,
 ) error {
 	// Extracting the ticket ID from metadata
-	ticketIDStr, ok := pi.Metadata["ticket_id"]
+	ticketIDStr, ok := pi.Metadata["tessera_ticket_id"]
 	if !ok {
 		return fmt.Errorf("ticket_id not found in payment intent metadata")
 	}
@@ -43,7 +43,7 @@ func (ts *TransactionService) CreateTransaction(
 		Currency:        pi.Currency,
 		Refunded:        false, // Set this based on your logic
 		UserUGKthID:     ticket.UserUGKthID,
-		Status:          &transactionStatus,
+		Status:          transactionStatus,
 	}
 
 	if err := transaction.Validate(); err != nil {
@@ -68,9 +68,7 @@ func SuccessfulPayment(
 
 	now := time.Now().Unix()
 
-	status := models.TransactionStatusCompleted
-
-	transaction.Status = &status
+	transaction.Status = models.TransactionStatusCompleted
 	transaction.PayedAt = &now
 
 	if err := db.Save(&transaction).Error; err != nil {

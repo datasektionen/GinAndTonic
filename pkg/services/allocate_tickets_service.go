@@ -33,12 +33,12 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 
 	if method.MethodName == "" {
 		// Raise error
-		return errors.New("No method name specified")
+		return errors.New("no method name specified")
 	}
 
 	// Check if allocation has already been done
 	if ticketRelease.HasAllocatedTickets {
-		return errors.New("Tickets already allocated")
+		return errors.New("tickets already allocated")
 	}
 
 	// Before allocating tickets, check if the ticket release is open
@@ -89,8 +89,6 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 				}
 			}
 		}
-
-		break
 	case string(models.RESERVED_TICKET_RELEASE):
 		tickets, err = ats.allocateReservedTickets(ticketRelease, tx)
 
@@ -117,10 +115,9 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			}
 		}
 
-		break
 	default:
 		tx.Rollback()
-		return errors.New("Unknown ticket release method")
+		return errors.New("unknown ticket release method")
 	}
 
 	return tx.Commit().Error
@@ -145,7 +142,7 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 	}
 
 	if len(allTicketRequests) == 0 {
-		return allTickets, errors.New("No ticket requests to allocate")
+		return allTickets, errors.New("no ticket requests to allocate")
 	}
 
 	eligibleTicketRequestsForLottery := make([]models.TicketRequest, 0)
@@ -262,7 +259,7 @@ func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketReq
 	if ticketRequest.TicketType.ID == 0 {
 		// Fatal error
 		fmt.Println("No ticket type specified")
-		return nil, errors.New("No ticket type specified")
+		return nil, errors.New("no ticket type specified")
 	}
 
 	var isPaid bool = false

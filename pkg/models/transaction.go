@@ -26,17 +26,17 @@ type Transaction struct {
 	PayedAt           *int64             `json:"payed_at"`
 	Refunded          bool               `json:"refunded" default:"false"`
 	RefundedAt        *int64             `json:"refunded_at"`
-	Status            *TransactionStatus `json:"status"`
+	Status            TransactionStatus  `json:"status"`
 	EventSalesReports []EventSalesReport `gorm:"many2many:event_sales_report_transactions;"`
 }
 
 // Validate
 func (trans *Transaction) Validate() error {
-	switch *trans.Status {
+	switch trans.Status {
 	case TransactionStatusPending, TransactionStatusCompleted:
 		return nil
 	default:
-		err := fmt.Errorf("invalid transaction status: %s", *trans.Status)
+		err := fmt.Errorf("invalid transaction status: %s", trans.Status)
 		return err
 	}
 }

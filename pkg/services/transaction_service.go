@@ -36,9 +36,9 @@ func (ts *TransactionService) CreateTransaction(
 
 	// Create the Transaction instance
 	transaction := models.Transaction{
-		PaymentIntentID: &pi.ID,
-		EventID:         &eventId,
-		TicketID:        &ticketID,
+		PaymentIntentID: pi.ID,
+		EventID:         eventId,
+		TicketID:        ticketID,
 		Amount:          int(pi.Amount),
 		Currency:        pi.Currency,
 		Refunded:        false, // Set this based on your logic

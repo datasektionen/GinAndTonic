@@ -16,9 +16,9 @@ const (
 // Transaction
 type Transaction struct {
 	gorm.Model
-	PaymentIntentID   *string            `json:"payment_intent_id"`
-	EventID           *int               `json:"event_id"`
-	TicketID          *int               `json:"ticket_id"`
+	PaymentIntentID   string             `json:"payment_intent_id"`
+	EventID           int                `json:"event_id"`
+	TicketID          int                `json:"ticket_id" gorm:"unique"`
 	UserUGKthID       string             `json:"user_ug_kth_id"`
 	User              User               `json:"user"`
 	Amount            int                `json:"amount"`

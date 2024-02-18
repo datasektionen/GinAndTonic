@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -20,44 +21,35 @@ func NewPaymentService(db *gorm.DB) *PaymentService {
 	return &PaymentService{DB: db}
 }
 
-func (ps *PaymentService) processEventWithRetries(event *stripe.Event) error {
-	const maxRetries = 3
-	var lastError error
-
-	for attempt := 0; attempt <= maxRetries; attempt++ {
-		if attempt > 0 {
-			fmt.Printf("Retrying processing event %s, attempt %d\n", event.ID, attempt)
-		}
-
-		err := ps.ProcessEvent(event) // Implement this function to actually process the event
-		if err != nil {
-			lastError = err
-			// Update the event in the database with retry count and last error
-			ps.DB.Model(&models.WebhookEvent{}).Where("stripe_id = ?", event.ID).Updates(map[string]interface{}{
-				"RetryCount": gorm.Expr("retry_count + ?", 1),
-				"LastError":  err.Error(),
-			})
-			continue
-		}
-
-		// On successful processing, break the loop
-		return nil
-	}
-
-	return lastError // Return the last error encountered
-}
-
 func (ps *PaymentService) createPendingTransaction(
 	ticketID int,
 	eventID int,
 	pi *stripe.PaymentIntent,
 	user *models.User,
 ) error {
+	// We check if a pending transaction with ticket_id, event_id and user_ug_kth_id already exists
+	var existingTransaction models.Transaction
+	if err := ps.DB.Where("ticket_id = ? AND event_id = ? AND user_ug_kth_id = ?", ticketID, eventID, user.UGKthID).First(&existingTransaction).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+	}
+
+	if existingTransaction.ID != 0 {
+		if existingTransaction.Status == models.TransactionStatusCompleted {
+			return errors.New("ticket already paid")
+		}
+		// Delete the existing transaction
+		if err := ps.DB.Unscoped().Delete(&existingTransaction).Error; err != nil {
+			return err
+		}
+	}
+
 	// Create the Transaction instance
 	transaction := models.Transaction{
-		PaymentIntentID: &pi.ID,
-		TicketID:        &ticketID,
-		EventID:         &eventID,
+		PaymentIntentID: pi.ID,
+		TicketID:        ticketID,
+		EventID:         eventID,
 		Amount:          int(pi.Amount),
 		Currency:        pi.Currency,
 		Status:          models.TransactionStatusPending,

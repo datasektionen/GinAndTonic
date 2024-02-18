@@ -87,6 +87,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		// No customer found, creating a new one
 		newCustomerParams := &stripe.CustomerParams{
 			Email: stripe.String(user.Email),
+			Name:  stripe.String(user.FullName()),
 		}
 		newCust, err := customer.New(newCustomerParams)
 		if err != nil {

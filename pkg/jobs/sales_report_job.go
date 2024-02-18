@@ -107,7 +107,7 @@ func GetPaymentIntentsByEvent(db *gorm.DB, eventID int) ([]*stripe.PaymentIntent
 	// Retrieve the corresponding payment intents from Stripe
 	var paymentIntents []*stripe.PaymentIntent
 	for _, transaction := range transactions {
-		pi, err := paymentintent.Get(*transaction.PaymentIntentID, nil)
+		pi, err := paymentintent.Get(transaction.PaymentIntentID, nil)
 		if err != nil {
 			return nil, nil, err
 		}

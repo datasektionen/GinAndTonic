@@ -19,6 +19,7 @@ type EventFormField struct {
 	EventID     uint                     `json:"event_id"`
 	Name        string                   `json:"name"`
 	Description string                   `json:"description"`
+	IsRequired  bool                     `json:"is_required" gorm:"default:false"`
 	Type        EventFormFieldType       `json:"type"`
 	Responses   []EventFormFieldResponse `gorm:"foreignKey:EventFormFieldID;constraint:OnDelete:CASCADE;"` // Add this line
 }

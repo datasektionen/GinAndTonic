@@ -72,6 +72,7 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 			// Update the existing field
 			existingField.Type = field.Type
 			existingField.Description = field.Description // Add this line
+			existingField.IsRequired = field.IsRequired   // Add this line
 			if err := tx.Save(&existingField).Error; err != nil {
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

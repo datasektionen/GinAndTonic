@@ -37,7 +37,7 @@ func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRe
 	var ticketRequests []TicketRequest
 	if err := db.
 		Preload("TicketType").
-		Preload("TicketRelease.Event").
+		Preload("TicketRelease.Event.FormFields").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
 		Preload("EventFormReponses").
 		Where("user_ug_kth_id = ?", userUGKthID).

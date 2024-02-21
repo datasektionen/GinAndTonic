@@ -166,3 +166,49 @@ func Notify_GDPRFoodPreferencesRenewal(db *gorm.DB, user *models.User) error {
 
 	return nil
 }
+
+func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, payWithin int) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var ticket models.Ticket
+	err := db.
+		Preload("TicketRequest.User").
+		Preload("TicketRequest.TicketRelease.Event.Organization").First(&ticket, ticketId).Error
+	if err != nil {
+		return err
+	}
+
+	user := ticket.TicketRequest.User
+	ticketRelease := ticket.TicketRequest.TicketRelease
+	event := ticketRelease.Event
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	var payBeforeString string
+
+	if payWithin != 0 {
+		payBeforeString = utils.ConvertPayWithinToString(payWithin, ticket.UpdatedAt)
+	}
+
+	data := types.EmailTicketAllocationCreated{
+		FullName:          user.FullName(),
+		EventName:         event.Name,
+		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		OrganizationName:  event.Organization.Name,
+		OrganizationEmail: event.Organization.Email,
+		PayBefore:         payBeforeString,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_allocation_created.html", data)
+	if err != nil {
+		return err
+	}
+
+	AddEmailJobToQueue(db, &user, fmt.Sprintf("Your ticket to %s!", event.Name), htmlContent, nil)
+
+	return nil
+}

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -17,6 +18,11 @@ func NewEventFormFieldController(db *gorm.DB) *EventFormFieldController {
 	return &EventFormFieldController{db: db}
 }
 
+type EventFormFieldCreateRequest struct {
+	FormFieldDescription *string `json:"form_field_description"`
+	FormFields           []models.EventFormField `json:"form_fields"`
+}
+
 func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 	eventIDstring := c.Param("eventID")
 	eventID, err := strconv.Atoi(eventIDstring)
@@ -25,11 +31,15 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 		return
 	}
 
-	var fields []models.EventFormField
-	if err := c.ShouldBindJSON(&fields); err != nil {
+	var req EventFormFieldCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	var fields []models.EventFormField = req.FormFields
+
+	fmt.Println(req)
 
 	// Add the event ID to the fields
 	for i := range fields {
@@ -47,6 +57,16 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 			tx.Rollback()
 		}
 	}()
+
+	var event models.Event
+	// Update the form field description
+	if req.FormFieldDescription != nil {
+		if err := tx.Model(&event).Where("id = ?", eventID).Update("form_field_description", req.FormFieldDescription).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
 
 	var existingFields []models.EventFormField
 	if err := tx.Where("event_id = ?", eventID).Find(&existingFields).Error; err != nil {

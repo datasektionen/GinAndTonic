@@ -95,7 +95,7 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 			"error": err,
 		}).Fatal("Failed to add AllocateReserveTicketsJob to cron")
 	}
-	_, err = c.AddFunc("0 12 * * *", func() {
+	_, err = c.AddFunc("0 12 */3 * *", func() {
 		jobs.NotifyReserveNumberJob(db)
 	})
 

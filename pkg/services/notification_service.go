@@ -318,6 +318,7 @@ func Notify_RemindUserOfTicketRelease(db *gorm.DB, trReminder *models.TicketRele
 	loc, err := time.LoadLocation("Europe/Paris")
 	if err != nil {
 		// handle error
+		fmt.Println(err)
 	}
 
 	data := types.EmailTicketReleaseReminder{

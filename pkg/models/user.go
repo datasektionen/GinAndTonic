@@ -21,7 +21,7 @@ type User struct {
 	VerifiedEmail           bool       `json:"verified_email"`
 	EmailVerificationToken  string     `gorm:"size:255" json:"-"`
 	EmailVerificationSentAt *time.Time `json:"-"`
-	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL" json:"-"`
+	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
 
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`

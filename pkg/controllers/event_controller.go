@@ -295,6 +295,7 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 	var tickets []models.Ticket
 	var ticketRequests []models.TicketRequest
 	if err := ec.DB.
+		Unscoped().
 		Preload("Transaction").
 		Preload("User.FoodPreferences").
 		Preload("TicketRequest.TicketType").
@@ -308,6 +309,7 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 	}
 
 	if err := ec.DB.
+		Unscoped().
 		Preload("User.FoodPreferences").
 		Preload("TicketType").
 		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").

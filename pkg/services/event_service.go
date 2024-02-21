@@ -60,7 +60,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 	var ticketReleaseMethod models.TicketReleaseMethod
 	if err := tx.First(&ticketReleaseMethod, "id = ?", data.TicketRelease.TicketReleaseMethodID).Error; err != nil {
 		tx.Rollback()
-		return errors.New("Invalid ticket release method ID")
+		return errors.New("invalid ticket release method ID")
 	}
 
 	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
@@ -78,7 +78,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 
 	if err := tx.Create(&ticketReleaseMethodDetails).Error; err != nil {
 		tx.Rollback()
-		return errors.New("Could not create ticket release method details")
+		return errors.New("could not create ticket release method details")
 	}
 
 	method, err := models.NewTicketReleaseConfig(ticketReleaseMethod.MethodName, &ticketReleaseMethodDetails)
@@ -96,13 +96,13 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 	if data.TicketRelease.IsReserved {
 		if data.TicketRelease.PromoCode == "" {
 			tx.Rollback()
-			return errors.New("Promo code is required for reserved ticket releases")
+			return errors.New("promo code is required for reserved ticket releases")
 		}
 
 		promoCode, err = utils.EncryptString(data.TicketRelease.PromoCode)
 		if err != nil {
 			tx.Rollback()
-			return errors.New("Could not hash promo code")
+			return errors.New("could not hash promo code")
 		}
 	}
 
@@ -163,14 +163,14 @@ func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlow
 	var event models.Event
 	if err := tx.First(&event, eventID).Error; err != nil {
 		tx.Rollback()
-		return errors.New("Invalid event ID")
+		return errors.New("invalid event ID")
 	}
 
 	// Find ticket release method
 	var ticketReleaseMethod models.TicketReleaseMethod
 	if err := tx.First(&ticketReleaseMethod, "id = ?", data.TicketRelease.TicketReleaseMethodID).Error; err != nil {
 		tx.Rollback()
-		return errors.New("Invalid ticket release method ID")
+		return errors.New("invalid ticket release method ID")
 	}
 
 	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
@@ -188,7 +188,7 @@ func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlow
 
 	if err := tx.Create(&ticketReleaseMethodDetails).Error; err != nil {
 		tx.Rollback()
-		return errors.New("Could not create ticket release method details")
+		return errors.New("could not create ticket release method details")
 	}
 
 	method, err := models.NewTicketReleaseConfig(ticketReleaseMethod.MethodName, &ticketReleaseMethodDetails)
@@ -206,13 +206,13 @@ func (es *EventService) CreateTicketRelease(data types.TicketReleaseFullWorkFlow
 	if data.TicketRelease.IsReserved {
 		if data.TicketRelease.PromoCode == "" {
 			tx.Rollback()
-			return errors.New("Promo code is required for reserved ticket releases")
+			return errors.New("promo code is required for reserved ticket releases")
 		}
 
 		promoCode, err = utils.EncryptString(data.TicketRelease.PromoCode)
 		if err != nil {
 			tx.Rollback()
-			return errors.New("Could not hash promo code")
+			return errors.New("could not hash promo code")
 		}
 	}
 

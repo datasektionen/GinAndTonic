@@ -25,7 +25,7 @@ func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.Ti
 	trx := trs.DB.Begin()
 
 	for _, ticketRequest := range ticketRequests {
-		tr, err := trs.CreateTicketRequest(&ticketRequest, trx)
+		tr, err := trs.CreateTicketRequest(trx, &ticketRequest)
 		if err != nil {
 			trx.Rollback()
 			return nil, err
@@ -34,10 +34,14 @@ func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.Ti
 	}
 
 	trx.Commit()
+
 	return modelTicketRequests, nil
 }
 
-func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.TicketRequest, transaction *gorm.DB) (mTicketRequest *models.TicketRequest, err *types.ErrorResponse) {
+func (trs *TicketRequestService) CreateTicketRequest(
+	transaction *gorm.DB,
+	ticketRequest *models.TicketRequest,
+) (mTicketRequest *models.TicketRequest, err *types.ErrorResponse) {
 	var user models.User
 
 	if err := transaction.Where("ug_kth_id = ?", ticketRequest.UserUGKthID).First(&user).Error; err != nil {
@@ -72,7 +76,7 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 	}
 
 	var ticketReleaseMethodDetail models.TicketReleaseMethodDetail
-	if err := transaction.Where("id = ?", ticketRelease.TicketReleaseMethodDetailID).First(&ticketReleaseMethodDetail).Error; err != nil {
+	if err := transaction.Preload("TicketReleaseMethod").Where("id = ?", ticketRelease.TicketReleaseMethodDetailID).First(&ticketReleaseMethodDetail).Error; err != nil {
 		log.Println("Error getting ticket release method detail")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release method detail"}
 	}
@@ -97,6 +101,22 @@ func (trs *TicketRequestService) CreateTicketRequest(ticketRequest *models.Ticke
 	if err := transaction.Create(mTicketRequest).Error; err != nil {
 		log.Println("Error creating ticket request")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
+	}
+
+	// Check the relead method
+	if ticketReleaseMethodDetail.TicketReleaseMethod.MethodName == string(models.RESERVED_TICKET_RELEASE) {
+		// We can allocated the ticket to the user directly if there are tickets_available
+		// Otherwise fail the request
+		var ticketCount int64
+		if err := transaction.Model(&models.TicketRequest{}).Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, true).Count(&ticketCount).Error; err != nil {
+			transaction.Rollback()
+			return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket count"}
+		}
+
+		if int64(ticketRelease.TicketsAvailable)-ticketCount < ticketCount+int64(ticketRequest.TicketAmount) {
+			transaction.Rollback()
+			return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Not enough tickets available"}
+		}
 	}
 
 	return mTicketRequest, nil
@@ -127,7 +147,7 @@ func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) err
 	// Check if ticket request is allocted to a ticket
 	// If the ticket request is allocated to a ticket, it cannot be cancelled
 	if len(ticketRequest.Tickets) > 0 {
-		return errors.New("Ticket request is already allocated to a ticket, cancel the ticket instead")
+		return errors.New("ticket request is already allocated to a ticket, cancel the ticket instead")
 	}
 
 	if err := trs.DB.Delete(ticketRequest).Error; err != nil {

@@ -147,3 +147,17 @@ func GetClosedTicketReleases(db *gorm.DB) (ticketReleases []TicketRelease, err e
 
 	return ticketReleases, nil
 }
+
+func GetOpenReservedTicketReleases(db *gorm.DB) (ticketReleases []TicketRelease, err error) {
+	err = db.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
+		Where("open <= ? AND close >= ?", time.Now().Unix(), time.Now().Unix()).Find(&ticketReleases).Error
+
+	var openReservedTicketReleases []TicketRelease
+	for _, ticketRelease := range ticketReleases {
+		if ticketRelease.TicketReleaseMethodDetail.TicketReleaseMethod.MethodName == string(RESERVED_TICKET_RELEASE) {
+			openReservedTicketReleases = append(openReservedTicketReleases, ticketRelease)
+		}
+	}
+
+	return openReservedTicketReleases, nil
+}

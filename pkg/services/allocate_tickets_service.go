@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/services/allocate_service"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
 )
@@ -167,7 +168,7 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 		reserveNumber = 1
 		for i := 0; i < len(eligibleTicketRequestsForLottery); i++ {
 			if i < availableTickets {
-				ticket, err := ats.AllocateTicket(eligibleTicketRequestsForLottery[i], tx)
+				ticket, err := allocate_service.AllocateTicket(eligibleTicketRequestsForLottery[i], tx)
 				if err != nil {
 					return nil, err
 				}
@@ -183,7 +184,7 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 		}
 	} else {
 		for _, ticketRequest := range eligibleTicketRequestsForLottery {
-			ticket, err := ats.AllocateTicket(ticketRequest, tx)
+			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
 			if err != nil {
 				return nil, err
 			}
@@ -195,7 +196,7 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 	reserveNumber = 1
 	for _, ticketRequest := range notEligibleTicketRequests {
 		if remainingTickets > 0 {
-			ticket, err := ats.AllocateTicket(ticketRequest, tx)
+			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
 			if err != nil {
 				return nil, err
 			}
@@ -231,7 +232,7 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	// Give all users ticekts up to the available tickets, give the rest reserve tickets
 	for i, ticketRequest := range allTicketRequests {
 		if i < availableTickets {
-			ticket, err := ats.AllocateTicket(ticketRequest, tx)
+			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
 			if err != nil {
 				return nil, err
 			}
@@ -247,41 +248,6 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	}
 
 	return tickets, nil
-}
-
-func (ats *AllocateTicketsService) AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ticket, error) {
-	ticketRequest.IsHandled = true
-	if err := tx.Save(&ticketRequest).Error; err != nil {
-		return nil, err
-	}
-
-	// If the price of the ticket is 0, set it to have been paid
-	if ticketRequest.TicketType.ID == 0 {
-		// Fatal error
-		fmt.Println("No ticket type specified")
-		return nil, errors.New("no ticket type specified")
-	}
-
-	var isPaid bool = false
-	if ticketRequest.TicketType.Price == 0 {
-		isPaid = true
-	}
-
-	var qrCode string = utils.GenerateRandomString(16)
-
-	ticket := models.Ticket{
-		TicketRequestID: ticketRequest.ID,
-		IsReserve:       false,
-		UserUGKthID:     ticketRequest.UserUGKthID,
-		IsPaid:          isPaid,
-		QrCode:          qrCode,
-	}
-
-	if err := tx.Create(&ticket).Error; err != nil {
-		return nil, err
-	}
-
-	return &ticket, nil
 }
 
 func (ats *AllocateTicketsService) AllocateReserveTicket(

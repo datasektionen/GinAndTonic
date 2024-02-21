@@ -99,6 +99,11 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 		jobs.NotifyReserveNumberJob(db)
 	})
 
+	// Run every minute
+	_, err = c.AddFunc("@every 1m", func() {
+		jobs.AllocateReservedTicketsDirectlyJob(db)
+	})
+
 	// Run 1 month before the end of year
 	_, err = c.AddFunc("0 0 1 12 *", func() {
 		jobs.GDPRRenewalNotifyJob(db)

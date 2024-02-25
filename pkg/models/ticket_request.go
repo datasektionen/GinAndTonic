@@ -6,15 +6,16 @@ import (
 
 type TicketRequest struct {
 	gorm.Model
-	TicketAmount    int           `json:"ticket_amount"`
-	TicketReleaseID uint          `json:"ticket_release_id" gorm:"index;constraint:OnDelete:CASCADE;"`
-	TicketRelease   TicketRelease `json:"ticket_release"`
-	TicketTypeID    uint          `json:"ticket_type_id" gorm:"index" `
-	TicketType      TicketType    `json:"ticket_type"`
-	UserUGKthID     string        `json:"user_ug_kth_id"`
-	User            User          `json:"user"`
-	IsHandled       bool          `json:"is_handled" gorm:"default:false"`
-	Tickets         []Ticket      `json:"tickets"`
+	TicketAmount      int                      `json:"ticket_amount"`
+	TicketReleaseID   uint                     `json:"ticket_release_id" gorm:"index;constraint:OnDelete:CASCADE;"`
+	TicketRelease     TicketRelease            `json:"ticket_release"`
+	TicketTypeID      uint                     `json:"ticket_type_id" gorm:"index" `
+	TicketType        TicketType               `json:"ticket_type"`
+	UserUGKthID       string                   `json:"user_ug_kth_id"`
+	User              User                     `json:"user"`
+	IsHandled         bool                     `json:"is_handled" gorm:"default:false"`
+	Tickets           []Ticket                 `json:"tickets"`
+	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
 }
 
 func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {
@@ -37,8 +38,9 @@ func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRe
 	if err := db.
 		Unscoped().
 		Preload("TicketType").
-		Preload("TicketRelease.Event").
+		Preload("TicketRelease.Event.FormFields").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Preload("EventFormReponses").
 		Where("user_ug_kth_id = ?", userUGKthID).
 		Find(&ticketRequests).Error; err != nil {
 		return nil, err

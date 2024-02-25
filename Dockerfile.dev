@@ -11,6 +11,7 @@ COPY . .
 # This is assuming your go.mod and go.sum files are in the same directory as your Dockerfile.
 RUN go mod download
 RUN go install github.com/cosmtrek/air@v1.27.3
+
 # Expose the port the app runs on
 EXPOSE 8080
 EXPOSE 7002

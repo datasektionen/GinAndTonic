@@ -9,16 +9,18 @@ import (
 // Event is a struct that represents an event in the database
 type Event struct {
 	gorm.Model
-	Name           string          `json:"name"`
-	Description    string          `json:"description" gorm:"type:text"`
-	Date           time.Time       `json:"date"`
-	Location       string          `json:"location"`
-	OrganizationID int             `gorm:"index" json:"organization_id"`
-	Organization   Organization    `json:"organization"`
-	TicketReleases []TicketRelease `gorm:"foreignKey:EventID" json:"ticket_releases"`
-	IsPrivate      bool            `json:"is_private" gorm:"default:false"`
-	SecretToken    string          `json:"-"`
-	CreatedBy      string          `json:"created_by"`
+	Name                 string           `json:"name"`
+	Description          string           `json:"description" gorm:"type:text"`
+	Date                 time.Time        `json:"date"`
+	Location             string           `json:"location"`
+	OrganizationID       int              `gorm:"index" json:"organization_id"`
+	Organization         Organization     `json:"organization"`
+	TicketReleases       []TicketRelease  `gorm:"foreignKey:EventID" json:"ticket_releases"`
+	IsPrivate            bool             `json:"is_private"`
+	SecretToken          string           `json:"-"`
+	CreatedBy            string           `json:"created_by"`
+	FormFieldDescription *string          `json:"form_field_description" gorm:"type:text"`
+	FormFields           []EventFormField `gorm:"foreignKey:EventID" json:"form_fields"`
 }
 
 // GetEvent returns an event from the database

@@ -165,6 +165,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		Preload("TicketReleases.ReservedUsers").
 		Preload("TicketReleases.Event").
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("FormFields").
 		First(&event, id).Error
 
 	if err != nil {
@@ -299,6 +300,7 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 		Preload("Transaction").
 		Preload("User.FoodPreferences").
 		Preload("TicketRequest.TicketType").
+		Preload("TicketRequest.EventFormReponses.EventFormField").
 		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
@@ -312,6 +314,7 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 		Unscoped().
 		Preload("User.FoodPreferences").
 		Preload("TicketType").
+		Preload("EventFormReponses.EventFormField").
 		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ? AND NOT EXISTS (SELECT 1 FROM tickets WHERE tickets.ticket_request_id = ticket_requests.id)", eventID).

@@ -90,19 +90,30 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 		jobs.AllocateReserveTicketsJob(db)
 	})
 
-	if err != nil {
+	if _, err := c.AddFunc("0 12 */3 * *", func() {
+		jobs.NotifyReserveNumberJob(db)
+	}); err != nil {
 		log.WithFields(logrus.Fields{
 			"error": err,
 		}).Fatal("Failed to add AllocateReserveTicketsJob to cron")
 	}
-	_, err = c.AddFunc("0 12 */3 * *", func() {
-		jobs.NotifyReserveNumberJob(db)
-	})
+
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("Failed to add NotifyReserveNumberJob to cron")
+	}
 
 	// Run every hour
 	_, err = c.AddFunc("@every 1h", func() {
 		jobs.AllocateReservedTicketsDirectlyJob(db)
 	})
+
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("Failed to add AllocateReservedTicketsDirectlyJob to cron")
+	}
 
 	// Run 1 month before the end of year
 	_, err = c.AddFunc("0 0 1 12 *", func() {

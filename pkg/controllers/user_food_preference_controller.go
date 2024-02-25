@@ -39,6 +39,9 @@ func (ctrl *UserFoodPreferenceController) Update(c *gin.Context) {
 	existingUserFoodPreference.Vegan = userFoodPreference.Vegan
 	existingUserFoodPreference.NutAllergy = userFoodPreference.NutAllergy
 	existingUserFoodPreference.ShellfishAllergy = userFoodPreference.ShellfishAllergy
+	existingUserFoodPreference.PreferMeat = userFoodPreference.PreferMeat
+	existingUserFoodPreference.Kosher = userFoodPreference.Kosher
+	existingUserFoodPreference.Halal = userFoodPreference.Halal
 	existingUserFoodPreference.AdditionalInfo = userFoodPreference.AdditionalInfo
 	existingUserFoodPreference.GDPRAgreed = userFoodPreference.GDPRAgreed
 
@@ -70,9 +73,7 @@ func (ctrl *UserFoodPreferenceController) Get(c *gin.Context) {
 func (ctrl *UserFoodPreferenceController) ListFoodPreferences(c *gin.Context) {
 	// Use this to get all food preferences from the database
 	// we are only interested in the name of the food preference
-	var alternatives []string
-
-	alternatives = models.GetFoodPreferencesAlternatives()
+	alternatives := models.GetFoodPreferencesAlternatives()
 
 	c.JSON(http.StatusOK, gin.H{"food_preferences": alternatives})
 }

@@ -20,11 +20,11 @@ func (os *OrganisationService) AddUserToOrganization(username string, organizati
 	var organization models.Organization
 
 	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
-		return fmt.Errorf("User not found")
+		return fmt.Errorf("user not found")
 	}
 
 	if err := os.DB.First(&organization, organizationID).Error; err != nil {
-		return fmt.Errorf("Organization not found")
+		return fmt.Errorf("organization not found")
 	}
 
 	// Start transaction
@@ -62,11 +62,11 @@ func (os *OrganisationService) RemoveUserFromOrganization(username string, organ
 	var organization models.Organization
 
 	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
-		return fmt.Errorf("User not found")
+		return fmt.Errorf("user not found")
 	}
 
 	if err := os.DB.Preload("Users").Preload("Users.OrganizationUserRoles").First(&organization, organizationID).Error; err != nil {
-		return fmt.Errorf("Organization not found")
+		return fmt.Errorf("organization not found")
 	}
 
 	isOwner, err := os.isUserOwnerOfOrganization(user.UGKthID, organization)
@@ -75,16 +75,16 @@ func (os *OrganisationService) RemoveUserFromOrganization(username string, organ
 	}
 
 	if isOwner && len(organization.Users) == 1 {
-		return fmt.Errorf("User %v is the owner of the organization %v", username, organizationID)
+		return fmt.Errorf("user %v is the owner of the organization %v", username, organizationID)
 	}
 
 	if err := os.DB.Model(&organization).Association("Users").Delete(&user); err != nil {
-		return fmt.Errorf("There was an error removing the user from the organization: %w", err)
+		return fmt.Errorf("there was an error removing the user from the organization: %w", err)
 	}
 
 	// Remove the user.OrganizationUserRole for this organization
 	if err := os.DB.Unscoped().Where("user_ug_kth_id = ? AND organization_id = ?", user.UGKthID, organization.ID).Delete(&models.OrganizationUserRole{}).Error; err != nil {
-		return fmt.Errorf("There was an error removing the user from the organization: %w", err)
+		return fmt.Errorf("there was an error removing the user from the organization: %w", err)
 	}
 
 	return nil
@@ -94,13 +94,13 @@ func (os *OrganisationService) GetOrganizationUsers(organizationID uint) ([]mode
 	var organization models.Organization
 
 	if err := os.DB.First(&organization, organizationID).Error; err != nil {
-		return nil, fmt.Errorf("Organization not found")
+		return nil, fmt.Errorf("organization not found")
 	}
 
 	users, err := organization.GetUsers(os.DB)
 
 	if err != nil {
-		return nil, fmt.Errorf("There was an error fetching the organization users: %w", err)
+		return nil, fmt.Errorf("there was an error fetching the organization users: %w", err)
 	}
 
 	return users, nil
@@ -109,7 +109,7 @@ func (os *OrganisationService) GetOrganizationUsers(organizationID uint) ([]mode
 func (os *OrganisationService) isUserOwnerOfOrganization(userUGKthID string, organization models.Organization) (bool, error) {
 	orgOwners, err := models.GetOrganizationOwners(os.DB, organization)
 	if err != nil {
-		return false, fmt.Errorf("There was an error fetching the organization owners: %w", err)
+		return false, fmt.Errorf("there was an error fetching the organization owners: %w", err)
 	}
 
 	for _, owner := range orgOwners {
@@ -127,18 +127,18 @@ func (os *OrganisationService) ChangeUserRoleInOrganization(username string, org
 
 	// Find the user
 	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
-		return fmt.Errorf("User not found")
+		return fmt.Errorf("user not found")
 	}
 
 	// Find the organization
 	if err := os.DB.First(&organization, organizationID).Error; err != nil {
-		return fmt.Errorf("Organization not found")
+		return fmt.Errorf("organization not found")
 	}
 
 	// Find the organization user role
 	var organizationUserRole models.OrganizationUserRole
 	if err := os.DB.Where("user_ug_kth_id = ? AND organization_id = ?", user.UGKthID, organization.ID).First(&organizationUserRole).Error; err != nil {
-		return fmt.Errorf("Organization user role not found")
+		return fmt.Errorf("organization user role not found")
 	}
 
 	// Start transaction
@@ -152,7 +152,7 @@ func (os *OrganisationService) ChangeUserRoleInOrganization(username string, org
 	// Update the role
 	if err := tx.Model(&organizationUserRole).Update("organization_role_name", string(newRole)).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("There was an error updating the user role: %w", err)
+		return fmt.Errorf("there was an error updating the user role: %w", err)
 	}
 
 	// Commit transaction

@@ -13,6 +13,7 @@ type UserFoodPreferenceParams struct {
 	NutAllergy        bool
 	ShellfishAllergy  bool
 	AdditionalInfo    string
+	PreferMeat        bool
 }
 
 func NewUserFoodPreference(params UserFoodPreferenceParams) *models.UserFoodPreference {
@@ -25,5 +26,6 @@ func NewUserFoodPreference(params UserFoodPreferenceParams) *models.UserFoodPref
 		NutAllergy:        params.NutAllergy,
 		ShellfishAllergy:  params.ShellfishAllergy,
 		AdditionalInfo:    params.AdditionalInfo,
+		PreferMeat:        params.PreferMeat,
 	}
 }

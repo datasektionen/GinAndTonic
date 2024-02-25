@@ -36,6 +36,7 @@ func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint)
 func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRequest, error) {
 	var ticketRequests []TicketRequest
 	if err := db.
+		Unscoped().
 		Preload("TicketType").
 		Preload("TicketRelease.Event.FormFields").
 		Preload("TicketRelease.TicketReleaseMethodDetail").

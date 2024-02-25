@@ -12,27 +12,52 @@ This project is suitable for anyone looking to understand how to build a compreh
 
 ## Getting Started
 
-### Dependencies
+## Dependencies
 
-Here are the dependencies used in this project:
+The project uses a variety of Go modules to handle different aspects of the application, from web server management to database interactions, payment processing, and more. Here's a list of the key dependencies:
 
-- [PostgreSQL](https://www.postgresql.org/): Used as the primary database for data persistence.
-- [Stripe](https://stripe.com/): Used for handling payment processing.
-- [Gin Web Framework](https://github.com/gin-gonic/gin): An HTTP web framework written in Go (golang) to build web applications.
-- [GORM](https://gorm.io/gorm): The fantastic ORM library for Golang, aims to be developer friendly.
-- [Stripe Go](https://github.com/stripe/stripe-go): Go library for the Stripe API.
-- [JWT Go](https://github.com/golang-jwt/jwt): Community maintained clone of `github.com/dgrijalva/jwt-go`.
-- [GoDotEnv](https://github.com/joho/godotenv): A Go port of Ruby's dotenv library (Loads environment variables from `.env`).
-- [Validator](https://github.com/go-playground/validator): Go Struct and Field validation, including Cross Field, Cross Struct, Map, Slice and Array diving.
-- [lib/pq](https://github.com/lib/pq): Pure Go Postgres driver for database/sql.
-- [Gin CORS Middleware](https://github.com/gin-contrib/cors): Official CORS gin's middleware.
-- [Golang-JWT](https://github.com/golang-jwt/jwt): Community maintained clone of `github.com/dgrijalva/jwt-go`.
-- [Cron](https://github.com/robfig/cron): A cron library for Go.
-- [Testify](https://github.com/stretchr/testify): A sacred extension to the standard go testing package.
-- [Stripe Go v72](https://github.com/stripe/stripe-go): Go library for the Stripe API, version 72.
-- [Go Time](https://golang.org/x/time): Supplementary time packages for Go.
-- [GORM PostgreSQL Driver](https://gorm.io/docs/connecting_to_the_database.html#PostgreSQL): GORM official driver for PostgreSQL.
-- [GORM SQLite Driver](https://gorm.io/docs/connecting_to_the_database.html#SQLite): GORM official driver for SQLite.
+### Web Framework and Middleware
+
+- **Gin Web Framework**: A high-performance HTTP web framework that provides a robust set of features for building web applications. ([github.com/gin-gonic/gin](https://github.com/gin-gonic/gin))
+- **Gin CORS Middleware**: Official CORS middleware for Gin, allowing for flexible cross-origin resource sharing policies. ([github.com/gin-contrib/cors](https://github.com/gin-contrib/cors))
+
+### Database and ORM
+
+- **GORM**: The fantastic ORM library for Golang, aiming to be developer-friendly. It simplifies CRUD operations and database interactions. ([gorm.io/gorm](https://gorm.io/gorm))
+- **lib/pq**: Pure Go Postgres driver, supports basic features of PostgreSQL. ([github.com/lib/pq](https://github.com/lib/pq))
+- **GORM PostgreSQL Driver**: Official GORM driver for PostgreSQL. ([gorm.io/driver/postgres](https://gorm.io/docs/connecting_to_the_database.html#PostgreSQL))
+- **GORM SQLite Driver**: Official GORM driver for SQLite. ([gorm.io/driver/sqlite](https://gorm.io/docs/connecting_to_the_database.html#SQLite))
+
+### Payment Processing
+
+- **Stripe Go**: Official Go library for the Stripe API, for integrating payment processing. ([github.com/stripe/stripe-go](https://github.com/stripe/stripe-go) and [github.com/stripe/stripe-go/v72](https://github.com/stripe/stripe-go))
+
+### Authentication and Security
+
+- **JWT Go**: Community maintained clone of `github.com/dgrijalva/jwt-go`, used for creating and validating JSON Web Tokens. ([github.com/golang-jwt/jwt](https://github.com/golang-jwt/jwt))
+
+### Environment Configuration
+
+- **GoDotEnv**: Loads environment variables from `.env` files, making it easier to manage configuration in different environments. ([github.com/joho/godotenv](https://github.com/joho/godotenv))
+
+### Validation
+
+- **Validator**: Provides struct and field validation, including cross-field, cross-struct, and collection validations. ([github.com/go-playground/validator](https://github.com/go-playground/validator))
+
+### Scheduling
+
+- **Cron**: A cron library for Go that allows scheduling recurring tasks using a cron-spec syntax. ([github.com/robfig/cron](https://github.com/robfig/cron))
+
+### Testing
+
+- **Testify**: An extension to the standard Go testing package, offering more powerful assertions and testing utilities. ([github.com/stretchr/testify](https://github.com/stretchr/testify))
+
+### Supplementary Packages
+
+- **Go Time**: Supplementary time packages for Go, useful for more complex time manipulation beyond the standard library. ([golang.org/x/time](https://golang.org/x/time))
+
+Please refer to the individual project pages for more detailed information on each dependency, including how to use them in your Go projects.
+
 
 Please note that the actual dependencies and their versions are specified in the [go.mod](go.mod) file.
 

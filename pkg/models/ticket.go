@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -30,6 +31,7 @@ type Ticket struct {
 	CheckedIn       bool          `json:"checked_in" default:"false"`
 	CheckedInAt     sql.NullTime  `json:"checked_in_at"`
 	QrCode          string        `json:"qr_code" gorm:"unique;not null"`
+	PurchasableAt   *time.Time    `json:"purchasable_at" gorm:"default:null"`
 }
 
 func (t *Ticket) Delete(db *gorm.DB) error {

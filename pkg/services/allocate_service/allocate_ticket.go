@@ -3,6 +3,7 @@ package allocate_service
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/utils"
@@ -28,6 +29,7 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 	}
 
 	var qrCode string = utils.GenerateRandomString(16)
+	now := time.Now()
 
 	ticket := models.Ticket{
 		TicketRequestID: ticketRequest.ID,
@@ -35,6 +37,7 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 		UserUGKthID:     ticketRequest.UserUGKthID,
 		IsPaid:          isPaid,
 		QrCode:          qrCode,
+		PurchasableAt:   &now,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {

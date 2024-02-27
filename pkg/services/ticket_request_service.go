@@ -113,7 +113,7 @@ func (trs *TicketRequestService) CreateTicketRequest(
 			return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket count"}
 		}
 
-		if int64(ticketRelease.TicketsAvailable)-ticketCount < ticketCount+int64(ticketRequest.TicketAmount) {
+		if int64(ticketRelease.TicketsAvailable) < ticketCount+int64(ticketRequest.TicketAmount) {
 			transaction.Rollback()
 			return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Not enough tickets available"}
 		}

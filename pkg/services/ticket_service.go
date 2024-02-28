@@ -47,7 +47,7 @@ func (ts *TicketService) EditTicket(eventID, ticketID int, updatedTicket models.
 	}
 
 	// Update ticket
-	ticket.IsPaid = updatedTicket.IsPaid
+	// ticket.IsPaid = updatedTicket.IsPaid
 	ticket.IsReserve = updatedTicket.IsReserve
 	ticket.Refunded = updatedTicket.Refunded
 

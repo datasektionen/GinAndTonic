@@ -240,8 +240,19 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 
 			// We want to allocate the ticket
 			// We set the ticket to not be a reserve ticket and set the reserve number to 0
+
+			if ticket.TicketRequest.TicketType.ID == 0 {
+				// Fatal error, but we can just load the ticket type
+				if err := tx.Preload("TicketRequest.TicketType").First(&ticket).Error; err != nil {
+					allocator_logger.WithFields(logrus.Fields{
+						"id": ticketRelease.ID,
+					}).Errorf("Error getting ticket type for ticket with ID %d: %s", ticket.ID, err.Error())
+					continue
+				}
+			}
+
 			var isPaid bool = false
-			if ticket.TicketRequest.TicketType.Price == 0 {
+			if ticket.TicketRequest.TicketType.Price == 0 && ticket.TicketRequest.TicketType.ID != 0 {
 				isPaid = true
 			}
 

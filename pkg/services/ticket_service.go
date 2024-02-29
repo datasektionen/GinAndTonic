@@ -95,7 +95,8 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 	}
 
 	// Delete ticket
-	if err := ts.DB.Delete(&ticket).Error; err != nil {
+	err := ticket.Delete(ts.DB)
+	if err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting ticket"}
 	}
 

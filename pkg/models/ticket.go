@@ -35,7 +35,28 @@ type Ticket struct {
 }
 
 func (t *Ticket) Delete(db *gorm.DB) error {
-	return db.Delete(t).Error
+	// Delete the associated TicketRequest
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	println("Deleting ticket request with ID: ", t.TicketRequestID)
+
+	if err := tx.Delete(&t.TicketRequest).Error; err != nil {
+		return err
+	}
+
+	// Delete the Ticket
+	err := tx.Delete(&t).Error
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 func GetTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) {

@@ -206,10 +206,52 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 		}
 
 		var ticketReleaseReminder *models.TicketReleaseReminder
-		if err := db.Where("id = ?", p.ReminderID).First(&ticketReleaseReminder).Error; err != nil {
+		if err := db.Preload("TicketRelease").Where("id = ?", p.ReminderID).First(&ticketReleaseReminder).Error; err != nil {
 			notification_logger.WithFields(logrus.Fields{
 				"reminder_id": p.ReminderID,
 			}).Error("Reminder has been deleted")
+
+			return nil
+		}
+
+		// Get the open of the ticket release
+		opensAt := time.Unix(ticketReleaseReminder.TicketRelease.Open, 0)
+
+		// If the ticket release open is more than 10 minutes from now, we should not send the reminder
+		// Instead we should schedule a new reminder
+
+		if opensAt.Sub(time.Now()) > 10*time.Minute {
+			notification_logger.WithFields(logrus.Fields{
+				"reminder_id": p.ReminderID,
+				"opens_at":    opensAt,
+			}).Info("Ticket release opens more than 10 minutes from now, scheduling a new reminder")
+
+			newReminder := models.TicketReleaseReminder{
+				TicketReleaseID: ticketReleaseReminder.TicketReleaseID,
+				UserUGKthID:     ticketReleaseReminder.UserUGKthID,
+				ReminderTime:    opensAt.Add(-10 * time.Minute),
+				IsSent:          false,
+			}
+
+			if err := db.Create(&newReminder).Error; err != nil {
+				notification_logger.WithFields(logrus.Fields{
+					"reminder_id": p.ReminderID,
+					"error":       err,
+				}).Error("Error creating new reminder")
+
+				return err
+			}
+
+			// Schedule a new reminder
+			err := AddReminderEmailJobToQueueAt(db, p.User, p.Subject, p.Content, newReminder.ID, newReminder.ReminderTime)
+			if err != nil {
+				notification_logger.WithFields(logrus.Fields{
+					"reminder_id": p.ReminderID,
+					"error":       err,
+				}).Error("Error scheduling new reminder")
+
+				return err
+			}
 
 			return nil
 		}

@@ -122,7 +122,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.Use(middleware.UserLoader(db))
 
 	synqMonHandler := setupAsynqMon()
-	r.GET("/admin/monitoring/*any", authentication.RequireRole("super_admin", db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
+	r.Any("/admin/monitoring/*any", authentication.RequireRole("super_admin", db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
 
 	//Event routes
 	r.POST("/events", eventController.CreateEvent)

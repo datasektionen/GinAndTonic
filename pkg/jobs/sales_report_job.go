@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -54,7 +55,7 @@ func AddSalesReportJobToQueue(eventID int) error {
 
 	task := asynq.NewTask(tasks.SalesReportType, payload)
 	info, err := client.Enqueue(task, asynq.Queue("sales_report"),
-		asynq.MaxRetry(3),
+		asynq.MaxRetry(0),
 		asynq.Timeout(30*time.Minute),
 		asynq.Deadline(time.Now().Add(60*time.Minute)))
 
@@ -80,6 +81,7 @@ func GetTransactionsByEvent(db *gorm.DB, eventID int) ([]models.Transaction, err
 		Find(&tickets).Error
 
 	if err != nil {
+		fmt.Println("There was an error fetching the transactions: ", err)
 		return nil, err
 	}
 

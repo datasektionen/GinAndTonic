@@ -2,24 +2,23 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   deploy:
-    needs: build  # This line makes the deploy job wait for the build job to complete
     runs-on: ubuntu-latest
 
     steps:
-      - name: Git checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+    - name: Git checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
-      - name: Push to medusa
-        uses: dokku/github-action@v1.4.0
-        with:
-          ssh_private_key: ${{ secrets.MEDUSA_GLOBAL_DEPLOY_KEY }}
-          git_remote_url: ssh://dokku@medusa.datasektionen.se/tessera
-          git_push_flags: --force
-          branch: main
+    - name: Push to medusa
+      uses: dokku/github-action@v1.4.0
+      with:
+        ssh_private_key: ${{ secrets.MEDUSA_GLOBAL_DEPLOY_KEY }}
+        git_remote_url: ssh://dokku@medusa.datasektionen.se/ginandtonic
+        git_push_flags: --force
+        branch: main

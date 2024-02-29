@@ -6,10 +6,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    # This is the job that needs to complete before the deploy job starts
-
   deploy:
     needs: build  # This line makes the deploy job wait for the build job to complete
     runs-on: ubuntu-latest

@@ -112,6 +112,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	preferredEmailController := controllers.NewPreferredEmailController(db, preferredEmailService)
 	eventFormFieldController := controllers.NewEventFormFieldController(db)
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
+	pdfController := controllers.NewPdfController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -210,6 +211,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Sales report
 	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.GenerateSalesReport)
+	r.GET("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.ListSalesReport)
+	r.GET("/events/:eventID/sales-report-pdf/:pdfID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), pdfController.GetSalesReportPDF)
 
 	r.POST("/organizations", authentication.RequireRole("super_admin", db), organizationController.CreateOrganization)
 	r.GET("/organizations", organizationController.ListOrganizations)

@@ -186,6 +186,38 @@ func HandleSalesReportJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) 
 			return err
 		}
 
+		var msg string
+		if report.Message != nil {
+			msg = *report.Message
+		} else {
+			msg = ""
+		}
+
+		salesData := SaleRecord{
+			ID:          int(report.ID),
+			CreatedAt:   report.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:   report.UpdatedAt.Format("2006-01-02 15:04:05"),
+			DeletedAt:   "",
+			EventID:     report.EventID,
+			TotalSales:  report.TotalSales,
+			TicketsSold: report.TicketsSold,
+			Status:      string(report.Status),
+			Message:     msg,
+		}
+
+		trs, err := models.GetTicketReleasesToEvent(db, uint(p.EventID))
+		if err != nil {
+			SalesReportSetFailed(db, report, err.Error())
+			return err
+		}
+
+		err = GenerateSalesReportPDF(db, &salesData, trs)
+
+		if err != nil {
+			SalesReportSetFailed(db, report, err.Error())
+			return err
+		}
+
 		err = SalesReportSetSuccess(db, report)
 		if err != nil {
 			SalesReportSetFailed(db, report, err.Error())

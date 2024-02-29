@@ -28,3 +28,9 @@ func GetEvent(db *gorm.DB, id uint) (event Event, err error) {
 	err = db.Preload("Organization").First(&event, id).Error
 	return
 }
+
+// Func get all ticket releases to event
+func GetTicketReleasesToEvent(db *gorm.DB, eventID uint) (ticketReleases []TicketRelease, err error) {
+	err = db.Where("event_id = ?", eventID).Find(&ticketReleases).Error
+	return
+}

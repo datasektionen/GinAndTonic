@@ -79,6 +79,9 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 		for _, t := range tickets {
 			var transaction models.Transaction
 			if err := db.Where("ticket_id = ?", t.ID).First(&transaction).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					continue
+				}
 				return err
 			}
 

@@ -24,7 +24,7 @@ type SaleRecord struct {
 
 func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []models.TicketRelease) error {
 
-	marginX := 10.0
+	marginX := 20.0
 	marginY := 20.0
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(marginX, marginY, marginX)
@@ -50,15 +50,15 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 	currentY = 50.0 // Start Y position
 
 	// Add each field of salesData as a separate row with smaller line spacing
-	pdf.Text(10, currentY, fmt.Sprintf("ID: %d", data.ID))
+	pdf.Text(20, currentY, fmt.Sprintf("ID: %d", data.ID))
 	currentY += lineHt
-	pdf.Text(10, currentY, fmt.Sprintf("Created At: %s", data.CreatedAt))
+	pdf.Text(20, currentY, fmt.Sprintf("Created At: %s", data.CreatedAt))
 	currentY += lineHt
-	pdf.Text(10, currentY, fmt.Sprintf("Updated At: %s", data.UpdatedAt))
+	pdf.Text(20, currentY, fmt.Sprintf("Updated At: %s", data.UpdatedAt))
 	currentY += lineHt
-	pdf.Text(10, currentY, fmt.Sprintf("Event ID: %d", data.EventID))
+	pdf.Text(20, currentY, fmt.Sprintf("Event ID: %d", data.EventID))
 	currentY += lineHt
-	pdf.Text(10, currentY, fmt.Sprintf("Message: %s", data.Message))
+	pdf.Text(20, currentY, fmt.Sprintf("Message: %s", data.Message))
 
 	// Add a line break
 	currentY += lineHt * 3
@@ -97,20 +97,28 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 			currentY = 20.0 // Reset Y position
 		}
 
-		pdf.Text(10, currentY, fmt.Sprintf("Ticket Release ID: %d", tr.ID))
+		pdf.SetFont("Arial", "", 10)
+
+		pdf.Text(20, currentY, fmt.Sprintf("Ticket Release: %s", tr.Name))
 		currentY += lineHt
-		pdf.Text(10, currentY, fmt.Sprintf("Tickets sold: %d", numTickets))
+		pdf.Text(20, currentY, fmt.Sprintf("Tickets sold: %d", numTickets))
 		currentY += lineHt
-		pdf.Text(10, currentY, fmt.Sprintf("Subtotal: %.2f %s", subtotal/100, currency))
+
+		pdf.SetFont("Arial", "B", 10)
+		pdf.Text(20, currentY, fmt.Sprintf("Subtotal: %.2f %s", subtotal/100, currency))
 		currentY += lineHt * 2
 
 		subtotal = 0.0
 		numTickets = 0
 	}
 
-	pdf.Text(10, currentY, fmt.Sprintf("Total Sales: %.2f", data.TotalSales))
+	// Add horizontal line
+	pdf.Line(20, currentY, 190, currentY)
 	currentY += lineHt
-	pdf.Text(10, currentY, fmt.Sprintf("Tickets Sold: %d", data.TicketsSold))
+
+	pdf.Text(20, currentY, fmt.Sprintf("Tickets Sold: %d", data.TicketsSold))
+	currentY += lineHt
+	pdf.Text(20, currentY, fmt.Sprintf("Total Sales: %.2f", data.TotalSales))
 
 	filePath := fmt.Sprintf("economy/sales_report-%d.pdf", data.ID)
 	if _, err := os.Stat(filePath); err == nil {

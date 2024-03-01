@@ -71,12 +71,12 @@ func AddSalesReportJobToQueue(eventID int) error {
 	return nil
 }
 
-func GetTransactionsByEvent(db *gorm.DB, eventID int) ([]models.Transaction, error) {
+func GetCompletedTransactionsByEvent(db *gorm.DB, eventID int) ([]models.Transaction, error) {
 	var tickets []models.Ticket
 
 	// Assuming db is your *gorm.DB connection and Ticket and Transaction models are properly set up
 	err := db.Joins("JOIN transactions ON transactions.ticket_id = tickets.id").
-		Where("transactions.event_id = ?", eventID).
+		Where("transactions.event_id = ? AND transactions.status = ?", eventID, models.TransactionStatusCompleted).
 		Preload("Transaction").
 		Find(&tickets).Error
 
@@ -101,7 +101,7 @@ func GetPaymentIntentsByEvent(db *gorm.DB, eventID int) ([]*stripe.PaymentIntent
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 
 	// Get the transactions for the event
-	transactions, err := GetTransactionsByEvent(db, eventID)
+	transactions, err := GetCompletedTransactionsByEvent(db, eventID)
 	if err != nil {
 		return nil, nil, err
 	}

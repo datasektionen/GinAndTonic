@@ -65,9 +65,6 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 	pdf.SetFont("Arial", "B", 10)
 
 	// Group ticket by ticket_request.ticket_release_id
-	var subtotal float64
-	var numTickets int
-	// Group ticket by ticket_request.ticket_release_id
 	for _, tr := range ticketReleases {
 		tickets, err := models.GetAllTicketsToTicketRelease(db, tr.ID)
 		if err != nil {
@@ -76,6 +73,26 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 
 		currency := "SEK" // TODO maybe allow multiple currencies
 
+		// We want to group tickets based on their name
+		// Define a new struct that holds both the Tickets slice and the Subtotal
+		type TicketGroup struct {
+			Tickets  []models.Ticket
+			Subtotal float64
+			NumSold  int
+		}
+
+		// Then, define your map as:
+		ticketGroups := make(map[string]TicketGroup)
+
+		pdf.SetFont("Arial", "B", 10)
+
+		pdf.Line(20, currentY, 190, currentY)
+		currentY += lineHt
+
+		pdf.Text(20, currentY, fmt.Sprintf("Ticket Release: %s", tr.Name))
+		currentY += lineHt * 1.5
+
+		// And in your loop:
 		for _, t := range tickets {
 			var transaction models.Transaction
 			if err := db.Where("ticket_id = ?", t.ID).First(&transaction).Error; err != nil {
@@ -86,8 +103,11 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 			}
 
 			if t.IsPaid && transaction.ID != 0 {
-				subtotal += float64(transaction.Amount)
-				numTickets++
+				group := ticketGroups[t.TicketRequest.TicketType.Name]
+				group.Subtotal += float64(transaction.Amount)
+				group.NumSold += t.TicketRequest.TicketAmount
+				group.Tickets = append(group.Tickets, t)
+				ticketGroups[t.TicketRequest.TicketType.Name] = group
 			}
 		}
 
@@ -97,22 +117,33 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 			currentY = 20.0 // Reset Y position
 		}
 
-		pdf.SetFont("Arial", "", 10)
+		var subtotalAmount int = 0
+		var subtotal float64 = 0.0
+		for name, group := range ticketGroups {
+			pdf.SetFont("Arial", "", 10)
+			pdf.Text(20, currentY, fmt.Sprintf("Ticket: %s", name))
+			currentY += lineHt
+			// Subsubtotal of numSold and subtotal
+			pdf.Text(20, currentY, fmt.Sprintf("Tickets sold: %d", group.NumSold))
+			currentY += lineHt
+			pdf.Text(20, currentY, fmt.Sprintf("Subsubtotal: %.2f %s", group.Subtotal/100, currency))
+			currentY += lineHt * 2
 
-		pdf.Text(20, currentY, fmt.Sprintf("Ticket Release: %s", tr.Name))
-		currentY += lineHt
-		pdf.Text(20, currentY, fmt.Sprintf("Tickets sold: %d", numTickets))
-		currentY += lineHt
+			subtotalAmount += group.NumSold
+			subtotal += group.Subtotal
+		}
 
 		pdf.SetFont("Arial", "B", 10)
+		pdf.Text(20, currentY, fmt.Sprintf("Tickets sold: %d", subtotalAmount))
+		currentY += lineHt
+
 		pdf.Text(20, currentY, fmt.Sprintf("Subtotal: %.2f %s", subtotal/100, currency))
 		currentY += lineHt * 2
-
-		subtotal = 0.0
-		numTickets = 0
 	}
 
 	// Add horizontal line
+	pdf.Line(20, currentY, 190, currentY)
+	currentY += 1
 	pdf.Line(20, currentY, 190, currentY)
 	currentY += lineHt
 
@@ -125,8 +156,6 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 		// File exists
 		return errors.New("file already exists")
 	}
-
-	println("Saving PDF to: ", filePath)
 
 	err := pdf.OutputFileAndClose(filePath)
 

@@ -45,6 +45,13 @@ func (r *ReservedTicketConfig) Validate() error {
 	return nil
 }
 
+type FCFSConfig struct {
+}
+
+func (f *FCFSConfig) Validate() error {
+	return nil
+}
+
 func (f *FCFSLotteryConfig) Validate() error {
 	if f.OpenWindowDuration <= 0 {
 		return errors.New("open window duration must be greater than 0")
@@ -109,6 +116,8 @@ func NewTicketReleaseConfig(methodName string, detail *TicketReleaseMethodDetail
 		}, nil
 	case string(RESERVED_TICKET_RELEASE): // Handle the reserved method
 		return &ReservedTicketConfig{}, nil
+	case string(FCFS):
+		return &FCFSConfig{}, nil
 	default:
 		return nil, fmt.Errorf("unknown method: %s", methodName)
 	}

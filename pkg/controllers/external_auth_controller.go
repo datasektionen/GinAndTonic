@@ -220,3 +220,34 @@ func (eac *ExternalAuthController) VerifyEmail(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Email verified"})
 }
+
+type ResendVerificationEmailBody struct {
+	Email string `json:"email"`
+}
+
+func (eac *ExternalAuthController) ResendVerificationEmail(c *gin.Context) {
+	/*
+		Handler that resends the verification email to an external user
+	*/
+	var body ResendVerificationEmailBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Find the user via the token
+	var user models.User
+	if err := eac.DB.Where("email = ?", body.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+		return
+	}
+
+	if user.VerifiedEmail {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already verified"})
+		return
+	}
+
+	services.Notify_ExternalUserSignupVerification(eac.DB, &user)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Verification email sent"})
+}

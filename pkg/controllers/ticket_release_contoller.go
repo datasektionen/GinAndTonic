@@ -53,13 +53,11 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 	}
 
 	// Get ticket release method from id
-	println(req.TicketReleaseMethodID)
 	var ticketReleaseMethod models.TicketReleaseMethod
 	if err := trmc.DB.First(&ticketReleaseMethod, "id = ?", req.TicketReleaseMethodID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release method ID"})
 		return
 	}
-
 
 	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
 		TicketReleaseMethodID: ticketReleaseMethod.ID,

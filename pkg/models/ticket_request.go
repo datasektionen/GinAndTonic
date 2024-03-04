@@ -33,6 +33,21 @@ func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint)
 	return ticketRequests, nil
 }
 
+func GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {
+	var ticketRequests []TicketRequest
+	if err := db.
+		Preload("TicketType").
+		Preload("TicketRelease.Event").
+		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Where("ticket_release_id = ? AND is_handled = ?", ticketReleaseID, false).Order("created_at").Find(&ticketRequests).Error; err != nil {
+		return nil, err
+	}
+
+	// Acording to gorm soft delete, we should not fetch soft deleted records
+
+	return ticketRequests, nil
+}
+
 func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRequest, error) {
 	var ticketRequests []TicketRequest
 	if err := db.

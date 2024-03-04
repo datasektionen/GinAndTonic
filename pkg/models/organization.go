@@ -41,8 +41,8 @@ func (o Organization) ValidateName() error {
 	if len(o.Name) > 50 {
 		return errors.New("name must not be longer than 50 characters")
 	}
-	if match, _ := regexp.MatchString(`^[\p{L}\p{N}]*$`, o.Name); !match {
-		return errors.New("name must not contain special characters or spaces")
+	if match, _ := regexp.MatchString(`^[\p{L}\p{N} ]*$`, o.Name); !match {
+		return errors.New("name must not contain special characters")
 	}
 	return nil
 }

@@ -53,3 +53,29 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 
 	return &ticket, nil
 }
+
+func AllocateReserveTicket(
+	ticketRequest models.TicketRequest,
+	reserveNumber uint,
+	tx *gorm.DB) (*models.Ticket, error) {
+	ticketRequest.IsHandled = true
+	if err := tx.Save(&ticketRequest).Error; err != nil {
+		return nil, err
+	}
+
+	qrCode := utils.GenerateRandomString(16)
+
+	ticket := models.Ticket{
+		TicketRequestID: ticketRequest.ID,
+		ReserveNumber:   reserveNumber,
+		IsReserve:       true,
+		UserUGKthID:     ticketRequest.UserUGKthID,
+		QrCode:          qrCode,
+	}
+
+	if err := tx.Create(&ticket).Error; err != nil {
+		return nil, err
+	}
+
+	return &ticket, nil
+}

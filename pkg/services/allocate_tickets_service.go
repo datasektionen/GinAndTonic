@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	allocate_fcfs "github.com/DowLucas/gin-ticket-release/pkg/services/allocate_fcfc"
 	"github.com/DowLucas/gin-ticket-release/pkg/services/allocate_service"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
@@ -115,6 +116,33 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 				}
 			}
 		}
+	case string(models.FCFS):
+		tickets, err := allocate_fcfs.AllocateFCFSTickets(ticketRelease, tx)
+
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if len(tickets) > 0 {
+			// Notify the users that the tickets have been allocated
+			for _, ticket := range tickets {
+				var err error
+				if !ticket.IsReserve {
+					err = Notify_TicketAllocationCreated(tx, int(ticket.ID), 0) // TODO Check if this is okay
+				} else {
+					err = Notify_ReserveTicketAllocationCreated(tx, int(ticket.ID))
+				}
+
+				if err != nil {
+					tx.Rollback()
+					fmt.Println(err)
+					return err
+				}
+			}
+		}
+
+		break
 
 	default:
 		tx.Rollback()
@@ -174,7 +202,7 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 				}
 				allTickets = append(allTickets, ticket)
 			} else {
-				ticket, err := ats.AllocateReserveTicket(eligibleTicketRequestsForLottery[i], reserveNumber, tx)
+				ticket, err := allocate_service.AllocateReserveTicket(eligibleTicketRequestsForLottery[i], reserveNumber, tx)
 				if err != nil {
 					return nil, err
 				}
@@ -203,7 +231,7 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 			allTickets = append(allTickets, ticket)
 			remainingTickets--
 		} else {
-			ticket, err := ats.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
+			ticket, err := allocate_service.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
 			if err != nil {
 				return nil, err
 			}
@@ -238,7 +266,7 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 			}
 			tickets = append(tickets, ticket)
 		} else {
-			ticket, err := ats.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
+			ticket, err := allocate_service.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
 			if err != nil {
 				return nil, err
 			}
@@ -248,30 +276,4 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	}
 
 	return tickets, nil
-}
-
-func (ats *AllocateTicketsService) AllocateReserveTicket(
-	ticketRequest models.TicketRequest,
-	reserveNumber uint,
-	tx *gorm.DB) (*models.Ticket, error) {
-	ticketRequest.IsHandled = true
-	if err := tx.Save(&ticketRequest).Error; err != nil {
-		return nil, err
-	}
-
-	qrCode := utils.GenerateRandomString(16)
-
-	ticket := models.Ticket{
-		TicketRequestID: ticketRequest.ID,
-		ReserveNumber:   reserveNumber,
-		IsReserve:       true,
-		UserUGKthID:     ticketRequest.UserUGKthID,
-		QrCode:          qrCode,
-	}
-
-	if err := tx.Create(&ticket).Error; err != nil {
-		return nil, err
-	}
-
-	return &ticket, nil
 }

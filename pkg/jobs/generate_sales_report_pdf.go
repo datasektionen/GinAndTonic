@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/services/aws_service"
 	"github.com/jung-kurt/gofpdf"
 	"gorm.io/gorm"
 )
@@ -20,6 +21,7 @@ type SaleRecord struct {
 	TicketsSold int
 	Status      string
 	Message     string
+	FileName    string
 }
 
 func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []models.TicketRelease) error {
@@ -151,14 +153,28 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 	currentY += lineHt
 	pdf.Text(20, currentY, fmt.Sprintf("Total Sales: %.2f", data.TotalSales))
 
-	filePath := fmt.Sprintf("economy/sales_report-%d.pdf", data.ID)
-	if _, err := os.Stat(filePath); err == nil {
-		// File exists
-		return errors.New("file already exists")
+	s3Client, err := aws_service.NewS3Client()
+	if err != nil {
+		sales_report_logger.Error("Error creating S3 client", err)
+		return err
 	}
 
-	err := pdf.OutputFileAndClose(filePath)
+	filePath := fmt.Sprintf("/tmp/%s", data.FileName)
+	// Save
+	err = pdf.OutputFileAndClose(filePath)
+	if err != nil {
+		return err
+	}
 
+	err = aws_service.UploadFileToS3(s3Client, data.FileName, fmt.Sprintf("/tmp/%s", data.FileName))
+
+	if err != nil {
+		sales_report_logger.Error("Error uploading file to S3", err)
+		return err
+	}
+
+	// Remove file
+	err = os.Remove(filePath)
 	if err != nil {
 		return err
 	}

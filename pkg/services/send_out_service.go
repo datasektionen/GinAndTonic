@@ -49,63 +49,33 @@ func (sos *SendOutService) SendOutEmails(event *models.Event,
 }
 
 func applyFiltersToTickets(ticketsRequests []models.TicketRequest, filters types.TicketFilter) []models.TicketRequest {
-	filteredTicketsRequests := ticketsRequests
-	if filters.CheckedIn {
-		filteredTicketsRequests = filterTickets(filteredTicketsRequests, func(ticketRequest models.TicketRequest) bool {
-			for _, ticket := range ticketRequest.Tickets {
-				if ticket.CheckedIn {
-					return true
-				}
-			}
-			return false
-		})
-	}
-	if filters.IsPaid {
-		filteredTicketsRequests = filterTickets(filteredTicketsRequests, func(ticketRequest models.TicketRequest) bool {
-			for _, ticket := range ticketRequest.Tickets {
-				if ticket.IsPaid {
-					return true
-				}
-			}
-			return false
-		})
-	}
-	if filters.Refunded {
-		filteredTicketsRequests = filterTickets(filteredTicketsRequests, func(ticketRequest models.TicketRequest) bool {
-			for _, ticket := range ticketRequest.Tickets {
-				if ticket.Refunded {
-					return true
-				}
-			}
-			return false
-		})
-	}
-	if filters.IsReserve {
-		filteredTicketsRequests = filterTickets(filteredTicketsRequests, func(ticketRequest models.TicketRequest) bool {
-			for _, ticket := range ticketRequest.Tickets {
-				if ticket.IsReserve {
-					return true
-				}
-			}
-			return false
-		})
-	}
-	if filters.IsHandled {
-		filteredTicketsRequests = filterTickets(filteredTicketsRequests, func(ticketRequest models.TicketRequest) bool {
-			return ticketRequest.IsHandled == filters.IsHandled
-		})
-	}
-	return filteredTicketsRequests
-}
+	filteredTicketsRequests := make([]models.TicketRequest, 0)
 
-func filterTickets(tickets []models.TicketRequest, condition func(models.TicketRequest) bool) []models.TicketRequest {
-	filteredTickets := []models.TicketRequest{}
-	for _, ticket := range tickets {
-		if condition(ticket) {
-			filteredTickets = append(filteredTickets, ticket)
+	for _, ticketRequest := range ticketsRequests {
+		keep := true
+
+		for _, ticket := range ticketRequest.Tickets {
+			checkedInMatch := filters.CheckedIn == types.Ignore || (filters.CheckedIn == types.YES && ticket.CheckedIn) || (filters.CheckedIn == types.NO && !ticket.CheckedIn)
+			isPaidMatch := filters.IsPaid == types.Ignore || (filters.IsPaid == types.YES && ticket.IsPaid) || (filters.IsPaid == types.NO && !ticket.IsPaid)
+			refundedMatch := filters.Refunded == types.Ignore || (filters.Refunded == types.YES && ticket.Refunded) || (filters.Refunded == types.NO && !ticket.Refunded)
+			isReserveMatch := filters.IsReserve == types.Ignore || (filters.IsReserve == types.YES && ticket.IsReserve) || (filters.IsReserve == types.NO && !ticket.IsReserve)
+
+			keep = checkedInMatch && isPaidMatch && refundedMatch && isReserveMatch
+
+			if !keep {
+				break
+			}
+		}
+
+		isHandledMatch := filters.IsHandled == types.Ignore || (filters.IsHandled == types.YES && ticketRequest.IsHandled) || (filters.IsHandled == types.NO && !ticketRequest.IsHandled)
+		keep = keep && isHandledMatch
+
+		if keep {
+			filteredTicketsRequests = append(filteredTicketsRequests, ticketRequest)
 		}
 	}
-	return filteredTickets
+
+	return filteredTicketsRequests
 }
 
 func calculateUsers(tickets []models.TicketRequest, selectedTicketReleases []models.TicketRelease, filters types.TicketFilter) []models.User {

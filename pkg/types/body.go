@@ -77,12 +77,20 @@ func (*ErrorResponse) Error() string {
 type CompleteEventWorkflowRequest struct {
 }
 
+type TicketFilterValue string
+
+const (
+	YES    TicketFilterValue = "yes"
+	NO     TicketFilterValue = "no"
+	Ignore TicketFilterValue = "ignore"
+)
+
 type TicketFilter struct {
-	CheckedIn bool `json:"checked_in"`
-	IsHandled bool `json:"is_handled"`
-	IsPaid    bool `json:"is_paid"`
-	IsReserve bool `json:"is_reserve"`
-	Refunded  bool `json:"refunded"`
+	CheckedIn TicketFilterValue `json:"checked_in"`
+	IsHandled TicketFilterValue `json:"is_handled"`
+	IsPaid    TicketFilterValue `json:"is_paid"`
+	IsReserve TicketFilterValue `json:"is_reserve"`
+	Refunded  TicketFilterValue `json:"refunded"`
 }
 
 type SendOutRequest struct {

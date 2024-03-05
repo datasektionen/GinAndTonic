@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
@@ -63,6 +64,30 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		Where("id = ? AND user_ug_kth_id = ?", ticketId, ugkthid).First(&ticket).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Check if the ticket can be paid for
+	if ticket.IsPaid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket is already paid for"})
+		return
+	}
+
+	// Check the due date for when the ticket needs to be paid
+	var purchaseDueDate time.Time
+	if ticket.TicketRequest.TicketRelease.PayWithin != nil {
+		payWithin := time.Duration(*ticket.TicketRequest.TicketRelease.PayWithin) * time.Hour
+		purchaseDueDate = time.Now().Add(payWithin)
+
+		if time.Now().After(purchaseDueDate) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Payment window has expired"})
+			return
+		}
+	} else {
+		// Check if time is after event start
+		if time.Now().After(ticket.TicketRequest.TicketRelease.Event.Date) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Event has already started"})
+			return
+		}
 	}
 
 	user := ticket.TicketRequest.User

@@ -63,8 +63,10 @@ func (src *SalesReportController) ListSalesReport(c *gin.Context) {
 		url, err := aws_service.GetFileURL(s3Client, salesReports[i].FileName)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+			errMsg := err.Error()
+			salesReports[i].URL = ""
+			salesReports[i].Message = &errMsg
+			continue
 		}
 
 		salesReports[i].URL = url

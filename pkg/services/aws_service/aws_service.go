@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -64,4 +65,19 @@ func DownloadFileFromS3(s3Client *s3.S3, key, filePath string) error {
 	defer output.Body.Close()
 	_, err = io.Copy(file, output.Body)
 	return err
+}
+
+func GetFileURL(s3Client *s3.S3, key string) (string, error) {
+	req, _ := s3Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(BUCKET_NAME),
+		Key:    aws.String(key),
+	})
+
+	urlStr, err := req.Presign(24 * 7 * time.Hour) // Presign for 7 days
+
+	if err != nil {
+		return "", err
+	}
+
+	return urlStr, nil
 }

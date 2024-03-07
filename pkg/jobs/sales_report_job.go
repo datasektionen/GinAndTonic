@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"sync"
 	"time"
@@ -117,11 +118,26 @@ func GetPaymentIntentsByEvent(db *gorm.DB, eventID int) ([]*stripe.PaymentIntent
 	for _, transaction := range transactions {
 		go func(transaction models.Transaction) {
 			defer wg.Done()
-			pi, err := paymentintent.Get(transaction.PaymentIntentID, nil)
-			if err != nil {
-				errs = append(errs, err)
-				return
+
+			var pi *stripe.PaymentIntent
+			var err error
+			maxRetries := 5
+
+			for i := 0; i < maxRetries; i++ {
+				pi, err = paymentintent.Get(transaction.PaymentIntentID, nil)
+				if err != nil {
+					stripeErr, ok := err.(*stripe.Error)
+					if ok && stripeErr.Code == stripe.ErrorCodeRateLimit {
+						// Wait for a bit before retrying
+						time.Sleep(time.Duration(math.Pow(2, float64(i))) * time.Second)
+						continue
+					}
+					errs = append(errs, err)
+					return
+				}
+				break
 			}
+
 			paymentIntents = append(paymentIntents, pi)
 		}(transaction)
 	}

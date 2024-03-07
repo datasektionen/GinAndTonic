@@ -9,6 +9,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 	"github.com/stripe/stripe-go"
@@ -128,6 +129,9 @@ func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport,
 		return nil, err
 	}
 
+	randomUUID := uuid.New()
+	fileName := fmt.Sprintf("sales_report-%d-%s.pdf", eventID, randomUUID.String())
+
 	// Initialize your report structure
 	report := &models.EventSalesReport{
 		EventID:      eventID,
@@ -135,6 +139,7 @@ func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport,
 		TicketsSold:  0,
 		Status:       models.SalesReportStatusPending,
 		Transactions: transactions,
+		FileName:     fileName,
 	}
 
 	for _, pi := range paymentIntents {
@@ -205,6 +210,7 @@ func HandleSalesReportJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) 
 			TicketsSold: report.TicketsSold,
 			Status:      string(report.Status),
 			Message:     msg,
+			FileName:    report.FileName,
 		}
 
 		trs, err := models.GetTicketReleasesToEvent(db, uint(p.EventID))

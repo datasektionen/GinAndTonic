@@ -179,7 +179,15 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		var mustPayBefore time.Time
 
 		if payWithin != nil {
-			mustPayBefore = utils.MustPayBefore(int(*payWithin), ticket.UpdatedAt)
+			var purchasableAt time.Time
+
+			if ticket.PurchasableAt != nil {
+				purchasableAt = *ticket.PurchasableAt
+			} else {
+				purchasableAt = ticket.UpdatedAt
+			}
+
+			mustPayBefore = utils.MustPayBefore(int(*payWithin), purchasableAt)
 		} else {
 			allocator_logger.WithFields(logrus.Fields{
 				"id": ticketRelease.ID,

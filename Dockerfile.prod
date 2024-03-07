@@ -29,9 +29,6 @@ COPY --from=builder /app/main .
 
 COPY --from=builder /app/templates /root/templates
 
-# Create economy folder
-RUN mkdir /root/economy
-
 # Expose port 8080 to the outside world.
 EXPOSE 8080
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
@@ -109,15 +110,46 @@ func GetPaymentIntentsByEvent(db *gorm.DB, eventID int) ([]*stripe.PaymentIntent
 
 	// Retrieve the corresponding payment intents from Stripe
 	var paymentIntents []*stripe.PaymentIntent
+	var errs []error
+	var wg sync.WaitGroup
+	wg.Add(len(transactions))
+
 	for _, transaction := range transactions {
-		pi, err := paymentintent.Get(transaction.PaymentIntentID, nil)
-		if err != nil {
-			return nil, nil, err
-		}
-		paymentIntents = append(paymentIntents, pi)
+		go func(transaction models.Transaction) {
+			defer wg.Done()
+			pi, err := paymentintent.Get(transaction.PaymentIntentID, nil)
+			if err != nil {
+				errs = append(errs, err)
+				return
+			}
+			paymentIntents = append(paymentIntents, pi)
+		}(transaction)
+	}
+
+	wg.Wait()
+
+	if len(errs) > 0 {
+		return nil, nil, errs[0] // return the first error
 	}
 
 	return paymentIntents, transactions, nil
+}
+
+func GetFreeTicketsByEvent(db *gorm.DB, eventID int) ([]models.Ticket, error) {
+	var tickets []models.Ticket
+
+	// Inner join on ticket.ticket_request.ticket_type.price and eventid
+	if err := db.Joins("JOIN ticket_requests ON ticket_requests.id = tickets.ticket_request_id").
+		Joins("JOIN ticket_releases ON ticket_releases.id = ticket_requests.ticket_release_id").
+		Joins("JOIN ticket_types ON ticket_types.id = ticket_requests.ticket_type_id").
+		Where("ticket_types.price = 0 AND ticket_releases.event_id = ?", eventID).
+		Preload("TicketRequest").
+		Preload("TicketRequest.TicketType").
+		Find(&tickets).Error; err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }
 
 func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport, error) {
@@ -126,6 +158,11 @@ func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport,
 	paymentIntents, transactions, err := GetPaymentIntentsByEvent(db, eventID)
 	if err != nil {
 
+		return nil, err
+	}
+
+	freeTickets, err := GetFreeTicketsByEvent(db, eventID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -147,6 +184,8 @@ func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport,
 		report.TotalSales += float64(pi.Amount)
 		report.TicketsSold += 1 // TODO: Should be changed when we support multiple tickets per payment intent
 	}
+
+	report.TicketsSold += len(freeTickets)
 
 	// Convert total sales from cents to a more readable format if necessary
 	report.TotalSales = report.TotalSales / 100

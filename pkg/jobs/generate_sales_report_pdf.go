@@ -25,7 +25,6 @@ type SaleRecord struct {
 }
 
 func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []models.TicketRelease) error {
-
 	marginX := 20.0
 	marginY := 20.0
 	pdf := gofpdf.New("P", "mm", "A4", "")
@@ -99,6 +98,14 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 			var transaction models.Transaction
 			if err := db.Where("ticket_id = ?", t.ID).First(&transaction).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
+					// Check if the ticket is free
+					if t.TicketRequest.TicketType.Price == 0 {
+						group := ticketGroups[t.TicketRequest.TicketType.Name]
+						group.Subtotal += 0
+						group.NumSold += t.TicketRequest.TicketAmount
+						group.Tickets = append(group.Tickets, t)
+						ticketGroups[t.TicketRequest.TicketType.Name] = group
+					}
 					continue
 				}
 				return err

@@ -10,7 +10,7 @@ import (
 
 // User is a struct that represents a user in the database
 type User struct {
-	UGKthID        string          `gorm:"primaryKey" json:"ug_kth_id"`
+	UGKthID        string          `gorm:"primaryKey;index" json:"ug_kth_id"`
 	Username       string          `gorm:"uniqueIndex" json:"username"`
 	FirstName      string          `json:"first_name"`
 	LastName       string          `json:"last_name"`

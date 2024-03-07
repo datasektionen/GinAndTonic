@@ -34,10 +34,6 @@ func createLogDirAndLogFiles() {
 		os.Mkdir("logs", 0755)
 	}
 
-	if _, err := os.Stat("economy"); os.IsNotExist(err) {
-		os.Mkdir("economy", 0755)
-	}
-
 	// Create log files if they don't exist
 	if _, err := os.Stat("logs/allocate_reserve_tickets_job.log"); os.IsNotExist(err) {
 		os.Create("logs/allocate_reserve_tickets_job.log")

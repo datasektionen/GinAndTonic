@@ -113,6 +113,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	preferredEmailController := controllers.NewPreferredEmailController(db, preferredEmailService)
 	eventFormFieldController := controllers.NewEventFormFieldController(db)
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
+	addOnController := controllers.NewAddOnController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -163,6 +164,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/manually-allocate-reserve-tickets",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
+
+	// AddOn
+	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		addOnController.UpsertAddOns)
 
 	// Form fields
 	r.PUT("/events/:eventID/form-fields", eventFormFieldController.Upsert)

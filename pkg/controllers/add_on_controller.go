@@ -20,6 +20,22 @@ func NewAddOnController(db *gorm.DB) *AddOnController {
 	return &AddOnController{DB: db}
 }
 
+func (aoc *AddOnController) GetAddOns(c *gin.Context) {
+	ticketReleaseID, err := strconv.Atoi(c.Param("ticketReleaseID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var addOns []models.AddOn
+	if err := aoc.DB.Where("ticket_release_id = ?", ticketReleaseID).Find(&addOns).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"add_ons": addOns})
+}
+
 func (aoc *AddOnController) UpsertAddOns(c *gin.Context) {
 	var input []models.AddOn
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -109,6 +125,7 @@ func (aoc *AddOnController) upsertAddOns(tx *gorm.DB, ticketReleaseID int, input
 func (aoc *AddOnController) createAddOn(tx *gorm.DB, ticketReleaseID int, addOnInput models.AddOn) error {
 	addOn := models.AddOn{
 		Name:            addOnInput.Name,
+		Description:     addOnInput.Description,
 		Price:           addOnInput.Price,
 		MaxQuantity:     addOnInput.MaxQuantity,
 		MinQuantity:     addOnInput.MinQuantity,
@@ -130,6 +147,7 @@ func (aoc *AddOnController) createAddOn(tx *gorm.DB, ticketReleaseID int, addOnI
 func (aoc *AddOnController) updateAddOn(tx *gorm.DB, ticketReleaseID int, addOn models.AddOn, addOnInput models.AddOn) error {
 	updatedAddOn := models.AddOn{
 		Name:            addOnInput.Name,
+		Description:     addOnInput.Description,
 		Price:           addOnInput.Price,
 		MaxQuantity:     addOnInput.MaxQuantity,
 		MinQuantity:     addOnInput.MinQuantity,

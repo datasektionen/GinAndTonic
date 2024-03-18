@@ -88,6 +88,17 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 		}
 	}()
 
+	// This is the total number of tickets available for the ticket release
+	var totalTicketsAvailable int = ticketRelease.TicketsAvailable
+
+	allAllocatedTickets, err := models.GetAllTicketsToTicketRelease(tx, ticketRelease.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var numberOfAlreadyAllocatedTickets int = len(allAllocatedTickets)
+
 	ticketRequests, err := models.GetAllValidTicketRequestsToTicketRelease(tx, ticketRelease.ID)
 
 	if err != nil {
@@ -100,6 +111,13 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 		if err != nil {
 			tx.Rollback()
 			return err
+		}
+
+		if totalTicketsAvailable < numberOfAlreadyAllocatedTickets {
+			artd_logger.WithFields(logrus.Fields{
+				"ticket_release_id": ticketRelease.ID,
+			}).Info("No more tickets available for ticket release")
+			break
 		}
 
 		ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
@@ -120,6 +138,8 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 			"ticket_id":         ticket.ID,
 			"ticket_request_id": ticket.TicketRequestID,
 		}).Info("Allocated ticket directly")
+
+		numberOfAlreadyAllocatedTickets++
 	}
 
 	err = tx.Commit().Error

@@ -51,25 +51,9 @@ func CheckUserAuthorization(db *gorm.DB,
 	organizationID uint,
 	ugkthid string,
 	requiredRole models.OrgRole) (bool, error) {
-	var user models.User
-
-	err := db.Preload("Role").Where("ugkthid = ?", ugkthid).First(&user).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// User is not found
-			return false, nil
-		}
-		// Other database error
-		return false, err
-	}
-
-	if user.IsSuperAdmin() {
-		return true, nil
-	}
-
 	var userOrgRole models.OrganizationUserRole
 
-	err = db.Where("user_ug_kth_id = ? AND organization_id = ?", ugkthid, organizationID).First(&userOrgRole).Error
+	err := db.Where("user_ug_kth_id = ? AND organization_id = ?", ugkthid, organizationID).First(&userOrgRole).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// User is not found in the organization

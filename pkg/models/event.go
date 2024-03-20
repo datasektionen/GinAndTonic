@@ -12,6 +12,7 @@ type Event struct {
 	Name                 string           `json:"name"`
 	Description          string           `json:"description" gorm:"type:text"`
 	Date                 time.Time        `json:"date"`
+	EndDate              *time.Time       `json:"end_date" gorm:"default:null"`
 	Location             string           `json:"location"`
 	OrganizationID       int              `gorm:"index" json:"organization_id"`
 	Organization         Organization     `json:"organization"`

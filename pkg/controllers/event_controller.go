@@ -261,6 +261,10 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 	event.Description = eventRequest.Description
 	event.Location = eventRequest.Location
 	event.Date = time.Unix(eventRequest.Date, 0)
+	if eventRequest.EndDate != nil {
+		endDate := time.Unix(*eventRequest.EndDate, 0)
+		event.EndDate = &endDate
+	}
 	event.OrganizationID = eventRequest.OrganizationID
 	event.IsPrivate = eventRequest.IsPrivate
 

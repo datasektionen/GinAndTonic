@@ -31,11 +31,18 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		return tx.Error
 	}
 
+	var endDate time.Time
+
+	if data.Event.EndDate != nil {
+		endDate = time.Unix(*data.Event.EndDate, 0)
+	}
+
 	// Create Event
 	event := models.Event{
 		Name:           data.Event.Name,
 		Description:    data.Event.Description,
 		Date:           time.Unix(data.Event.Date, 0),
+		EndDate:        &endDate,
 		Location:       data.Event.Location,
 		OrganizationID: data.Event.OrganizationID,
 		IsPrivate:      data.Event.IsPrivate,

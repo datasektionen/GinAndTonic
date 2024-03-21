@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -19,7 +18,7 @@ func NewEventFormFieldController(db *gorm.DB) *EventFormFieldController {
 }
 
 type EventFormFieldCreateRequest struct {
-	FormFieldDescription *string `json:"form_field_description"`
+	FormFieldDescription *string                 `json:"form_field_description"`
 	FormFields           []models.EventFormField `json:"form_fields"`
 }
 
@@ -39,19 +38,7 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 
 	var fields []models.EventFormField = req.FormFields
 
-	fmt.Println(req)
-
-	// Add the event ID to the fields
-	for i := range fields {
-		fields[i].EventID = uint(eventID)
-	}
-
 	tx := effc.db.Begin()
-	if tx.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
-		return
-	}
-
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -68,18 +55,14 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 		}
 	}
 
-	var existingFields []models.EventFormField
-	if err := tx.Where("event_id = ?", eventID).Find(&existingFields).Error; err != nil {
+	// Delete all existing fields for the event
+	if err := tx.Unscoped().Where("event_id = ?", eventID).Delete(&models.EventFormField{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	existingFieldMap := make(map[string]models.EventFormField)
-	for _, field := range existingFields {
-		existingFieldMap[field.Name] = field
-	}
-
+	// Validate and insert the new fields
 	for _, field := range fields {
 		if err := field.Validate(); err != nil {
 			tx.Rollback()
@@ -87,33 +70,7 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 			return
 		}
 
-		existingField, exists := existingFieldMap[field.Name]
-		if exists {
-			// Update the existing field
-			existingField.Type = field.Type
-			existingField.Description = field.Description // Add this line
-			existingField.IsRequired = field.IsRequired   // Add this line
-			if err := tx.Save(&existingField).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-			// Remove the field from the map
-			delete(existingFieldMap, field.Name)
-		} else {
-			// Create a new field
-			if err := tx.Create(&field).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-		}
-	}
-
-	// Delete the fields that are not included in the request
-	for _, field := range existingFieldMap {
-		// Delete the field
-		if err := tx.Unscoped().Delete(&field).Error; err != nil {
+		if err := tx.Create(&field).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

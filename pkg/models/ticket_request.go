@@ -16,6 +16,7 @@ type TicketRequest struct {
 	IsHandled         bool                     `json:"is_handled" gorm:"default:false"`
 	Tickets           []Ticket                 `json:"tickets"`
 	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
+	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketRequestID" json:"ticket_add_ons"`
 }
 
 func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {

@@ -30,6 +30,8 @@ func Migrate(db *gorm.DB) error {
 		&models.UserPasswordReset{},
 		&models.EventSalesReport{},
 		&models.WebhookEvent{},
+		&models.AddOn{},
+		&models.TicketAddOn{},
 		&tr_methods.LotteryConfig{},
 	)
 	return err

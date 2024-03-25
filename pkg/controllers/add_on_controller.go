@@ -128,7 +128,6 @@ func (aoc *AddOnController) createAddOn(tx *gorm.DB, ticketReleaseID int, addOnI
 		Description:     addOnInput.Description,
 		Price:           addOnInput.Price,
 		MaxQuantity:     addOnInput.MaxQuantity,
-		MinQuantity:     addOnInput.MinQuantity,
 		IsEnabled:       addOnInput.IsEnabled,
 		TicketReleaseID: ticketReleaseID,
 	}
@@ -150,7 +149,6 @@ func (aoc *AddOnController) updateAddOn(tx *gorm.DB, ticketReleaseID int, addOn 
 		Description:     addOnInput.Description,
 		Price:           addOnInput.Price,
 		MaxQuantity:     addOnInput.MaxQuantity,
-		MinQuantity:     addOnInput.MinQuantity,
 		IsEnabled:       addOnInput.IsEnabled,
 		TicketReleaseID: ticketReleaseID,
 	}

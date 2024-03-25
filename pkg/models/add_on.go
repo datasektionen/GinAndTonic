@@ -11,7 +11,6 @@ type AddOn struct {
 	Description     string        `json:"description"`
 	Price           float64       `json:"price" validate:"gte=0"`
 	MaxQuantity     int           `json:"max_quantity" validate:"gte=0"`
-	MinQuantity     int           `json:"min_quantity" validate:"gte=0,ltefield=MaxQuantity"`
 	IsEnabled       bool          `json:"is_enabled" gorm:"default:true"`
 	TicketReleaseID int           `json:"ticket_release_id"`
 	TicketRelease   TicketRelease `json:"-"`

@@ -172,6 +172,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		addOnController.UpsertAddOns)
+	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID/add-ons/:addOnID",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		addOnController.DeleteAddOn)
 
 	// Form fields
 	r.PUT("/events/:eventID/form-fields", eventFormFieldController.Upsert)

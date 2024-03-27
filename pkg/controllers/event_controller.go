@@ -268,6 +268,17 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 	event.OrganizationID = eventRequest.OrganizationID
 	event.IsPrivate = eventRequest.IsPrivate
 
+	if eventRequest.IsPrivate && event.SecretToken == "" {
+		token, err := utils.GenerateSecretToken()
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error generating the secret token"})
+			return
+		}
+
+		event.SecretToken = token
+	}
+
 	if err := ec.DB.Save(&event).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error updating the event"})
 		return

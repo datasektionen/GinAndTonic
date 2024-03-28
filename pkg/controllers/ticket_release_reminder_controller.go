@@ -57,7 +57,7 @@ func (erc *TicketReleaseReminderController) CreateTicketReleaseReminder(c *gin.C
 		return
 	}
 
-	// No error, scheudle the reminder
+	// No error, schedule the reminder
 	err = services.Notify_RemindUserOfTicketRelease(erc.DB, &eventReminder)
 
 	if err != nil {

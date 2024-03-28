@@ -22,7 +22,7 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 	user *models.User,
 	email string,
 ) (r *types.ErrorResponse) {
-	// Handles a request to change the preffered email
+	// Handles a request to change the preferred email
 	if user.IsExternal {
 		return &types.ErrorResponse{
 			StatusCode: 400,
@@ -84,7 +84,7 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 	token := utils.GenerateRandomString(32)
 	expires := time.Now().Add(time.Hour * 1)
 
-	// If we get this far we can create a new preffered email
+	// If we get this far we can create a new preferred email
 	prefferedEmail := models.PreferredEmail{
 		UserUGKthID: user.UGKthID,
 		Email:       email,
@@ -94,7 +94,7 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 	}
 
 	if existingPrefferedEmail.ID != 0 {
-		// deletee the old preffered email
+		// delete the old preferred email
 		if err := tx.Delete(&existingPrefferedEmail).Error; err != nil {
 			tx.Rollback()
 			return &types.ErrorResponse{

@@ -95,7 +95,7 @@ func (ps *PaymentService) ProcessEvent(
 			}
 		}()
 
-		ticket, err := HandleSuccessfullTicketPayment(tx, ticketId)
+		ticket, err := HandleSuccessfulTicketPayment(tx, ticketId)
 		if err != nil {
 			tx.Rollback()
 			return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error handling ticket payment"}

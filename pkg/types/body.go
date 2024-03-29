@@ -50,6 +50,7 @@ type TicketReleasePostReq struct {
 	Close                 int64  `json:"close"`
 	AllowExternal         bool   `json:"allow_external"`
 	OpenWindowDuration    int    `json:"open_window_duration,omitempty"`
+	MethodDescription     string `json:"method_description,omitempty"`
 	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
 	NotificationMethod    string `json:"notification_method"`
 	CancellationPolicy    string `json:"cancellation_policy"`

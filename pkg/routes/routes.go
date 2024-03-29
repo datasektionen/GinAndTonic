@@ -146,7 +146,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		eventController.DeleteEvent)
 
 	r.POST("/complete-event-workflow",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventWorkflowController.CreateEvent)
 
 	// Contact
@@ -182,6 +181,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Allocate tickets routes
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.AllocateTickets)
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.ListAllocatedTickets)
+	r.POST("/events/:eventID/ticket-requests/:ticketRequestID/allocate",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		allocateTicketsController.SelectivelyAllocateTicketRequest)
 
 	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
 

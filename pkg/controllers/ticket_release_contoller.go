@@ -35,6 +35,7 @@ type TicketReleaseRequest struct {
 	IsReserved            bool   `json:"is_reserved"`
 	PromoCode             string `json:"promo_code"`
 	TicketsAvailable      int    `json:"tickets_available"`
+	MethodDescription     string `json:"method_description"`
 }
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
@@ -62,6 +63,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
 		TicketReleaseMethodID: ticketReleaseMethod.ID,
 		OpenWindowDuration:    int64(req.OpenWindowDuration),
+		MethodDescription:     req.MethodDescription,
 		NotificationMethod:    req.NotificationMethod,
 		CancellationPolicy:    req.CancellationPolicy,
 		MaxTicketsPerUser:     uint(req.MaxTicketsPerUser),

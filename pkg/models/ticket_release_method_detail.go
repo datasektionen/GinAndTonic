@@ -13,7 +13,8 @@ type TicketReleaseMethodDetail struct {
 	NotificationMethod string `json:"notification_method"`
 	CancellationPolicy string `json:"cancellation_policy"`
 
-	OpenWindowDuration int64 `gorm:"open_window_duration" json:"open_window_duration"` // Specific to FCFS_Lottery
+	OpenWindowDuration int64  `gorm:"open_window_duration" json:"open_window_duration"` // Specific to FCFS_Lottery
+	MethodDescription  string `json:"method_description"`                               // Specific to Selective
 
 	TicketReleaseMethodID uint                `json:"ticket_release_method_id"`
 	TicketReleaseMethod   TicketReleaseMethod `json:"ticket_release_method"`
@@ -49,6 +50,18 @@ type FCFSConfig struct {
 }
 
 func (f *FCFSConfig) Validate() error {
+	return nil
+}
+
+type SelectiveConfig struct {
+	MethodDescription string `json:"method_description"`
+}
+
+func (s *SelectiveConfig) Validate() error {
+	if s.MethodDescription == "" {
+		return errors.New("method description must not be empty")
+	}
+
 	return nil
 }
 
@@ -118,6 +131,10 @@ func NewTicketReleaseConfig(methodName string, detail *TicketReleaseMethodDetail
 		return &ReservedTicketConfig{}, nil
 	case string(FCFS):
 		return &FCFSConfig{}, nil
+	case string(SELECTIVE):
+		return &SelectiveConfig{
+			MethodDescription: detail.MethodDescription,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown method: %s", methodName)
 	}

@@ -73,6 +73,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		NotificationMethod:    data.TicketRelease.NotificationMethod,
 		CancellationPolicy:    data.TicketRelease.CancellationPolicy,
 		MaxTicketsPerUser:     uint(data.TicketRelease.MaxTicketsPerUser),
+		MethodDescription:     data.TicketRelease.MethodDescription,
 	}
 
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {

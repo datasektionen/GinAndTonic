@@ -139,14 +139,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		eventController.GetEventSecretToken)
 
 	r.PUT("/events/:eventID",
-		authentication.RequireRole("user", db),
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventController.UpdateEvent)
 	r.DELETE("/events/:eventID",
-		authentication.RequireRole("user", db),
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventController.DeleteEvent)
 
 	r.POST("/complete-event-workflow",
-		authentication.RequireRole("user", db),
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventWorkflowController.CreateEvent)
 
 	// Contact

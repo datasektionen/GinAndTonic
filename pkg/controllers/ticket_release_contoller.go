@@ -380,6 +380,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketReleaseMethodDetails.CancellationPolicy = req.CancellationPolicy
 	ticketReleaseMethodDetails.MaxTicketsPerUser = uint(req.MaxTicketsPerUser)
 	ticketReleaseMethodDetails.TicketReleaseMethodID = uint(req.TicketReleaseMethodID)
+	ticketReleaseMethodDetails.MethodDescription = req.MethodDescription
 
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

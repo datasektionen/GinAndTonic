@@ -166,10 +166,11 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		Preload("TicketReleases.Event").
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Preload("FormFields").
+		Preload("TicketReleases.AddOns").
 		First(&event, id).Error
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -47,17 +47,14 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 		existingResponseMap[response.EventFormFieldID] = response
 	}
 
-	fmt.Println("HELLO")
-	fmt.Println(responses)
-	fmt.Println(existingResponseMap)
-
 	for _, response := range responses {
 		existingResponse, exists := existingResponseMap[response.EventFormFieldID]
 
 		if exists {
 			// Update the existing response
 			existingResponse.Value = response.Value
-			if err := tx.Save(&existingResponse).Error; err != nil {
+			// Print the type of the response
+			if err := tx.Model(models.EventFormFieldResponse{}).Where("id = ?", existingResponse.ID).UpdateColumn("value", response.Value).Error; err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -81,7 +78,6 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 				Value:            response.Value,
 			}
 
-			fmt.Println(newResponse)
 			if err := tx.Create(&newResponse).Error; err != nil {
 				tx.Rollback()
 				return err

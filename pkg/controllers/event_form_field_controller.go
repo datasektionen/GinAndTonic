@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -119,8 +120,16 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 				return
 			}
 
+			fmt.Println(field.IsRequired)
+
 			// Existing field; update
 			if err := tx.Model(&models.EventFormField{}).Where("id = ?", field.ID).Updates(&field).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			if err := tx.Model(&models.EventFormField{}).Where("id = ?", field.ID).UpdateColumn("is_required", field.IsRequired).Error; err != nil {
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return

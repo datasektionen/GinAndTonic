@@ -103,6 +103,6 @@ type SendOutRequest struct {
 }
 
 type EventFormFieldResponseCreateRequest struct {
-	EventFormFieldID uint   `json:"event_form_field_id" binding:"required"`
-	Value            string `json:"value" binding:"required"`
+	EventFormFieldID uint    `json:"event_form_field_id" binding:"required"`
+	Value            *string `json:"value" binding:"required"`
 }

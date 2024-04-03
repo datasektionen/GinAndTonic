@@ -81,6 +81,7 @@ func GetUserByEmailIfExists(db *gorm.DB, email string) (User, error) {
 	err := db.Preload("Role").Where("email = ?", email).First(&user).Error
 	return user, err
 }
+
 func (u *User) GetUserEmail(db *gorm.DB) string {
 	// Get preferred email if it exists and is verified
 	var pe PreferredEmail
@@ -91,11 +92,6 @@ func (u *User) GetUserEmail(db *gorm.DB) string {
 		}
 		// Log other database errors
 		fmt.Println(err.Error())
-		return u.Email
-	}
-
-	if !pe.IsVerified {
-		// Preferred email is not verified, return user's default email
 		return u.Email
 	}
 

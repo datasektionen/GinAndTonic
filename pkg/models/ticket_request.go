@@ -55,8 +55,10 @@ func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRe
 		Unscoped().
 		Preload("TicketType").
 		Preload("TicketRelease.Event.FormFields").
+		Preload("TicketRelease.AddOns").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
 		Preload("EventFormReponses").
+		Preload("TicketAddOns").
 		Where("user_ug_kth_id = ?", userUGKthID).
 		Find(&ticketRequests).Error; err != nil {
 		return nil, err

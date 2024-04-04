@@ -20,9 +20,22 @@ func NewTicketRequestService(db *gorm.DB) *TicketRequestService {
 	return &TicketRequestService{DB: db}
 }
 
-func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.TicketRequest) (modelTicketRequests []models.TicketRequest, err *types.ErrorResponse) {
+func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.TicketRequest,
+	selectedAddOns *[]types.SelectedAddOns) (modelTicketRequests []models.TicketRequest, err *types.ErrorResponse) {
 	// Start transaction
 	trx := trs.DB.Begin()
+
+	// Check if all ticket requests are for the same ticket release
+	if !allTicketsRequestIsForSameTicketRelease(ticketRequests) {
+		trx.Rollback()
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "All ticket requests must be for the same ticket release"}
+	}
+
+	addonErr := ValidateAddOnsForTicketRequest(trx, *selectedAddOns, int(ticketRequests[0].TicketReleaseID))
+	if addonErr != nil {
+		trx.Rollback()
+		return nil, addonErr
+	}
 
 	for _, ticketRequest := range ticketRequests {
 		tr, err := trs.CreateTicketRequest(trx, &ticketRequest)
@@ -30,7 +43,25 @@ func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.Ti
 			trx.Rollback()
 			return nil, err
 		}
+
+		// Should be updated to handle multiple ticket requests
 		modelTicketRequests = append(modelTicketRequests, *tr)
+	}
+
+	for _, selectedAddOn := range *selectedAddOns {
+		// TODO: needs to change if multiple ticket requests are allowed in the future
+		trId := modelTicketRequests[0].ID
+
+		ticketAddon := models.TicketAddOn{
+			TicketRequestID: &trId,
+			AddOnID:         uint(selectedAddOn.ID),
+			Quantity:        selectedAddOn.Quantity,
+		}
+
+		if err := trx.Create(&ticketAddon).Error; err != nil {
+			trx.Rollback()
+			return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket add-on"}
+		}
 	}
 
 	trx.Commit()
@@ -219,4 +250,71 @@ func (trs *TicketRequestService) userAlreadyHasATicketToEvent(user *models.User,
 	newRequestedTicketsAmount := int64(ticketReleaseMethodDetail.MaxTicketsPerUser) - int64(requestedAmount)
 
 	return totalRequestedAmount > newRequestedTicketsAmount
+}
+
+func (trs *TicketRequestService) UpdateAddOns(selectedAddOns []types.SelectedAddOns, ticketRequestID, ticketReleaseID int) *types.ErrorResponse {
+	// Use your database layer to find the ticket xrequest by ID and update the add-ons
+	// This is just a placeholder implementation, replace it with your actual code
+	// Start by removing all ticket add-ons for the ticket request
+	tx := trs.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var ticketRequest models.TicketRequest
+	if err := tx.Where("id = ?", ticketRequestID).First(&ticketRequest).Error; err != nil {
+		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket request"}
+	}
+
+	if ticketRequest.IsHandled {
+		return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket request has been handled"}
+	}
+
+	addonErr := ValidateAddOnsForTicketRequest(tx, selectedAddOns, ticketReleaseID)
+	if addonErr != nil {
+		tx.Rollback()
+		return addonErr
+	}
+
+	if err := tx.Unscoped().Where("ticket_request_id = ?", ticketRequestID).Delete(&models.TicketAddOn{}).Error; err != nil {
+		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting ticket add-ons"}
+	}
+
+	// Then add the new add-ons
+	for _, selectedAddOn := range selectedAddOns {
+		trID := uint(ticketRequestID)
+		ticketAddOn := models.TicketAddOn{
+			TicketRequestID: &trID,
+			AddOnID:         uint(selectedAddOn.ID),
+			Quantity:        selectedAddOn.Quantity,
+		}
+
+		if err := tx.Create(&ticketAddOn).Error; err != nil {
+			return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket add-on"}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error updating ticket add-ons"}
+	}
+
+	return nil
+}
+
+func allTicketsRequestIsForSameTicketRelease(ticketRequests []models.TicketRequest) bool {
+	if len(ticketRequests) == 0 {
+		return false
+	}
+
+	ticketReleaseID := ticketRequests[0].TicketReleaseID
+
+	for _, ticketRequest := range ticketRequests {
+		if ticketRequest.TicketReleaseID != ticketReleaseID {
+			return false
+		}
+	}
+
+	return true
 }

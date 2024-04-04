@@ -83,7 +83,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequest() {
 		time.Now(),
 	)
 
-	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest}, nil)
 	suite.Nil(err)
 
 	var ticketRequestFromDB []models.TicketRequest
@@ -108,7 +108,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 			time.Now(),
 		)
 
-		_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+		_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest}, nil)
 		suite.Nil(err)
 	}
 
@@ -122,7 +122,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 		time.Now(),
 	)
 
-	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest}, nil)
 	suite.NotNil(err)
 
 	var ticketRequestFromDB []models.TicketRequest
@@ -210,7 +210,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterClose() {
 		time.Now(),
 	)
 
-	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest}, nil)
 	suite.NotNil(err)
 
 	// Check that it is a reserve ticket
@@ -254,7 +254,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestBeforeOpen() {
 		time.Now(),
 	)
 
-	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest}, nil)
 	suite.NotNil(err)
 
 	// Check that it is a reserve ticket
@@ -310,7 +310,7 @@ func (suite *TicketRequestTestSuite) TestUserMakesTwoTicketRequestUnderMaxTicket
 		time.Now(),
 	)
 
-	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest})
+	_, err := suite.ticketRequestService.CreateTicketRequests([]models.TicketRequest{*ticketRequest}, nil)
 	suite.NotNil(err)
 
 	// Check that it is a reserve ticket

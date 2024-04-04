@@ -51,6 +51,11 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 		return nil, err
 	}
 
+	// Set the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
+	if err := tx.Model(&models.TicketAddOn{}).Where("ticket_request_id = ?", ticketRequest.ID).Update("ticket_id", ticket.ID).Error; err != nil {
+		return nil, err
+	}
+
 	return &ticket, nil
 }
 
@@ -74,6 +79,11 @@ func AllocateReserveTicket(
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {
+		return nil, err
+	}
+
+	// Set the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
+	if err := tx.Model(&models.TicketAddOn{}).Where("ticket_request_id = ?", ticketRequest.ID).Update("ticket_id", ticket.ID).Error; err != nil {
 		return nil, err
 	}
 

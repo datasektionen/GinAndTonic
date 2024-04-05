@@ -22,6 +22,7 @@ type SaleRecord struct {
 	Status      string
 	Message     string
 	FileName    string
+	AddonsSales []models.AddOnRecord
 }
 
 func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []models.TicketRelease) error {
@@ -150,6 +151,45 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 		currentY += lineHt * 2
 	}
 
+	// Check if the current Y position exceeds a certain threshold
+	if currentY > 250 {
+		pdf.AddPage()
+		currentY = 20.0 // Reset Y position
+	}
+
+	// Add-ons sales section
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Line(20, currentY, 190, currentY)
+	currentY += lineHt
+
+	pdf.Text(20, currentY, "Add-Ons Sales")
+	currentY += lineHt * 1.5
+
+	addonTotalSales := 0.0
+
+	for _, addOnSale := range data.AddonsSales {
+		// Check if the current Y position exceeds a certain threshold
+		if currentY > 250 {
+			pdf.AddPage()
+			currentY = 20.0 // Reset Y position
+		}
+
+		pdf.SetFont("Arial", "", 10)
+		if addOnSale.ContainsAlcohol {
+			pdf.Text(20, currentY, fmt.Sprintf("Add-On: %s (Alcoholic)", addOnSale.Name))
+		} else {
+			pdf.Text(20, currentY, fmt.Sprintf("Add-On: %s", addOnSale.Name))
+		}
+
+		currentY += lineHt
+		pdf.Text(20, currentY, fmt.Sprintf("Quantity Sold: %d", addOnSale.QuantitySales))
+		currentY += lineHt
+		pdf.Text(20, currentY, fmt.Sprintf("Total Sales: %.2f", addOnSale.TotalSales))
+		currentY += lineHt * 2
+
+		addonTotalSales += addOnSale.TotalSales
+	}
+
 	// Add horizontal line
 	pdf.Line(20, currentY, 190, currentY)
 	currentY += 1
@@ -166,24 +206,26 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 		return err
 	}
 
-	filePath := fmt.Sprintf("/tmp/%s", data.FileName)
+	filePath := fmt.Sprintf("tmp/%s", data.FileName)
 	// Save
 	err = pdf.OutputFileAndClose(filePath)
 	if err != nil {
 		return err
 	}
 
-	err = aws_service.UploadFileToS3(s3Client, data.FileName, fmt.Sprintf("/tmp/%s", data.FileName))
+	if os.Getenv("ENV") == "prod" {
+		err = aws_service.UploadFileToS3(s3Client, data.FileName, fmt.Sprintf("tmp/%s", data.FileName))
 
-	if err != nil {
-		sales_report_logger.Error("Error uploading file to S3", err)
-		return err
-	}
+		if err != nil {
+			sales_report_logger.Error("Error uploading file to S3", err)
+			return err
+		}
 
-	// Remove file
-	err = os.Remove(filePath)
-	if err != nil {
-		return err
+		// Remove file
+		err = os.Remove(filePath)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

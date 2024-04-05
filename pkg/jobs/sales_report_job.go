@@ -161,11 +161,20 @@ func GetFreeTicketsByEvent(db *gorm.DB, eventID int) ([]models.Ticket, error) {
 		Where("ticket_types.price = 0 AND ticket_releases.event_id = ?", eventID).
 		Preload("TicketRequest").
 		Preload("TicketRequest.TicketType").
+		Preload("TicketAddOns.AddOn").
 		Find(&tickets).Error; err != nil {
 		return nil, err
 	}
 
 	return tickets, nil
+}
+
+type AddOnRecord struct {
+	ID              uint    `json:"id"`
+	Name            string  `json:"name"`
+	Quantity        uint    `json:"quantity"`
+	Price           float64 `json:"price"`
+	ContainsAlcohol bool    `json:"contains_alcohol"`
 }
 
 func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport, error) {
@@ -177,9 +186,44 @@ func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport,
 		return nil, err
 	}
 
+	// We need to get all Ticket.TicketAddOns
+	var purchasedTickets []models.Ticket
+	for _, transaction := range transactions {
+		var ticket models.Ticket
+		if err := db.Preload("TicketAddOns.AddOn").Where("id = ?", transaction.TicketID).First(&ticket).Error; err != nil {
+			return nil, err
+		}
+
+		purchasedTickets = append(purchasedTickets, ticket)
+	}
+
 	freeTickets, err := GetFreeTicketsByEvent(db, eventID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Combine purchased tickets and free tickets and iterate over them
+	allTickets := append(purchasedTickets, freeTickets...)
+	var allSoldAddOns map[uint]*AddOnRecord = make(map[uint]*AddOnRecord)
+
+	for _, ticket := range allTickets {
+		if len(ticket.TicketAddOns) > 0 {
+			for _, addOn := range ticket.TicketAddOns {
+				// Create a AddOnRecord struct if it doesn't exist
+				if _, ok := allSoldAddOns[addOn.AddOnID]; !ok {
+					allSoldAddOns[addOn.AddOnID] = &AddOnRecord{
+						ID:              addOn.AddOnID,
+						Name:            addOn.AddOn.Name,
+						Quantity:        0,
+						Price:           addOn.AddOn.Price,
+						ContainsAlcohol: addOn.AddOn.ContainsAlcohol,
+					}
+				}
+
+				// Increment the quantity of the AddOnRecord struct
+				allSoldAddOns[addOn.AddOnID].Quantity += 1
+			}
+		}
 	}
 
 	randomUUID := uuid.New()

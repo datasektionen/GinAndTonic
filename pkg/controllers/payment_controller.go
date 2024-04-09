@@ -106,6 +106,8 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		if addOn.AddOn.ContainsAlcohol {
 			addonInfo += "(Contains alcohol) "
 		}
+
+		addonInfo += fmt.Sprintf("= %.2f SEK, ", (float64)(addOn.AddOn.Price)*(float64)(addOn.Quantity))
 	}
 
 	// Define the customer parameters

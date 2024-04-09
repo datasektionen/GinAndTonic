@@ -77,7 +77,7 @@ func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string, ids *[]int)
 		Preload("EventFormReponses").
 		Preload("TicketAddOns.AddOn").
 		Where("user_ug_kth_id = ?", userUGKthID).
-		Find(&ticketRequests).Error; err != nil {
+		Find(&ticketRequests)
 
 	if ids != nil {
 		if len(*ids) > 0 {

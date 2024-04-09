@@ -33,7 +33,7 @@ func AuthorizeOrganizationRole(db *gorm.DB, rr models.OrgRole) gin.HandlerFunc {
 		}
 
 		// Compare the user's role with the required role
-		// Owener has the highest id, so if the user's role id is lower than the required role id, the user is not authorized
+		// Owner has the highest id, so if the user's role id is lower than the required role id, the user is not authorized
 		if userRole.ID < requiredRole.ID {
 			c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this organization"})
 			c.Abort()

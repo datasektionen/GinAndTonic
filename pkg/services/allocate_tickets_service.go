@@ -257,7 +257,7 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	// Fetch total available tickets directly
 	var availableTickets int = ticketRelease.TicketsAvailable
 
-	// Give all users ticekts up to the available tickets, give the rest reserve tickets
+	// Give all users tickets up to the available tickets, give the rest reserve tickets
 	for i, ticketRequest := range allTicketRequests {
 		if i < availableTickets {
 			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)

@@ -141,7 +141,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 	payWithin := ticketRelease.PayWithin
 	// Calculate when ticket should have been paid depending on the when the ticket was updated
 
-	// Get all allocated tickets that isnt a reserve ticket or deleted
+	// Get all allocated tickets that aren't reserve tickets or deleted
 	allocatedTickets, err := models.GetAllTicketsToTicketRelease(tx, ticketRelease.ID)
 	if err != nil {
 		allocator_logger.WithFields(logrus.Fields{
@@ -151,7 +151,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		return err
 	}
 
-	// Get all reserved tickets that isnt deleted
+	// Get all reserved tickets that aren't deleted
 	reservedTickets, err := models.GetAllReserveTicketsToTicketRelease(tx, ticketRelease.ID)
 	if err != nil {
 		allocator_logger.WithFields(logrus.Fields{
@@ -167,7 +167,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		"number_of_reserved_tickets":  len(reservedTickets),
 	}).Info("Got all allocated and reserved tickets")
 
-	// Initialize newReserveTickets by taking the tickets available and subtracting the number of allocated tickets that hasnt been deleted
+	// Initialize newReserveTickets by taking the tickets available and subtracting the number of allocated tickets that haven't been deleted
 	var newReserveTickets int64 = int64(ticketRelease.TicketsAvailable) - int64(len(allocatedTickets))
 
 	var newlyAllocatedTicketIDs []int

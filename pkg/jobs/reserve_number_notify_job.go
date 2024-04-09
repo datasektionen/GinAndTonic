@@ -97,7 +97,7 @@ func process_ntnj(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 		return nil
 	}
 
-	// Get all reserved tickets that isnt deleted
+	// Get all reserved tickets that aren't deleted
 	reservedTickets, err := models.GetAllReserveTicketsToTicketRelease(tx, ticketRelease.ID)
 	if err != nil {
 		resnum_logger.WithFields(logrus.Fields{

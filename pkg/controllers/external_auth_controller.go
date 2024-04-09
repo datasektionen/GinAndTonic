@@ -27,7 +27,7 @@ func NewExternalAuthController(db *gorm.DB, service *services.ExternalAuthServic
 }
 
 /*
-Some users dont have a kth.se email address, and therefore cannot use the KTH login system.
+Some users don't have a kth.se email address, and therefore cannot use the KTH login system.
 This endpoint is used to authenticate these users. These users are not able to create events.
 But they can still pay for tickets as long as the ticket release is only for external users.
 */

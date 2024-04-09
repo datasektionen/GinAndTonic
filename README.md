@@ -107,7 +107,7 @@ $ gin -a 8080 -i run main.go
 
 #### Using Docker
 
-You can also use docker to run the application. The benefit with running docker is that it uses [nyckeln-under-dorrmattan](https://github.com/datasektionen/nyckeln-under-dorrmattan) to mimic login, so you dont have to clone the repo. It also creates and manages the PostgresSQL database for you.
+You can also use docker to run the application. The benefit with running docker is that it uses [nyckeln-under-dorrmattan](https://github.com/datasektionen/nyckeln-under-dorrmattan) to mimic login, so you don't have to clone the repo. It also creates and manages the PostgresSQL database for you.
 
     $ docker-compose up --build
 

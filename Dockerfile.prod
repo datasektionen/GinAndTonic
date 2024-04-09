@@ -1,6 +1,10 @@
 # Start from the official Go image to build the binary.
 FROM golang:1.19 as builder
 
+LABEL maintainer="lucdow7@gmail.com"
+LABEL version="alpha-0.1.0"
+LABEL description="GinAndTonic API for tessera"
+
 # Set the working directory inside the container.
 WORKDIR /app
 
@@ -17,7 +21,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # Start a new stage from scratch for a smaller, final image.
-FROM alpine:latest  
+FROM alpine:3.19.1 
 
 # Add CA certificates.
 RUN apk --no-cache add ca-certificates
@@ -31,6 +35,10 @@ COPY --from=builder /app/templates /root/templates
 
 # Expose port 8080 to the outside world.
 EXPOSE 8080
+
+#
+HEALTHCHECK CMD curl --fail http://localhost:8080/health || exit 1
+
 
 # Command to run the executable.
 CMD ["./main"]

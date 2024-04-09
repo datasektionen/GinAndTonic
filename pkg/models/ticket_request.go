@@ -33,6 +33,20 @@ func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint)
 	return ticketRequests, nil
 }
 
+func GetValidTicketReqeust(db *gorm.DB, ticketRequestID uint) (*TicketRequest, error) {
+	var ticketRequest TicketRequest
+	if err := db.
+		Preload("TicketType").
+		Preload("TicketRelease.Event.FormFields").
+		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Preload("EventFormReponses").
+		Where("id = ?", ticketRequestID).First(&ticketRequest).Error; err != nil {
+		return nil, err
+	}
+
+	return &ticketRequest, nil
+}
+
 func GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {
 	var ticketRequests []TicketRequest
 	if err := db.
@@ -48,16 +62,24 @@ func GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(db *gorm.DB, tick
 	return ticketRequests, nil
 }
 
-func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRequest, error) {
+func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string, ids *[]int) ([]TicketRequest, error) {
 	var ticketRequests []TicketRequest
-	if err := db.
+
+	query := db.
 		Unscoped().
 		Preload("TicketType").
 		Preload("TicketRelease.Event.FormFields").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
 		Preload("EventFormReponses").
-		Where("user_ug_kth_id = ?", userUGKthID).
-		Find(&ticketRequests).Error; err != nil {
+		Where("user_ug_kth_id = ?", userUGKthID)
+
+	if ids != nil {
+		if len(*ids) > 0 {
+			query = query.Where("id IN (?)", *ids)
+		}
+	}
+
+	if err := query.Find(&ticketRequests).Error; err != nil {
 		return nil, err
 	}
 

@@ -122,8 +122,8 @@ func (trs *TicketRequestService) CreateTicketRequest(
 	return mTicketRequest, nil
 }
 
-func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string) ([]models.TicketRequest, *types.ErrorResponse) {
-	ticketRequests, err := models.GetAllValidUsersTicketRequests(trs.DB, UGKthID)
+func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string, ids *[]int) ([]models.TicketRequest, *types.ErrorResponse) {
+	ticketRequests, err := models.GetAllValidUsersTicketRequests(trs.DB, UGKthID, ids)
 
 	if err != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
@@ -179,6 +179,16 @@ func (trs *TicketRequestService) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, ticketRequests)
+}
+
+func (trs *TicketRequestService) GetTicketRequest(ticketRequestID int) (ticketRequest *models.TicketRequest, err *types.ErrorResponse) {
+	// Use your database or service layer to find the ticket request by ID
+	ticketRequest, err2 := models.GetValidTicketReqeust(trs.DB, uint(ticketRequestID))
+	if err2 != nil {
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket request"}
+	}
+
+	return ticketRequest, nil
 }
 
 func (trs *TicketRequestService) isTicketReleaseOpen(ticketReleaseID uint) bool {

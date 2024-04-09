@@ -88,7 +88,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequest() {
 
 	var ticketRequestFromDB []models.TicketRequest
 
-	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
+	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID", nil)
 	suite.Nil(err)
 	suite.Equal(1, len(ticketRequestFromDB))
 }
@@ -126,7 +126,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAboveMaxTicketsPerUs
 	suite.NotNil(err)
 
 	var ticketRequestFromDB []models.TicketRequest
-	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
+	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID", nil)
 
 	suite.Nil(err)
 	suite.Equal(10, len(ticketRequestFromDB))
@@ -159,7 +159,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterOpenWindowDurat
 
 	// Check that it is a reserve ticket
 	var ticketRequestFromDB []models.TicketRequest
-	ticketRequestFromDB, err := suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
+	ticketRequestFromDB, err := suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID", nil)
 
 	suite.Nil(err)
 	suite.Equal(1, len(ticketRequestFromDB))
@@ -215,7 +215,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestAfterClose() {
 
 	// Check that it is a reserve ticket
 	var ticketRequestFromDB []models.TicketRequest
-	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
+	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID", nil)
 
 	suite.Nil(err)
 	suite.Equal(0, len(ticketRequestFromDB))
@@ -259,7 +259,7 @@ func (suite *TicketRequestTestSuite) TestCreateTicketRequestBeforeOpen() {
 
 	// Check that it is a reserve ticket
 	var ticketRequestFromDB []models.TicketRequest
-	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
+	ticketRequestFromDB, err = suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID", nil)
 
 	suite.Nil(err)
 	suite.Equal(0, len(ticketRequestFromDB))
@@ -315,7 +315,7 @@ func (suite *TicketRequestTestSuite) TestUserMakesTwoTicketRequestUnderMaxTicket
 
 	// Check that it is a reserve ticket
 	var ticketRequestFromDB []models.TicketRequest
-	ticketRequestFromDB, err2 := suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID")
+	ticketRequestFromDB, err2 := suite.ticketRequestService.GetTicketRequestsForUser("validUserUGKthID", nil)
 
 	suite.Nil(err2)
 	suite.Equal(2, len(ticketRequestFromDB))

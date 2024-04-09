@@ -196,6 +196,8 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 	pdf.Line(20, currentY, 190, currentY)
 	currentY += lineHt
 
+	pdf.SetFont("Arial", "B", 10)
+
 	pdf.Text(20, currentY, fmt.Sprintf("Tickets Sold: %d", data.TicketsSold))
 	currentY += lineHt
 	pdf.Text(20, currentY, fmt.Sprintf("Total Sales: %.2f", data.TotalSales))

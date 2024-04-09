@@ -14,6 +14,14 @@ const (
 	SalesReportStatusFailed    SalesReportStatus = "failed"
 )
 
+type AddOnRecord struct {
+	ID              uint    `json:"id"`
+	Name            string  `json:"name"`
+	QuantitySales   int     `json:"quantity"`
+	TotalSales      float64 `json:"price"`
+	ContainsAlcohol bool    `json:"contains_alcohol"`
+}
+
 type EventSalesReport struct {
 	gorm.Model
 	EventID      int               `json:"event_id"`
@@ -23,7 +31,9 @@ type EventSalesReport struct {
 	Message      *string           `gorm:"type:text" json:"message"`
 	Transactions []Transaction     `gorm:"many2many:event_sales_report_transactions;" json:"transactions"`
 	FileName     string            `json:"file_name"`
-	URL          string            `gorm:"-" json:"url"` // This field will not be stored in the database
+	AddOnsSales  []AddOnRecord     `gorm:"-" json:"add_ons_sales"`
+
+	URL string `gorm:"-" json:"url"` // This field will not be stored in the database
 }
 
 // Validate

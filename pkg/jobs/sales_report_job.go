@@ -161,6 +161,7 @@ func GetFreeTicketsByEvent(db *gorm.DB, eventID int) ([]models.Ticket, error) {
 		Where("ticket_types.price = 0 AND ticket_releases.event_id = ?", eventID).
 		Preload("TicketRequest").
 		Preload("TicketRequest.TicketType").
+		Preload("TicketAddOns.AddOn").
 		Find(&tickets).Error; err != nil {
 		return nil, err
 	}
@@ -177,9 +178,51 @@ func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport,
 		return nil, err
 	}
 
+	// We need to get all Ticket.TicketAddOns
+	var purchasedTickets []models.Ticket
+	for _, transaction := range transactions {
+		var ticket models.Ticket
+		if err := db.Preload("TicketAddOns.AddOn").Where("id = ?", transaction.TicketID).First(&ticket).Error; err != nil {
+			return nil, err
+		}
+
+		purchasedTickets = append(purchasedTickets, ticket)
+	}
+
 	freeTickets, err := GetFreeTicketsByEvent(db, eventID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Combine purchased tickets and free tickets and iterate over them
+	allTickets := append(purchasedTickets, freeTickets...)
+	var allSoldAddOns map[uint]*models.AddOnRecord = make(map[uint]*models.AddOnRecord)
+
+	for _, ticket := range allTickets {
+		if len(ticket.TicketAddOns) > 0 {
+			for _, addOn := range ticket.TicketAddOns {
+				// Create a models.AddOnRecord struct if it doesn't exist
+				if _, ok := allSoldAddOns[addOn.AddOnID]; !ok {
+					allSoldAddOns[addOn.AddOnID] = &models.AddOnRecord{
+						ID:              addOn.AddOnID,
+						Name:            addOn.AddOn.Name,
+						QuantitySales:   0,
+						TotalSales:      0,
+						ContainsAlcohol: addOn.AddOn.ContainsAlcohol,
+					}
+				}
+
+				// Increment the quantity of the AddOnRecord struct
+				allSoldAddOns[addOn.AddOnID].QuantitySales += addOn.Quantity
+				allSoldAddOns[addOn.AddOnID].TotalSales += addOn.AddOn.Price * float64(addOn.Quantity)
+			}
+		}
+	}
+
+	// Convert map to array
+	var updatedAddOnsSales []models.AddOnRecord
+	for _, addOn := range allSoldAddOns {
+		updatedAddOnsSales = append(updatedAddOnsSales, *addOn)
 	}
 
 	randomUUID := uuid.New()
@@ -193,6 +236,7 @@ func GenerateReportForEvent(eventID int, db *gorm.DB) (*models.EventSalesReport,
 		Status:       models.SalesReportStatusPending,
 		Transactions: transactions,
 		FileName:     fileName,
+		AddOnsSales:  updatedAddOnsSales,
 	}
 
 	for _, pi := range paymentIntents {
@@ -266,6 +310,7 @@ func HandleSalesReportJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) 
 			Status:      string(report.Status),
 			Message:     msg,
 			FileName:    report.FileName,
+			AddonsSales: report.AddOnsSales,
 		}
 
 		trs, err := models.GetTicketReleasesToEvent(db, uint(p.EventID))

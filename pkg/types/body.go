@@ -106,3 +106,8 @@ type EventFormFieldResponseCreateRequest struct {
 	EventFormFieldID uint    `json:"event_form_field_id" binding:"required"`
 	Value            *string `json:"value" binding:"required"`
 }
+
+type SelectedAddOns struct {
+	ID       int `json:"id"`
+	Quantity int `json:"quantity"`
+}

@@ -16,6 +16,7 @@ type TicketRequest struct {
 	IsHandled         bool                     `json:"is_handled" gorm:"default:false"`
 	Tickets           []Ticket                 `json:"tickets"`
 	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
+	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketRequestID" json:"ticket_add_ons"`
 }
 
 func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {
@@ -24,6 +25,7 @@ func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint)
 		Preload("TicketType").
 		Preload("TicketRelease.Event").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Preload("TicketAddOns.AddOn").
 		Where("ticket_release_id = ? AND is_handled = ?", ticketReleaseID, false).Find(&ticketRequests).Error; err != nil {
 		return nil, err
 	}
@@ -53,6 +55,7 @@ func GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(db *gorm.DB, tick
 		Preload("TicketType").
 		Preload("TicketRelease.Event").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Preload("TicketAddOns.AddOn").
 		Where("ticket_release_id = ? AND is_handled = ?", ticketReleaseID, false).Order("created_at").Find(&ticketRequests).Error; err != nil {
 		return nil, err
 	}
@@ -69,9 +72,12 @@ func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string, ids *[]int)
 		Unscoped().
 		Preload("TicketType").
 		Preload("TicketRelease.Event.FormFields").
+		Preload("TicketRelease.AddOns").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
 		Preload("EventFormReponses").
-		Where("user_ug_kth_id = ?", userUGKthID)
+		Preload("TicketAddOns.AddOn").
+		Where("user_ug_kth_id = ?", userUGKthID).
+		Find(&ticketRequests).Error; err != nil {
 
 	if ids != nil {
 		if len(*ids) > 0 {

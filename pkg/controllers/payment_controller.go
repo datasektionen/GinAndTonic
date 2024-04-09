@@ -61,6 +61,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.User").
 		Preload("TicketRequest.TicketRelease.Event").
+		Preload("TicketAddOns.AddOn").
 		Where("id = ? AND user_ug_kth_id = ?", ticketId, ugkthid).First(&ticket).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -93,12 +94,24 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	user := ticket.TicketRequest.User
 
 	// Sum price
-	var totalPrice int64
-	totalPrice += (int64)(ticket.TicketRequest.TicketType.Price*100) * (int64)(ticket.TicketRequest.TicketAmount)
+	var totalPrice float64
+	totalPrice += (float64)(ticket.TicketRequest.TicketType.Price*100) * (float64)(ticket.TicketRequest.TicketAmount)
+
+	var addonInfo string
+
+	for _, addOn := range ticket.TicketAddOns {
+		totalPrice += (float64)(addOn.AddOn.Price*100) * (float64)(addOn.Quantity)
+
+		addonInfo += fmt.Sprintf("%d x %s ", addOn.Quantity, addOn.AddOn.Name)
+		if addOn.AddOn.ContainsAlcohol {
+			addonInfo += "(Contains alcohol) "
+		}
+	}
 
 	// Define the customer parameters
 	customerParams := &stripe.CustomerListParams{}
 	customerParams.Filters.AddFilter("email", "", user.Email)
+	customerParams.Filters.AddFilter("name", "", user.FullName())
 	customerParams.Single = true
 
 	// Try to find existing customer
@@ -134,6 +147,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		"tessera_ticket_type":     ticket.TicketRequest.TicketType.Name,
 		"tessera_ticket_amount":   strconv.Itoa(ticket.TicketRequest.TicketAmount),
 		"tessera_ticket_price":    fmt.Sprintf("%f", ticket.TicketRequest.TicketType.Price),
+		"tessera_addons_info":     addonInfo,
 	}
 
 	params := &stripe.PaymentIntentParams{
@@ -141,7 +155,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 			Metadata: metadata,
 		},
 		Customer:           stripe.String(cust.ID),
-		Amount:             stripe.Int64(totalPrice),
+		Amount:             stripe.Int64(int64(totalPrice)),
 		Currency:           stripe.String(string(stripe.CurrencySEK)),
 		PaymentMethodTypes: []*string{stripe.String("card")},
 		ReceiptEmail:       stripe.String(ticket.TicketRequest.User.Email),

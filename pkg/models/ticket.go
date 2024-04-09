@@ -32,6 +32,7 @@ type Ticket struct {
 	CheckedInAt     sql.NullTime  `json:"checked_in_at"`
 	QrCode          string        `json:"qr_code" gorm:"unique;not null"`
 	PurchasableAt   *time.Time    `json:"purchasable_at" gorm:"default:null"`
+	TicketAddOns    []TicketAddOn `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
 }
 
 func (t *Ticket) Delete(db *gorm.DB) error {
@@ -111,6 +112,8 @@ func GetAllValidUsersTicket(db *gorm.DB, userUGKthID string) ([]Ticket, error) {
 		Preload("TicketRequest.TicketRelease.Event").
 		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail").
+		Preload("TicketAddOns").
+		Preload("TicketRequest.TicketRelease.AddOns").
 		Where("user_ug_kth_id = ?", userUGKthID).
 		Find(&tickets).Error; err != nil {
 		return nil, err

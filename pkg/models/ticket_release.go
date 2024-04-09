@@ -19,7 +19,7 @@ type TicketRelease struct {
 	AllowExternal               bool                      `gorm:"default:false" json:"allow_external"` // Allow external users to buy tickets
 	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
 	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
-	TicketsAvailable            int                       `json:"tickets_available"`
+	TicketsAvailable            int                       `json:"tickets_available"` // The total number of tickets for the ticket release
 	IsReserved                  bool                      `gorm:"default:false" json:"is_reserved"`
 	PromoCode                   *string                   `gorm:"default:NULL" json:"promo_code"`
 	PayWithin                   *int64                    `json:"pay_within" default:"NULL"`
@@ -28,6 +28,7 @@ type TicketRelease struct {
 	TicketReleaseMethodDetail   TicketReleaseMethodDetail `json:"ticket_release_method_detail"`
 	ReservedUsers               []User                    `gorm:"many2many:user_unlocked_ticket_releases;" json:"-"`
 	UserReminders               []TicketReleaseReminder   `gorm:"foreignKey:TicketReleaseID" json:"user_reminders"`
+	AddOns                      []AddOn                   `gorm:"foreignKey:TicketReleaseID" json:"add_ons"`
 }
 
 func (tr *TicketRelease) ValidatePayWithin() bool {

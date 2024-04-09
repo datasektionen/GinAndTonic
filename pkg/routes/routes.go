@@ -113,6 +113,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	preferredEmailController := controllers.NewPreferredEmailController(db, preferredEmailService)
 	eventFormFieldController := controllers.NewEventFormFieldController(db)
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
+	addOnController := controllers.NewAddOnController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -163,6 +164,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
 
+	// AddOn
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		addOnController.GetAddOns)
+	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		addOnController.UpsertAddOns)
+	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID/add-ons/:addOnID",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		addOnController.DeleteAddOn)
+
 	// Form fields
 	r.PUT("/events/:eventID/form-fields", eventFormFieldController.Upsert)
 	r.PUT("/events/:eventID/ticket-requests/:ticketRequestID/form-fields", eventFromFieldResponseController.Upsert)
@@ -191,6 +203,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)
 	r.POST("/events/:eventID/ticket-requests", rlm.MiddlewareFunc(), ticketRequestController.Create)
 	r.DELETE("/events/:eventID/ticket-requests/:ticketRequestID", ticketRequestController.CancelTicketRequest)
+	r.PUT("/ticket-releases/:ticketReleaseID/ticket-requests/:ticketRequestID/add-ons", ticketRequestController.UpdateAddOns)
 
 	// Ticket events routes
 	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventController.ListTickets)

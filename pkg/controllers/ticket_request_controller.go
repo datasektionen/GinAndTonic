@@ -7,6 +7,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -50,23 +51,31 @@ func (trc *TicketRequestController) UsersList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ticket_requests": ticketRequests})
 }
 
+type TicketRequestCreateRequest struct {
+	TicketRequests []models.TicketRequest `json:"ticket_requests"`
+	SelectedAddOns []types.SelectedAddOns `json:"selected_add_ons"`
+}
+
 // Create a ticket request
 func (trc *TicketRequestController) Create(c *gin.Context) {
-	var ticketRequests []models.TicketRequest
+	var request TicketRequestCreateRequest
 	var ticketRequestsIds []int
 
 	UGKthID, _ := c.Get("ugkthid")
 
-	if err := c.ShouldBindJSON(&ticketRequests); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	var ticketRequests []models.TicketRequest = request.TicketRequests
+	// var addOns []models.AddOn = request.AddOns
 
 	for i := range ticketRequests {
 		ticketRequests[i].UserUGKthID = UGKthID.(string)
 	}
 
-	mTicketRequests, err := trc.Service.CreateTicketRequests(ticketRequests)
+	mTicketRequests, err := trc.Service.CreateTicketRequests(ticketRequests, &request.SelectedAddOns)
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
 		return
@@ -107,4 +116,41 @@ func (trc *TicketRequestController) CancelTicketRequest(c *gin.Context) {
 
 	// Send a 200 OK response
 	c.JSON(http.StatusOK, gin.H{"status": "Ticket request cancelled"})
+}
+
+func (trc *TicketRequestController) UpdateAddOns(c *gin.Context) {
+	// Get the ID of the ticket request from the URL parameters
+	ticketRequestIDstring := c.Param("ticketRequestID")
+	ticketRequestID, err := strconv.Atoi(ticketRequestIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket request ID"})
+		return
+	}
+
+	ticketReleaseIDstring := c.Param("ticketReleaseID")
+	ticketReleaseID, err := strconv.Atoi(ticketReleaseIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release ID"})
+		return
+	}
+
+	// Create a struct to hold the request body
+	var request []types.SelectedAddOns
+
+	// Bind the request body to the struct
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Use your database or service layer to update the add-ons for the ticket request
+	var aerr *types.ErrorResponse = trc.Service.UpdateAddOns(request, ticketRequestID, ticketReleaseID)
+	if aerr != nil {
+		// Handle aerror, for example send a 404 Not Found response
+		c.JSON(aerr.StatusCode, gin.H{"error": aerr.Message})
+		return
+	}
+
+	// Send a 200 OK response
+	c.JSON(http.StatusOK, gin.H{"status": "Add-ons updated"})
 }

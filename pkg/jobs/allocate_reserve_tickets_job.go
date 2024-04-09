@@ -231,7 +231,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		var ticket models.Ticket
 		for i := 0; i < len(reservedTickets); i++ {
 			ticket = reservedTickets[i]
-			// If i is greater than or equal to newReserveTickets then we have allocated all tickets
+			// If i is greater than or equal to newReserveTickets then we have alalocated all tickets
 			// And we want to update the reserve number for the remaining tickets
 			// This should be i - newReserveTickets + 1
 			if i >= int(newReserveTickets) {

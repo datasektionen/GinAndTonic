@@ -257,7 +257,7 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	// Fetch total available tickets directly
 	var availableTickets int = ticketRelease.TicketsAvailable
 
-	// Give all users ticekts up to the available tickets, give the rest reserve tickets
+	// Give all users tickets up to the available tickets, give the rest reserve tickets
 	for i, ticketRequest := range allTicketRequests {
 		if i < availableTickets {
 			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
@@ -276,4 +276,53 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	}
 
 	return tickets, nil
+}
+
+func (ats *AllocateTicketsService) SelectivelyAllocateTicketRequest(ticketRequestID uint) error {
+	// Use your database layer to find the ticket request by ID and allocate it
+	// This is just a placeholder implementation, replace it with your actual code
+	tx := ats.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var ticketRequest models.TicketRequest
+	err := tx.Preload("User").
+		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Where("id = ?", ticketRequestID).First(&ticketRequest).Error
+
+	if err != nil {
+		return err
+	}
+
+	if ticketRequest.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod.MethodName != string(models.SELECTIVE) {
+		return errors.New("ticket release method is not selective")
+	}
+
+	// Check if ticket request is already handled
+	// If the ticket request is already handled, it cannot be allocated
+	if ticketRequest.IsHandled {
+		return errors.New("ticket request is already handled")
+	}
+
+	// Alocate the ticket
+	ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
+	if err != nil {
+		return err
+	}
+
+	err = Notify_TicketAllocationCreated(tx, int(ticket.ID), 0)
+
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

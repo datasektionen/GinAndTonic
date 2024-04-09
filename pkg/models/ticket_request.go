@@ -30,9 +30,23 @@ func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint)
 		return nil, err
 	}
 
-	// Acording to gorm soft delete, we should not fetch soft deleted records
+	// According to gorm soft delete, we should not fetch soft deleted records
 
 	return ticketRequests, nil
+}
+
+func GetValidTicketReqeust(db *gorm.DB, ticketRequestID uint) (*TicketRequest, error) {
+	var ticketRequest TicketRequest
+	if err := db.
+		Preload("TicketType").
+		Preload("TicketRelease.Event.FormFields").
+		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Preload("EventFormReponses").
+		Where("id = ?", ticketRequestID).First(&ticketRequest).Error; err != nil {
+		return nil, err
+	}
+
+	return &ticketRequest, nil
 }
 
 func GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {
@@ -46,14 +60,15 @@ func GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(db *gorm.DB, tick
 		return nil, err
 	}
 
-	// Acording to gorm soft delete, we should not fetch soft deleted records
+	// According to gorm soft delete, we should not fetch soft deleted records
 
 	return ticketRequests, nil
 }
 
-func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRequest, error) {
+func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string, ids *[]int) ([]TicketRequest, error) {
 	var ticketRequests []TicketRequest
-	if err := db.
+
+	query := db.
 		Unscoped().
 		Preload("TicketType").
 		Preload("TicketRelease.Event.FormFields").
@@ -63,6 +78,14 @@ func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string) ([]TicketRe
 		Preload("TicketAddOns.AddOn").
 		Where("user_ug_kth_id = ?", userUGKthID).
 		Find(&ticketRequests).Error; err != nil {
+
+	if ids != nil {
+		if len(*ids) > 0 {
+			query = query.Where("id IN (?)", *ids)
+		}
+	}
+
+	if err := query.Find(&ticketRequests).Error; err != nil {
 		return nil, err
 	}
 

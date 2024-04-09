@@ -23,7 +23,6 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 		}
 	}
 
-	// If the price of the ticket is 0, set it to have been paid
 	if ticketRequest.TicketType.ID == 0 {
 		// Fatal error
 		fmt.Println("No ticket type specified")
@@ -31,6 +30,7 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 	}
 
 	var isPaid bool = false
+	// If the price of the ticket is 0, set it to have been paid
 	if ticketRequest.TicketType.Price == 0 && ticketRequest.TicketType.ID != 0 {
 		isPaid = true
 	}

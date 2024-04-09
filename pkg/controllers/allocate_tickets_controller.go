@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -69,7 +70,6 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		return
 	}
 
-
 	c.JSON(http.StatusOK, gin.H{"message": "Tickets allocated"})
 }
 
@@ -108,4 +108,26 @@ func (atc *AllocateTicketsController) ListAllocatedTicketsForEvent(c *gin.Contex
 	}
 
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets})
+}
+
+func (atc *AllocateTicketsController) SelectivelyAllocateTicketRequest(c *gin.Context) {
+	// Get the ID of the ticket request from the URL parameters
+	ticketRequestIDstring := c.Param("ticketRequestID")
+	ticketRequestID, err := strconv.Atoi(ticketRequestIDstring)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket request ID"})
+		return
+	}
+
+	// Use your database or service layer to find the ticket request by ID and cancel it
+	err = atc.AllocateTicketsService.SelectivelyAllocateTicketRequest(
+		uint(ticketRequestID))
+	if err != nil {
+		// Handle error, for example send a 404 Not Found response
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Ticket request allocated"})
 }

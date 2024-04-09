@@ -31,26 +31,30 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		return tx.Error
 	}
 
+	var endDate time.Time
+
+	if data.Event.EndDate != nil {
+		endDate = time.Unix(*data.Event.EndDate, 0)
+	}
+
 	// Create Event
 	event := models.Event{
 		Name:           data.Event.Name,
 		Description:    data.Event.Description,
 		Date:           time.Unix(data.Event.Date, 0),
+		EndDate:        &endDate,
 		Location:       data.Event.Location,
 		OrganizationID: data.Event.OrganizationID,
 		IsPrivate:      data.Event.IsPrivate,
 		CreatedBy:      createdBy,
 	}
 
-	if event.IsPrivate {
-		token, err := utils.GenerateSecretToken()
-
-		if err != nil {
-			return err
-		}
-
-		event.SecretToken = token
+	token, err := utils.GenerateSecretToken()
+	if err != nil {
+		return err
 	}
+
+	event.SecretToken = token
 
 	if err := tx.Create(&event).Error; err != nil {
 		tx.Rollback()
@@ -69,6 +73,7 @@ func (es *EventService) CreateEvent(data types.EventFullWorkflowRequest, created
 		NotificationMethod:    data.TicketRelease.NotificationMethod,
 		CancellationPolicy:    data.TicketRelease.CancellationPolicy,
 		MaxTicketsPerUser:     uint(data.TicketRelease.MaxTicketsPerUser),
+		MethodDescription:     data.TicketRelease.MethodDescription,
 	}
 
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {

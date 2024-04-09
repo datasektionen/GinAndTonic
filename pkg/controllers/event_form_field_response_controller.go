@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
@@ -20,6 +21,13 @@ func NewEventFormFieldResponseController(db *gorm.DB) *EventFormFieldResponseCon
 }
 
 func (effrc *EventFormFieldResponseController) Upsert(c *gin.Context) {
+	eventIDstring := c.Param("eventID")
+	_, err := strconv.Atoi(eventIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
 	ticketRequestID := c.Param("ticketRequestID")
 	user := c.MustGet("user").(models.User)
 	var request []types.EventFormFieldResponseCreateRequest

@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
@@ -21,14 +22,29 @@ func NewTicketRequestController(db *gorm.DB) *TicketRequestController {
 }
 
 func (trc *TicketRequestController) UsersList(c *gin.Context) {
-	// Find all ticket requests for the user
+	UGKthId, exists := c.Get("ugkthid")
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing user ID"})
+		return
+	}
 
-	UGKthId, _ := c.Get("ugkthid")
+	idsString := c.Query("ids")
+	var idsInt []int
+	if idsString != "" {
+		ids := strings.Split(idsString, ",")
+		for _, id := range ids {
+			idInt, err := strconv.Atoi(id)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket request ID"})
+				return
+			}
+			idsInt = append(idsInt, idInt)
+		}
+	}
 
-	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthId.(string))
-
+	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthId.(string), &idsInt)
 	if err != nil {
-		c.JSON(err.StatusCode, gin.H{"error": err.Message})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -71,12 +87,12 @@ func (trc *TicketRequestController) Create(c *gin.Context) {
 
 	services.Notify_TicketRequestCreated(trc.Service.DB, ticketRequestsIds)
 
-	c.JSON(http.StatusCreated, ticketRequests)
+	c.JSON(http.StatusCreated, mTicketRequests)
 }
 
 func (trc *TicketRequestController) Get(c *gin.Context) {
 	UGKthID, _ := c.Get("ugkthid")
-	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthID.(string))
+	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthID.(string), nil)
 
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})

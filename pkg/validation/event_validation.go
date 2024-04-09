@@ -24,6 +24,12 @@ func ValidateEventDates(db *gorm.DB, eventID uint) error {
 			return errors.New("event date is after ticket release close")
 		}
 
+		if event.EndDate != nil {
+			if event.EndDate.Before(time.Unix(ticketRelease.Close, 0)) {
+				return errors.New("event end date is after ticket release close")
+			}
+		}
+
 		if err := ticketRelease.ValidateTicketReleaseDates(db); err != nil {
 			return err
 		}

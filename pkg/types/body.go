@@ -26,6 +26,7 @@ type EventRequest struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
 	Date           int64  `json:"date"`
+	EndDate        *int64 `json:"end_date"`
 	Location       string `json:"location"`
 	OrganizationID int    `json:"organization_id"`
 	IsPrivate      bool   `json:"is_private"`
@@ -49,6 +50,7 @@ type TicketReleasePostReq struct {
 	Close                 int64  `json:"close"`
 	AllowExternal         bool   `json:"allow_external"`
 	OpenWindowDuration    int    `json:"open_window_duration,omitempty"`
+	MethodDescription     string `json:"method_description,omitempty"`
 	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
 	NotificationMethod    string `json:"notification_method"`
 	CancellationPolicy    string `json:"cancellation_policy"`
@@ -101,8 +103,8 @@ type SendOutRequest struct {
 }
 
 type EventFormFieldResponseCreateRequest struct {
-	EventFormFieldID uint   `json:"event_form_field_id" binding:"required"`
-	Value            string `json:"value" binding:"required"`
+	EventFormFieldID uint    `json:"event_form_field_id" binding:"required"`
+	Value            *string `json:"value" binding:"required"`
 }
 
 type SelectedAddOns struct {

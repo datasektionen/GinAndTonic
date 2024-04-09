@@ -262,8 +262,23 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 	event.Description = eventRequest.Description
 	event.Location = eventRequest.Location
 	event.Date = time.Unix(eventRequest.Date, 0)
+	if eventRequest.EndDate != nil {
+		endDate := time.Unix(*eventRequest.EndDate, 0)
+		event.EndDate = &endDate
+	}
 	event.OrganizationID = eventRequest.OrganizationID
 	event.IsPrivate = eventRequest.IsPrivate
+
+	if eventRequest.IsPrivate && event.SecretToken == "" {
+		token, err := utils.GenerateSecretToken()
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error generating the secret token"})
+			return
+		}
+
+		event.SecretToken = token
+	}
 
 	if err := ec.DB.Save(&event).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error updating the event"})

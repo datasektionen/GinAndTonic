@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -33,13 +34,13 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 	var ticketRequest models.TicketRequest
 	if err := tx.Where("id = ? AND user_ug_kth_id = ?", ticketRequestID, user.UGKthID).First(&ticketRequest).Error; err != nil {
 		tx.Rollback()
-		return err
+		return errors.New("error getting ticket request")
 	}
 
 	var existingResponses []models.EventFormFieldResponse
 	if err := tx.Preload("EventFormField").Where("ticket_request_id = ?", ticketRequestID).Find(&existingResponses).Error; err != nil {
 		tx.Rollback()
-		return err
+		return errors.New("error getting existing responses")
 	}
 
 	existingResponseMap := make(map[uint]models.EventFormFieldResponse)
@@ -47,19 +48,16 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 		existingResponseMap[response.EventFormFieldID] = response
 	}
 
-	fmt.Println("HELLO")
-	fmt.Println(responses)
-	fmt.Println(existingResponseMap)
-
 	for _, response := range responses {
 		existingResponse, exists := existingResponseMap[response.EventFormFieldID]
 
 		if exists {
 			// Update the existing response
-			existingResponse.Value = response.Value
-			if err := tx.Save(&existingResponse).Error; err != nil {
+			existingResponse.Value = *response.Value
+			// Print the type of the response
+			if err := tx.Model(models.EventFormFieldResponse{}).Where("id = ?", existingResponse.ID).UpdateColumn("value", response.Value).Error; err != nil {
 				tx.Rollback()
-				return err
+				return errors.New("error updating response")
 			}
 			// Remove the response from the map
 			delete(existingResponseMap, response.EventFormFieldID)
@@ -68,7 +66,7 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 			if err := tx.Where("id = ?", response.EventFormFieldID).First(&eventFormField).Error; err != nil {
 				if err == gorm.ErrRecordNotFound {
 					// Handle not found error
-					return fmt.Errorf("EventFormField with ID %d not found", response.EventFormFieldID)
+					return fmt.Errorf("eventFormField with ID %d not found", response.EventFormFieldID)
 				}
 				// Handle other DB errors
 				return err
@@ -78,13 +76,12 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 			newResponse := models.EventFormFieldResponse{
 				TicketRequestID:  ticketRequest.ID,
 				EventFormFieldID: response.EventFormFieldID,
-				Value:            response.Value,
+				Value:            *response.Value,
 			}
 
-			fmt.Println(newResponse)
 			if err := tx.Create(&newResponse).Error; err != nil {
 				tx.Rollback()
-				return err
+				return errors.New("error creating response")
 			}
 		}
 	}
@@ -93,7 +90,7 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 	for _, response := range existingResponseMap {
 		if err := tx.Delete(&response).Error; err != nil {
 			tx.Rollback()
-			return err
+			return errors.New("error deleting response")
 		}
 	}
 

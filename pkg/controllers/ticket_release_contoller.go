@@ -35,6 +35,7 @@ type TicketReleaseRequest struct {
 	IsReserved            bool   `json:"is_reserved"`
 	PromoCode             string `json:"promo_code"`
 	TicketsAvailable      int    `json:"tickets_available"`
+	MethodDescription     string `json:"method_description"`
 }
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
@@ -62,6 +63,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
 		TicketReleaseMethodID: ticketReleaseMethod.ID,
 		OpenWindowDuration:    int64(req.OpenWindowDuration),
+		MethodDescription:     req.MethodDescription,
 		NotificationMethod:    req.NotificationMethod,
 		CancellationPolicy:    req.CancellationPolicy,
 		MaxTicketsPerUser:     uint(req.MaxTicketsPerUser),
@@ -378,6 +380,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketReleaseMethodDetails.CancellationPolicy = req.CancellationPolicy
 	ticketReleaseMethodDetails.MaxTicketsPerUser = uint(req.MaxTicketsPerUser)
 	ticketReleaseMethodDetails.TicketReleaseMethodID = uint(req.TicketReleaseMethodID)
+	ticketReleaseMethodDetails.MethodDescription = req.MethodDescription
 
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

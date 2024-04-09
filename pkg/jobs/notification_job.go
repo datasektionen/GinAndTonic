@@ -88,11 +88,11 @@ func connectAsynqClient() *asynq.Client {
 	return client
 }
 
-func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string, evnetId *uint) error {
+func AddEmailJobToQueue(db *gorm.DB, user *models.User, subject, content string, eventId *uint) error {
 	client := connectAsynqClient()
 	defer client.Close()
 
-	payload, err := json.Marshal(tasks.EmailPayload{User: user, Subject: subject, Content: content, EventID: evnetId})
+	payload, err := json.Marshal(tasks.EmailPayload{User: user, Subject: subject, Content: content, EventID: eventId})
 	if err != nil {
 		return err
 	}

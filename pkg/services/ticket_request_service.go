@@ -79,7 +79,7 @@ func (trs *TicketRequestService) CreateTicketRequest(
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
 	}
 
-	// TODO prehaps create log file this?
+	// TODO perhaps create log file this?
 	var ticketRelease models.TicketRelease
 	if err := transaction.Preload("ReservedUsers").Preload("Event.Organization").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")
@@ -119,7 +119,7 @@ func (trs *TicketRequestService) CreateTicketRequest(
 
 	if !trs.checkReservedTicketRelease(&ticketRelease, &user) {
 		log.Println("User does not have access to this ticket release")
-		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "You dont have access to this ticket release"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "You don't have access to this ticket release"}
 	}
 
 	mTicketRequest = &models.TicketRequest{
@@ -134,7 +134,7 @@ func (trs *TicketRequestService) CreateTicketRequest(
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
 	}
 
-	// Check the relead method
+	// Check the release method
 	if ticketReleaseMethodDetail.TicketReleaseMethod.MethodName == string(models.RESERVED_TICKET_RELEASE) {
 		// We can allocated the ticket to the user directly if there are tickets_available
 		// Otherwise fail the request
@@ -153,8 +153,8 @@ func (trs *TicketRequestService) CreateTicketRequest(
 	return mTicketRequest, nil
 }
 
-func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string) ([]models.TicketRequest, *types.ErrorResponse) {
-	ticketRequests, err := models.GetAllValidUsersTicketRequests(trs.DB, UGKthID)
+func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string, ids *[]int) ([]models.TicketRequest, *types.ErrorResponse) {
+	ticketRequests, err := models.GetAllValidUsersTicketRequests(trs.DB, UGKthID, ids)
 
 	if err != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
@@ -175,7 +175,7 @@ func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) err
 	user := ticketRequest.User
 	org := ticketRequest.TicketRelease.Event.Organization
 
-	// Check if ticket request is allocted to a ticket
+	// Check if ticket request is allocated to a ticket
 	// If the ticket request is allocated to a ticket, it cannot be cancelled
 	if len(ticketRequest.Tickets) > 0 {
 		return errors.New("ticket request is already allocated to a ticket, cancel the ticket instead")
@@ -210,6 +210,16 @@ func (trs *TicketRequestService) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, ticketRequests)
+}
+
+func (trs *TicketRequestService) GetTicketRequest(ticketRequestID int) (ticketRequest *models.TicketRequest, err *types.ErrorResponse) {
+	// Use your database or service layer to find the ticket request by ID
+	ticketRequest, err2 := models.GetValidTicketReqeust(trs.DB, uint(ticketRequestID))
+	if err2 != nil {
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket request"}
+	}
+
+	return ticketRequest, nil
 }
 
 func (trs *TicketRequestService) isTicketReleaseOpen(ticketReleaseID uint) bool {

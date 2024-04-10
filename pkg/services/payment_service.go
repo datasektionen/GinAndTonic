@@ -101,6 +101,15 @@ func (ps *PaymentService) ProcessEvent(
 			return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error handling ticket payment"}
 		}
 
+		// Check if existing transaction exists
+		var transaction models.Transaction
+		if err := tx.Where("ticket_id = ?", ticket.ID).First(&transaction).Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				tx.Rollback()
+				return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "An unexpected error occurred, contact event organizers"}
+			}
+		}
+
 		if err := SuccessfulPayment(tx, paymentIntent); err != nil {
 			tx.Rollback()
 			return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error handling successful payment"}

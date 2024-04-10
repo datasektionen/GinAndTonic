@@ -62,6 +62,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		Preload("TicketRequest.User").
 		Preload("TicketRequest.TicketRelease.Event").
 		Preload("TicketAddOns.AddOn").
+		Preload("Transaction").
 		Where("id = ? AND user_ug_kth_id = ?", ticketId, ugkthid).First(&ticket).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -91,6 +92,27 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		}
 	}
 
+	var paymentIntent *stripe.PaymentIntent
+
+	if ticket.Transaction != nil {
+		transaction := *ticket.Transaction
+		if transaction.PaymentIntentID != "" {
+			// Retrieve the payment intent
+			pi, err := paymentintent.Get(ticket.Transaction.PaymentIntentID, nil)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			paymentIntent = pi
+		}
+	}
+
+	if paymentIntent != nil && paymentIntent.Status != stripe.PaymentIntentStatusSucceeded {
+		// PaymentIntent exists and is not completed, return the existing client secret.
+		c.JSON(http.StatusOK, gin.H{"client_secret": paymentIntent.ClientSecret})
+		return
+	}
+
 	user := ticket.TicketRequest.User
 
 	// Sum price
@@ -113,7 +135,6 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	// Define the customer parameters
 	customerParams := &stripe.CustomerListParams{}
 	customerParams.Filters.AddFilter("email", "", user.Email)
-	customerParams.Filters.AddFilter("name", "", user.FullName())
 	customerParams.Single = true
 
 	// Try to find existing customer
@@ -169,10 +190,30 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	idempotencyKey := fmt.Sprintf("payment-intent-%d-%s-%s", ticketId, ugkthid, ticket.TicketRequest.TicketRelease.Event.Name)
 	params.IdempotencyKey = stripe.String(idempotencyKey)
 
-	pi, err := paymentintent.New(params)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	// pi, err := paymentintent.New(params)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// 	return
+	// }
+
+	var pi *stripe.PaymentIntent
+	pi, err = paymentintent.Get(idempotencyKey, params)
+	if err == nil && pi != nil {
+		// Found an existing PaymentIntent with this idempotency key
+		if paymentIntent.Status != stripe.PaymentIntentStatusSucceeded {
+			// PaymentIntent is not succeeded, return the existing client secret
+			c.JSON(http.StatusOK, gin.H{"client_secret": paymentIntent.ClientSecret})
+		}
+		// If the PaymentIntent is succeeded, you may want to generate a new idempotency key and create a new PaymentIntent
+	} else {
+		// No existing PaymentIntent with this idempotency key, or an error occurred when retrieving it
+		// Proceed to create a new PaymentIntent with the new idempotency key
+		params.IdempotencyKey = stripe.String(idempotencyKey)
+		pi, err = paymentintent.New(params)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"client_secret": pi.ClientSecret})

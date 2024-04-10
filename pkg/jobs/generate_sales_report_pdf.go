@@ -208,7 +208,14 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 		return err
 	}
 
-	filePath := fmt.Sprintf("tmp/%s", data.FileName)
+	var folder string
+	if os.Getenv("ENV") == "prod" {
+		folder = "/tmp"
+	} else {
+		folder = "tmp"
+	}
+
+	filePath := fmt.Sprintf(folder+"/%s", data.FileName)
 	fmt.Println(filePath)
 	// Save
 	err = pdf.OutputFileAndClose(filePath)
@@ -216,15 +223,14 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 		return err
 	}
 
+	err = aws_service.UploadFileToS3(s3Client, data.FileName, fmt.Sprintf("%s/%s", folder, data.FileName))
+
+	if err != nil {
+		sales_report_logger.Error("Error uploading file to S3", err)
+		return err
+	}
+
 	if os.Getenv("ENV") == "prod" {
-		err = aws_service.UploadFileToS3(s3Client, data.FileName, fmt.Sprintf("tmp/%s", data.FileName))
-
-		if err != nil {
-			sales_report_logger.Error("Error uploading file to S3", err)
-			return err
-		}
-
-		// Remove file
 		err = os.Remove(filePath)
 		if err != nil {
 			return err

@@ -11,6 +11,8 @@ import (
 )
 
 func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ticket, error) {
+	paymentDeadline := ticketRequest.TicketRelease.PaymentDeadline
+
 	ticketRequest.IsHandled = true
 	if err := tx.Save(&ticketRequest).Error; err != nil {
 		return nil, err
@@ -45,6 +47,7 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 		IsPaid:          isPaid,
 		QrCode:          qrCode,
 		PurchasableAt:   &now,
+		PaymentDeadline: &paymentDeadline.OriginalDeadline,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {

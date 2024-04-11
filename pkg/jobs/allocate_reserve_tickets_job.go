@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
-	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -73,7 +72,8 @@ func ManuallyProcessAllocateReserveTicketsJob(db *gorm.DB, ticketReleaseID uint)
 	start := time.Now()
 
 	var ticketRelease *models.TicketRelease
-	err := db.First(&ticketRelease, ticketReleaseID).Error
+	err := db.Preload("PaymentDeadline").
+		First(&ticketRelease, ticketReleaseID).Error
 
 	if err != nil {
 		return err
@@ -137,8 +137,6 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		return nil
 	}
 
-	// availableTickets := ticketRelease.TicketsAvailable
-	payWithin := ticketRelease.PayWithin
 	// Calculate when ticket should have been paid depending on the when the ticket was updated
 
 	// Get all allocated tickets that aren't reserve tickets or deleted
@@ -178,16 +176,8 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		// Here we want to check if the ticket has been paid or if the ticket has not been paid within the time limit.
 		var mustPayBefore time.Time
 
-		if payWithin != nil {
-			var purchasableAt time.Time
-
-			if ticket.PurchasableAt != nil {
-				purchasableAt = *ticket.PurchasableAt
-			} else {
-				purchasableAt = ticket.UpdatedAt
-			}
-
-			mustPayBefore = utils.MustPayBefore(int(*payWithin), purchasableAt)
+		if ticket.PaymentDeadline != nil {
+			mustPayBefore = *ticket.PaymentDeadline
 		} else {
 			allocator_logger.WithFields(logrus.Fields{
 				"id": ticketRelease.ID,
@@ -265,11 +255,13 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			}
 
 			now := time.Now()
+			paymentDeadline := now.Add(*ticketRelease.PaymentDeadline.ReservePaymentDuration)
 
 			ticket.IsReserve = false
 			ticket.ReserveNumber = 0
 			ticket.IsPaid = isPaid
 			ticket.PurchasableAt = &now
+			ticket.PaymentDeadline = &paymentDeadline
 
 			if err := tx.Save(&ticket).Error; err != nil {
 				allocator_logger.WithFields(logrus.Fields{

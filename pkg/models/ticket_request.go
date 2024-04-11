@@ -25,6 +25,7 @@ func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint)
 		Preload("TicketType").
 		Preload("TicketRelease.Event").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
+		Preload("TicketRelease.PaymentDeadline").
 		Preload("TicketAddOns.AddOn").
 		Where("ticket_release_id = ? AND is_handled = ?", ticketReleaseID, false).Find(&ticketRequests).Error; err != nil {
 		return nil, err

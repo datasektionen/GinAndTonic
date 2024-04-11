@@ -32,6 +32,7 @@ type Ticket struct {
 	CheckedInAt     sql.NullTime  `json:"checked_in_at"`
 	QrCode          string        `json:"qr_code" gorm:"unique;not null"`
 	PurchasableAt   *time.Time    `json:"purchasable_at" gorm:"default:null"`
+	PaymentDeadline *time.Time    `json:"payment_deadline" gorm:"default:null"`
 	TicketAddOns    []TicketAddOn `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
 }
 

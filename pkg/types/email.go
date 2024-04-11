@@ -58,16 +58,6 @@ type EmailTicketRequestCancelledConfirmation struct {
 	OrganizationEmail string
 }
 
-// Associated with ticket_payment_reminder
-type EmailTicketPaymentReminder struct {
-	FullName          string
-	EventName         string
-	TicketURL         string
-	OrganizationName  string
-	OrganizationEmail string
-	PayWithin         string
-}
-
 // Associated with ticket_request_reserve_number_update
 type EmailTicketRequestReserveNumberUpdate struct {
 	FullName          string

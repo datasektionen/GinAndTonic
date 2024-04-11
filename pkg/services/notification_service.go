@@ -61,7 +61,7 @@ func Notify_TicketCancelled(db *gorm.DB, user *models.User, organization *models
 	return nil
 }
 
-func Notify_TicketAllocationCreated(db *gorm.DB, ticketId, payWithin int) error {
+func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *time.Time) error {
 	if os.Getenv("ENV") == "test" {
 		return nil
 	}
@@ -83,9 +83,8 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId, payWithin int) error 
 	}
 
 	var payBeforeString string
-
-	if payWithin != 0 {
-		payBeforeString = utils.ConvertPayWithinToString(payWithin, ticket.UpdatedAt)
+	if paymentDeadline == nil {
+		payBeforeString = paymentDeadline.Format("2006-01-02 15:04:05")
 	}
 
 	data := types.EmailTicketAllocationCreated{

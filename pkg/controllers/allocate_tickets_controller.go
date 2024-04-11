@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -23,7 +24,8 @@ func NewAllocateTicketsController(db *gorm.DB, ats *services.AllocateTicketsServ
 
 func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	type AllocateTicketsRequest struct {
-		PayWithin int64 `json:"pay_within"`
+		OriginalDeadline       time.Time     `json:"original_deadline" binding:"required"`
+		ReservePaymentDuration time.Duration `json:"reserve_payment_duration" binding:"required"`
 	}
 
 	var allocateTicketsRequest AllocateTicketsRequest
@@ -31,6 +33,10 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
+
+	fmt.Println(allocateTicketsRequest)
+	c.JSON(http.StatusOK, gin.H{"message": "Tickets allocated"})
+	return
 
 	eventID := c.Param("eventID")
 	ticketReleaseID := c.Param("ticketReleaseID")
@@ -43,10 +49,19 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		return
 	}
 
-	ticketRelease.PayWithin = &allocateTicketsRequest.PayWithin
+	var paymentDeadline models.TicketReleasePaymentDeadline = models.TicketReleasePaymentDeadline{
+		TicketReleaseID:        ticketRelease.ID,
+		OriginalDeadline:       allocateTicketsRequest.OriginalDeadline,
+		ReservePaymentDuration: &allocateTicketsRequest.ReservePaymentDuration,
+	}
 
-	if !ticketRelease.ValidatePayWithin() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid pay within"})
+	if !paymentDeadline.Validate(&ticketRelease) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+		return
+	}
+
+	if err := atc.DB.Create(&paymentDeadline).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating payment deadline"})
 		return
 	}
 

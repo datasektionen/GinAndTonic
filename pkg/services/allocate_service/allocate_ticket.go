@@ -11,10 +11,11 @@ import (
 )
 
 func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ticket, error) {
-	ticketRequest.IsHandled = true
-	if err := tx.Save(&ticketRequest).Error; err != nil {
-		return nil, err
+	if ticketRequest.TicketRelease.PaymentDeadline == nil {
+		return nil, errors.New("no payment deadline specified")
 	}
+
+	paymentDeadline := ticketRequest.TicketRelease.PaymentDeadline
 
 	if ticketRequest.TicketType.ID == 0 {
 		// Fatal error, but we can just load the ticket type
@@ -45,13 +46,20 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 		IsPaid:          isPaid,
 		QrCode:          qrCode,
 		PurchasableAt:   &now,
+		PaymentDeadline: &paymentDeadline.OriginalDeadline,
 	}
 
 	if err := tx.Create(&ticket).Error; err != nil {
 		return nil, err
 	}
 
+	ticketRequest.IsHandled = true
+	if err := tx.Save(&ticketRequest).Error; err != nil {
+		return nil, err
+	}
+
 	// Set the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
+
 	if err := tx.Model(&models.TicketAddOn{}).Where("ticket_request_id = ?", ticketRequest.ID).Update("ticket_id", ticket.ID).Error; err != nil {
 		return nil, err
 	}
@@ -82,7 +90,7 @@ func AllocateReserveTicket(
 		return nil, err
 	}
 
-	// Set the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
+	// S	et the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
 	if err := tx.Model(&models.TicketAddOn{}).Where("ticket_request_id = ?", ticketRequest.ID).Update("ticket_id", ticket.ID).Error; err != nil {
 		return nil, err
 	}

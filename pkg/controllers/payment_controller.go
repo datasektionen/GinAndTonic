@@ -61,6 +61,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.User").
 		Preload("TicketRequest.TicketRelease.Event").
+		Preload("TicketRequest.TicketRelease.PaymentDeadline").
 		Preload("TicketAddOns.AddOn").
 		Preload("Transaction").
 		Where("id = ? AND user_ug_kth_id = ?", ticketId, ugkthid).First(&ticket).Error; err != nil {
@@ -75,12 +76,8 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	}
 
 	// Check the due date for when the ticket needs to be paid
-	var purchaseDueDate time.Time
-	if ticket.TicketRequest.TicketRelease.PayWithin != nil {
-		payWithin := time.Duration(*ticket.TicketRequest.TicketRelease.PayWithin) * time.Hour
-		purchaseDueDate = time.Now().Add(payWithin)
-
-		if time.Now().After(purchaseDueDate) {
+	if ticket.PaymentDeadline != nil {
+		if time.Now().After(*ticket.PaymentDeadline) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Payment window has expired"})
 			return
 		}
@@ -200,7 +197,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	pi, err = paymentintent.Get(idempotencyKey, params)
 	if err == nil && pi != nil {
 		// Found an existing PaymentIntent with this idempotency key
-		if paymentIntent.Status != stripe.PaymentIntentStatusSucceeded {
+		if pi.Status != stripe.PaymentIntentStatusSucceeded {
 			// PaymentIntent is not succeeded, return the existing client secret
 			c.JSON(http.StatusOK, gin.H{"client_secret": paymentIntent.ClientSecret})
 		}

@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"math"
 	"os"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
@@ -36,8 +37,8 @@ func Notify_ReserveTicketConvertedAllocation(db *gorm.DB, ticketId int) error {
 	}
 
 	var payBeforeString string
-	if ticketRelease.PayWithin != nil {
-		payBeforeString = utils.ConvertPayWithinToString(int(*ticketRelease.PayWithin), ticket.UpdatedAt)
+	if ticket.PaymentDeadline != nil {
+		payBeforeString = ticket.PaymentDeadline.Format("2006-01-02 15:04:05")
 	}
 
 	data := types.EmailTicketAllocationCreated{
@@ -167,7 +168,7 @@ func Notify_GDPRFoodPreferencesRenewal(db *gorm.DB, user *models.User) error {
 	return nil
 }
 
-func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, payWithin int) error {
+func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, paymentDeadline *time.Time) error {
 	if os.Getenv("ENV") == "test" {
 		return nil
 	}
@@ -189,9 +190,8 @@ func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, payWithin int) er
 	}
 
 	var payBeforeString string
-
-	if payWithin != 0 {
-		payBeforeString = utils.ConvertPayWithinToString(payWithin, ticket.UpdatedAt)
+	if paymentDeadline != nil {
+		payBeforeString = paymentDeadline.Format("2006-01-02 15:04:05")
 	}
 
 	data := types.EmailTicketAllocationCreated{

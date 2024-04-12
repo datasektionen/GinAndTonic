@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -165,6 +164,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		Preload("TicketReleases.ReservedUsers").
 		Preload("TicketReleases.Event").
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketReleases.PaymentDeadline").
 		Preload("FormFields").
 		Preload("TicketReleases.AddOns").
 		First(&event, id).Error
@@ -194,8 +194,6 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 
 			// Get the secret token from the request
 			secretToken := c.Query("secret_token")
-			fmt.Println("secretToken", secretToken)
-			fmt.Println(secretToken == event.SecretToken)
 
 			// Check the secret token
 			if secretToken == event.SecretToken {

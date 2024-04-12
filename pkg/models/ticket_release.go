@@ -10,41 +10,26 @@ import (
 // TicketRelease is a struct that represents a ticket release in the database
 type TicketRelease struct {
 	gorm.Model
-	EventID                     int                       `gorm:"index" json:"event_id"`
-	Event                       Event                     `json:"event"`
-	Name                        string                    `json:"name"`
-	Description                 string                    `json:"description" gorm:"type:text"`
-	Open                        int64                     `json:"open"`
-	Close                       int64                     `json:"close"`
-	AllowExternal               bool                      `gorm:"default:false" json:"allow_external"` // Allow external users to buy tickets
-	TicketTypes                 []TicketType              `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
-	TicketRequests              []TicketRequest           `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
-	TicketsAvailable            int                       `json:"tickets_available"` // The total number of tickets for the ticket release
-	IsReserved                  bool                      `gorm:"default:false" json:"is_reserved"`
-	PromoCode                   *string                   `gorm:"default:NULL" json:"promo_code"`
-	PayWithin                   *int64                    `json:"pay_within" default:"NULL"`
-	HasAllocatedTickets         bool                      `json:"has_allocated_tickets"`
-	TicketReleaseMethodDetailID uint                      `gorm:"index" json:"ticket_release_method_detail_id"`
-	TicketReleaseMethodDetail   TicketReleaseMethodDetail `json:"ticket_release_method_detail"`
-	ReservedUsers               []User                    `gorm:"many2many:user_unlocked_ticket_releases;" json:"-"`
-	UserReminders               []TicketReleaseReminder   `gorm:"foreignKey:TicketReleaseID" json:"user_reminders"`
-	AddOns                      []AddOn                   `gorm:"foreignKey:TicketReleaseID" json:"add_ons"`
-}
-
-func (tr *TicketRelease) ValidatePayWithin() bool {
-	if tr.PayWithin == nil {
-		return false
-	}
-
-	if tr.PayWithin != nil && *tr.PayWithin < 0 {
-		return false
-	}
-
-	if tr.Event.Date.Unix() < time.Now().Add(time.Duration(*tr.PayWithin)*time.Hour).Unix() {
-		return false
-	}
-
-	return true
+	EventID                     int                           `gorm:"index" json:"event_id"`
+	Event                       Event                         `json:"event"`
+	Name                        string                        `json:"name"`
+	Description                 string                        `json:"description" gorm:"type:text"`
+	Open                        int64                         `json:"open"`
+	Close                       int64                         `json:"close"`
+	AllowExternal               bool                          `gorm:"default:false" json:"allow_external"` // Allow external users to buy tickets
+	TicketTypes                 []TicketType                  `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
+	TicketRequests              []TicketRequest               `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
+	TicketsAvailable            int                           `json:"tickets_available"`              // The total number of tickets for the ticket release
+	PayWithin                   *int64                        `json:"pay_within" gorm:"default:null"` // TODO: Remove
+	IsReserved                  bool                          `gorm:"default:false" json:"is_reserved"`
+	PromoCode                   *string                       `gorm:"default:NULL" json:"promo_code"`
+	HasAllocatedTickets         bool                          `json:"has_allocated_tickets"`
+	TicketReleaseMethodDetailID uint                          `gorm:"index" json:"ticket_release_method_detail_id"`
+	TicketReleaseMethodDetail   TicketReleaseMethodDetail     `json:"ticket_release_method_detail"`
+	ReservedUsers               []User                        `gorm:"many2many:user_unlocked_ticket_releases;" json:"-"`
+	UserReminders               []TicketReleaseReminder       `gorm:"foreignKey:TicketReleaseID" json:"user_reminders"`
+	AddOns                      []AddOn                       `gorm:"foreignKey:TicketReleaseID" json:"add_ons"`
+	PaymentDeadline             *TicketReleasePaymentDeadline `gorm:"foreignKey:TicketReleaseID" json:"payment_deadline"`
 }
 
 func DeleteTicketRelease(db *gorm.DB, ticketReleaseID uint) error {
@@ -161,4 +146,14 @@ func GetOpenReservedTicketReleases(db *gorm.DB) (ticketReleases []TicketRelease,
 	}
 
 	return openReservedTicketReleases, nil
+}
+
+// Func ticket release is open
+func (tr *TicketRelease) IsOpen() bool {
+	return tr.Open <= time.Now().Unix() && tr.Close >= time.Now().Unix()
+}
+
+// Func has not opened yet
+func (tr *TicketRelease) HasNotOpenedYet() bool {
+	return tr.Open > time.Now().Unix()
 }

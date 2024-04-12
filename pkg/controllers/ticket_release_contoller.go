@@ -7,17 +7,20 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type TicketReleaseController struct {
-	DB *gorm.DB
+	DB    *gorm.DB
+	trpds *services.TicketReleasePaymentDeadline
 }
 
 func NewTicketReleaseController(db *gorm.DB) *TicketReleaseController {
-	return &TicketReleaseController{DB: db}
+	return &TicketReleaseController{DB: db, trpds: services.NewTicketReleasePaymentDeadline(db)}
 }
 
 type TicketReleaseRequest struct {
@@ -442,6 +445,35 @@ func (trmc *TicketReleaseController) ManuallyTryToAllocateReserveTickets(c *gin.
 	}
 
 	err = jobs.ManuallyProcessAllocateReserveTicketsJob(trmc.DB, uint(ticketReleaseIDInt))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully tried to allocate reserve tickets"})
+}
+
+// Update Payment Deadline
+func (trmc *TicketReleaseController) UpdatePaymentDeadline(c *gin.Context) {
+	var body types.PaymentDeadlineRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ticketReleaseIDstring := c.Param("ticketReleaseID")
+	ticketReleaseID, err := strconv.Atoi(ticketReleaseIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	rerr := trmc.trpds.UpdatePaymentDeadline(ticketReleaseID, body)
+
+	if rerr != nil {
+		c.JSON(rerr.StatusCode, gin.H{"error": rerr.Message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully updated payment deadline"})
 }

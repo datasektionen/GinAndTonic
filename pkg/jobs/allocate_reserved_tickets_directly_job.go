@@ -127,7 +127,7 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 			return err
 		}
 
-		err = Notify_ReservedTicketAllocated(tx, int(ticket.ID), 0)
+		err = Notify_ReservedTicketAllocated(tx, int(ticket.ID), ticket.PaymentDeadline)
 
 		if err != nil {
 			tx.Rollback()

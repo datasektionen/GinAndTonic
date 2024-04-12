@@ -26,15 +26,15 @@ func AllocateFCFSTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) ([]*m
 
 	var numberOfTicketsAllocated int = 0
 	var tickets []*models.Ticket
-	for _, ticketRequest := range allTicketRequests {
 
+	for _, ticketRequest := range allTicketRequests {
 		// Check if the ticket request is handled
 		if ticketRequest.IsHandled {
 			continue
 		}
 
 		var ticket *models.Ticket
-		if numberOfTicketsAllocated > ticketRelease.TicketsAvailable {
+		if numberOfTicketsAllocated >= ticketRelease.TicketsAvailable {
 			ticket, err = allocate_service.AllocateReserveTicket(ticketRequest,
 				uint(numberOfTicketsAllocated-ticketRelease.TicketsAvailable),
 				tx)
@@ -46,6 +46,8 @@ func AllocateFCFSTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) ([]*m
 			tx.Rollback()
 			return nil, err
 		}
+
+		numberOfTicketsAllocated++
 
 		tickets = append(tickets, ticket)
 	}

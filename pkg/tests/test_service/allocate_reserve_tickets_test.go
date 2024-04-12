@@ -33,7 +33,6 @@ func (suite *AllocateReserveTicketsTestSuite) TearDownTest() {
 }
 
 func (suite *AllocateReserveTicketsTestSuite) createTicketRelease(totalTickets int, methodName models.TRM, openWindowDuration int64, openTime int64) models.TicketRelease {
-	payWithin := int64(24)
 	return models.TicketRelease{
 		TicketTypes: []models.TicketType{
 			{
@@ -51,7 +50,6 @@ func (suite *AllocateReserveTicketsTestSuite) createTicketRelease(totalTickets i
 			OpenWindowDuration: openWindowDuration,
 		},
 		TicketsAvailable: totalTickets,
-		PayWithin:        &payWithin,
 		Open:             openTime,
 	}
 }

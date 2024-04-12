@@ -83,7 +83,7 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *
 	}
 
 	var payBeforeString string
-	if paymentDeadline == nil {
+	if paymentDeadline != nil {
 		payBeforeString = paymentDeadline.Format("2006-01-02 15:04:05")
 	}
 

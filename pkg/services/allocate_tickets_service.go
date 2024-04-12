@@ -116,6 +116,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 		tickets, err := allocate_fcfs.AllocateFCFSTickets(ticketRelease, tx)
 
 		if err != nil {
+			fmt.Println(err)
 			tx.Rollback()
 			return err
 		}
@@ -125,7 +126,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			for _, ticket := range tickets {
 				var err error
 				if !ticket.IsReserve {
-					err = Notify_TicketAllocationCreated(tx, int(ticket.ID), nil)
+					err = Notify_TicketAllocationCreated(tx, int(ticket.ID), &ticketRelease.PaymentDeadline.OriginalDeadline)
 				} else {
 					err = Notify_ReserveTicketAllocationCreated(tx, int(ticket.ID))
 				}
@@ -137,8 +138,6 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 				}
 			}
 		}
-
-		break
 
 	default:
 		tx.Rollback()

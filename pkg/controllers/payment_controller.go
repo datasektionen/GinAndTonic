@@ -197,7 +197,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	pi, err = paymentintent.Get(idempotencyKey, params)
 	if err == nil && pi != nil {
 		// Found an existing PaymentIntent with this idempotency key
-		if paymentIntent.Status != stripe.PaymentIntentStatusSucceeded {
+		if pi.Status != stripe.PaymentIntentStatusSucceeded {
 			// PaymentIntent is not succeeded, return the existing client secret
 			c.JSON(http.StatusOK, gin.H{"client_secret": paymentIntent.ClientSecret})
 		}

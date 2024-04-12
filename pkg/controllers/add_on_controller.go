@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -146,7 +145,6 @@ func (aoc *AddOnController) createAddOn(tx *gorm.DB, ticketReleaseID int, addOnI
 
 func (aoc *AddOnController) updateAddOn(tx *gorm.DB, ticketReleaseID int, addOnInput models.AddOn) error {
 	var addOn models.AddOn
-	fmt.Println("ID", addOnInput.ID)
 	if err := tx.Where("id = ?", addOnInput.ID).First(&addOn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("add-on not found")
@@ -170,8 +168,6 @@ func (aoc *AddOnController) updateAddOn(tx *gorm.DB, ticketReleaseID int, addOnI
 	addOn.MaxQuantity = addOnInput.MaxQuantity
 	addOn.IsEnabled = addOnInput.IsEnabled
 	addOn.TicketReleaseID = ticketReleaseID
-
-	fmt.Println("Updated addOn:", addOn.Name, addOn.ID)
 
 	if err := addOn.ValidateAddOn(); err != nil {
 		return errors.New("invalid addOn, " + err.Error())

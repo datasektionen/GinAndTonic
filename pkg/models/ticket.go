@@ -22,9 +22,10 @@ type Ticket struct {
 	TicketRequest   TicketRequest `json:"ticket_request"`
 	IsPaid          bool          `json:"is_paid" default:"false"`
 	IsReserve       bool          `json:"is_reserve"`
+	WasReserve      bool          `json:"was_reserve" default:"false"`
 	ReserveNumber   uint          `json:"reserve_number" default:"0"`
 	Refunded        bool          `json:"refunded" default:"false"`
-	UserUGKthID     string        `json:"user_ug_kth_id"` // Maybe not needed
+	UserUGKthID     string        `json:"user_ug_kth_id"`
 	User            User          `json:"user"`
 	Transaction     *Transaction  `json:"transaction"`
 	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
@@ -34,6 +35,14 @@ type Ticket struct {
 	PurchasableAt   *time.Time    `json:"purchasable_at" gorm:"default:null"`
 	PaymentDeadline *time.Time    `json:"payment_deadline" gorm:"default:null"`
 	TicketAddOns    []TicketAddOn `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
+}
+
+func (t *Ticket) BeforeSave(tx *gorm.DB) (err error) {
+	if t.IsReserve && !t.WasReserve {
+		t.WasReserve = true
+	}
+
+	return
 }
 
 func (t *Ticket) Delete(db *gorm.DB) error {
@@ -113,6 +122,7 @@ func GetAllValidUsersTicket(db *gorm.DB, userUGKthID string) ([]Ticket, error) {
 		Preload("TicketRequest.TicketRelease.Event").
 		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail").
+		Preload("TicketRequest.TicketRelease.PaymentDeadline").
 		Preload("TicketAddOns").
 		Preload("TicketRequest.TicketRelease.AddOns").
 		Where("user_ug_kth_id = ?", userUGKthID).

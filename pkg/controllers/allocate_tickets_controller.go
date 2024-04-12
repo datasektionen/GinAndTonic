@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -24,8 +23,8 @@ func NewAllocateTicketsController(db *gorm.DB, ats *services.AllocateTicketsServ
 
 func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	type AllocateTicketsRequest struct {
-		OriginalDeadline       time.Time     `json:"original_deadline" binding:"required"`
-		ReservePaymentDuration time.Duration `json:"reserve_payment_duration" binding:"required"`
+		OriginalDeadline       time.Time `json:"original_deadline" binding:"required"`
+		ReservePaymentDuration string    `json:"reserve_payment_duration" binding:"required"`
 	}
 
 	var allocateTicketsRequest AllocateTicketsRequest
@@ -34,9 +33,11 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(allocateTicketsRequest)
-	c.JSON(http.StatusOK, gin.H{"message": "Tickets allocated"})
-	return
+	duration, err := time.ParseDuration(allocateTicketsRequest.ReservePaymentDuration)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration"})
+		return
+	}
 
 	eventID := c.Param("eventID")
 	ticketReleaseID := c.Param("ticketReleaseID")
@@ -44,7 +45,11 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	var ticketRelease models.TicketRelease
 
 	// Find based on event ID and ticket release ID
-	if err := atc.DB.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").Preload("TicketTypes").Preload("Event").Where("event_id = ? AND id = ?", eventID, ticketReleaseID).First(&ticketRelease).Error; err != nil {
+	if err := atc.DB.
+		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketTypes").
+		Preload("Event").
+		Where("event_id = ? AND id = ?", eventID, ticketReleaseID).First(&ticketRelease).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID or ticket release ID"})
 		return
 	}
@@ -52,7 +57,7 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	var paymentDeadline models.TicketReleasePaymentDeadline = models.TicketReleasePaymentDeadline{
 		TicketReleaseID:        ticketRelease.ID,
 		OriginalDeadline:       allocateTicketsRequest.OriginalDeadline,
-		ReservePaymentDuration: &allocateTicketsRequest.ReservePaymentDuration,
+		ReservePaymentDuration: &duration,
 	}
 
 	if !paymentDeadline.Validate(&ticketRelease) {
@@ -65,12 +70,14 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		return
 	}
 
+	ticketRelease.PaymentDeadline = &paymentDeadline
+
 	if ticketRelease.HasAllocatedTickets {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tickets already allocated"})
 		return
 	}
 
-	err := atc.AllocateTicketsService.AllocateTickets(&ticketRelease)
+	err = atc.AllocateTicketsService.AllocateTickets(&ticketRelease)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

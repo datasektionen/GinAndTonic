@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -17,6 +19,15 @@ type TicketRequest struct {
 	Tickets           []Ticket                 `json:"tickets"`
 	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
 	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketRequestID" json:"ticket_add_ons"`
+	HandledAt         *time.Time               `json:"handled_at" gorm:"default:null"`
+}
+
+func (tr *TicketRequest) BeforeSave(tx *gorm.DB) (err error) {
+	if tr.IsHandled && tr.HandledAt == nil {
+		now := time.Now()
+		tr.HandledAt = &now
+	}
+	return
 }
 
 func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {
@@ -55,6 +66,7 @@ func GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(db *gorm.DB, tick
 	if err := db.
 		Preload("TicketType").
 		Preload("TicketRelease.Event").
+		Preload("TicketRelease.PaymentDeadline").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
 		Preload("TicketAddOns.AddOn").
 		Where("ticket_release_id = ? AND is_handled = ?", ticketReleaseID, false).Order("created_at").Find(&ticketRequests).Error; err != nil {
@@ -74,6 +86,7 @@ func GetAllValidUsersTicketRequests(db *gorm.DB, userUGKthID string, ids *[]int)
 		Preload("TicketType").
 		Preload("TicketRelease.Event.FormFields").
 		Preload("TicketRelease.AddOns").
+		Preload("TicketRelease.PaymentDeadline").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
 		Preload("EventFormReponses").
 		Preload("TicketAddOns.AddOn").

@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type Body struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -110,4 +112,9 @@ type EventFormFieldResponseCreateRequest struct {
 type SelectedAddOns struct {
 	ID       int `json:"id"`
 	Quantity int `json:"quantity"`
+}
+
+type PaymentDeadlineRequest struct {
+	OriginalDeadline       time.Time `json:"original_deadline" binding:"required"`
+	ReservePaymentDuration string    `json:"reserve_payment_duration" binding:"required"` // Will be converted to time.Duration
 }

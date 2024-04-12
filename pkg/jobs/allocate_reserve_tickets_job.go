@@ -72,7 +72,7 @@ func ManuallyProcessAllocateReserveTicketsJob(db *gorm.DB, ticketReleaseID uint)
 	start := time.Now()
 
 	var ticketRelease *models.TicketRelease
-	err := db.Preload("PaymentDeadline").
+	err := db.Preload("PaymentDeadline").Preload("Event").
 		First(&ticketRelease, ticketReleaseID).Error
 
 	if err != nil {
@@ -255,13 +255,35 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			}
 
 			now := time.Now()
-			paymentDeadline := now.Add(*ticketRelease.PaymentDeadline.ReservePaymentDuration)
+			var paymentDeadline time.Time = time.Now()
+			if ticketRelease.PaymentDeadline != nil {
+				if ticketRelease.PaymentDeadline.ReservePaymentDuration != nil {
+					paymentDeadline = now.Add(*ticketRelease.PaymentDeadline.ReservePaymentDuration)
+					// Add an hour first to ensure rounding up to the next hour
+					paymentDeadline = paymentDeadline.Add(time.Hour)
+					// Then, set the minutes, seconds, and nanoseconds to 0, rounding up to the next hour
+					paymentDeadline = time.Date(paymentDeadline.Year(), paymentDeadline.Month(), paymentDeadline.Day(), paymentDeadline.Hour(), 0, 0, 0, paymentDeadline.Location())
+					// Check if the payment deadline is before now, which shouldn't normally happen since we're rounding up,
+					// but it's good to keep the logic to ensure the deadline is always in the future
+					if paymentDeadline.Before(now) {
+						paymentDeadline = paymentDeadline.Add(time.Hour)
+					}
+				}
+			}
+
+			// check if the deadline is after the event date
 
 			ticket.IsReserve = false
 			ticket.ReserveNumber = 0
 			ticket.IsPaid = isPaid
 			ticket.PurchasableAt = &now
-			ticket.PaymentDeadline = &paymentDeadline
+
+			if paymentDeadline.After(ticketRelease.Event.Date) {
+				// If it is, then there is no deadline since it will automatically be set to the event date
+				ticket.PaymentDeadline = nil
+			} else {
+				ticket.PaymentDeadline = &paymentDeadline
+			}
 
 			if err := tx.Save(&ticket).Error; err != nil {
 				allocator_logger.WithFields(logrus.Fields{

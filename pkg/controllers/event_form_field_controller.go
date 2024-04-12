@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -119,8 +118,6 @@ func (effc *EventFormFieldController) Upsert(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "A field with this name already exists"})
 				return
 			}
-
-			fmt.Println(field.IsRequired)
 
 			// Existing field; update
 			if err := tx.Model(&models.EventFormField{}).Where("id = ?", field.ID).Updates(&field).Error; err != nil {

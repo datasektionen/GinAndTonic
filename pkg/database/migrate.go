@@ -33,6 +33,7 @@ func Migrate(db *gorm.DB) error {
 		&models.AddOn{},
 		&models.TicketAddOn{},
 		&models.TicketReleasePaymentDeadline{},
+		&models.EventSiteVisit{},
 		&tr_methods.LotteryConfig{},
 	)
 	return err

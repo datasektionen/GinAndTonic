@@ -22,6 +22,7 @@ type Event struct {
 	CreatedBy            string           `json:"created_by"`
 	FormFieldDescription *string          `json:"form_field_description" gorm:"type:text"`
 	FormFields           []EventFormField `gorm:"foreignKey:EventID" json:"form_fields"`
+	SiteVisits           []EventSiteVisit      `gorm:"foreignKey:EventID" json:"site_visits"`
 }
 
 // GetEvent returns an event from the database

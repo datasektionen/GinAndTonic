@@ -129,7 +129,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	//Event routes
 	r.POST("/events", eventController.CreateEvent)
 	r.GET("/events", eventController.ListEvents)
-	r.GET("/events/:eventID", eventController.GetEvent)
+	r.GET("/events/:eventID", middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/events/:eventID/manage", authentication.ValidateTokenMiddleware(),
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember), gin.HandlerFunc(func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})

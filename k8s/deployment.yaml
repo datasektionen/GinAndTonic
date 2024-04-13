@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tessera-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tessera-backend
+  template:
+    metadata:
+      labels:
+        app: tessera-backend
+    spec:
+      containers:
+        - name: tessera-backend
+          image: 058264400986.dkr.ecr.eu-north-1.amazonaws.com/tessera-backend:latest
+          volumeMounts:
+            - name: env-volume
+              mountPath: /app/.env
+              subPath: .env
+          volumes:
+            - name: env-volume
+              configMap:
+                name: tessera-env
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "50m" # 50m means 50 milliCPUs, or 5% of a single CPU core
+              memory: "50Mi" # 50Mi means 50 Megabytes
+            limits:
+              cpu: "100m" # 100m means 100 milliCPUs, or 10% of a single CPU core
+              memory: "100Mi" # 100Mi means 100 Megabytes
+      imagePullSecrets:
+        - name: ecr-secret

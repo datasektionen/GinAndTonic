@@ -9,3 +9,5 @@ tmp/
 pkg/tests/test_service/logs/*.log
 logs/*.log
 economy
+
+.prod.env

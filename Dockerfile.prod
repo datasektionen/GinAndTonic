@@ -23,22 +23,30 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 # Start a new stage from scratch for a smaller, final image.
 FROM alpine:3.19.1 
 
-# Add CA certificates.
-RUN apk --no-cache add ca-certificates
+# Add CA certificates and install curl for health checks.
+RUN apk --no-cache add ca-certificates curl && \
+    adduser -D appuser
 
-WORKDIR /root/
+# Set the consistent working directory
+WORKDIR /app
+
+# Create directories and adjust permissions
+RUN mkdir logs economy && \
+    chown -R appuser:appuser .
 
 # Copy the pre-built binary file from the previous stage.
 COPY --from=builder /app/main .
+COPY --from=builder /app/.env .
+COPY --from=builder /app/templates templates
 
-COPY --from=builder /app/templates /root/templates
+# Use a non-root user to run the application
+USER appuser
 
 # Expose port 8080 to the outside world.
 EXPOSE 8080
 
-#
+# Health check
 HEALTHCHECK CMD curl --fail http://localhost:8080/health || exit 1
-
 
 # Command to run the executable.
 CMD ["./main"]

@@ -18,6 +18,7 @@ type MailData struct {
 	From    string `json:"from"`
 	Subject string `json:"subject"`
 	Content string `json:"content"`
+	ReplyTo string `json:"replyTo"`
 }
 
 // From is the email address that the emails will be sent from
@@ -42,6 +43,7 @@ func SendContactEmail(name, email_to, from, subject, content string) error {
 		From:    "tessera-contact@datasektionen.se",
 		Subject: subject,
 		Content: content,
+		ReplyTo: from,
 	}
 
 	// Marshal the data into a JSON payload

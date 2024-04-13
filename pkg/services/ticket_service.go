@@ -7,6 +7,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
 )
 
@@ -33,26 +34,6 @@ func (ts *TicketService) GetTicketToEvent(eventID, ticketID int) (ticket models.
 	ticket, err = models.GetTicketToEvent(ts.DB, uint(eventID), uint(ticketID))
 
 	if err != nil {
-		return models.Ticket{}, err
-	}
-
-	return ticket, nil
-}
-
-func (ts *TicketService) EditTicket(eventID, ticketID int, updatedTicket models.Ticket) (ticket models.Ticket, err error) {
-	// Get ticket where ticket.ID == ticketID
-	ticket, err = models.GetTicketToEvent(ts.DB, uint(eventID), uint(ticketID))
-	if err != nil {
-		return models.Ticket{}, err
-	}
-
-	// Update ticket
-	// ticket.IsPaid = updatedTicket.IsPaid
-	ticket.IsReserve = updatedTicket.IsReserve
-	ticket.Refunded = updatedTicket.Refunded
-
-	// Save ticket
-	if err := ts.DB.Save(&ticket).Error; err != nil {
 		return models.Ticket{}, err
 	}
 
@@ -131,6 +112,43 @@ func (ts *TicketService) CheckInViaQrCode(qrCode string) (ticket *models.Ticket,
 	// Save ticket
 	if err := ts.DB.Save(&ticket).Error; err != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error saving ticket"}
+	}
+
+	return ticket, nil
+}
+
+func (tc *TicketService) UpdateTicket(ticket *models.Ticket, body *types.UpdateTicketBody) (*models.Ticket, error) {
+	// check if body.PaymentDeadline is set and different from ticket.PaymentDeadline
+	shouldNotifyUser := false
+
+	if body.PaymentDeadline != nil {
+		if !utils.IsEqualTimePtr(ticket.PaymentDeadline, body.PaymentDeadline) {
+			shouldNotifyUser = true
+			ticket.PaymentDeadline = body.PaymentDeadline
+		}
+	}
+
+	if body.PaymentDeadline != nil {
+		ticket.PaymentDeadline = body.PaymentDeadline
+	}
+
+	// Checks the payment deadline, ensure that Event is preloaded
+	if err := ticket.ValidatePaymentDeadline(); err != nil {
+		return nil, err
+	}
+
+	if body.CheckedIn != nil {
+		ticket.CheckedIn = *body.CheckedIn
+	}
+
+	if err := tc.DB.Save(ticket).Error; err != nil {
+		return nil, err
+	}
+
+	if shouldNotifyUser {
+		if err := Notify_UpdatedPaymentDeadlineEmail(tc.DB, int(ticket.ID), ticket.PaymentDeadline); err != nil {
+			return nil, err
+		}
 	}
 
 	return ticket, nil

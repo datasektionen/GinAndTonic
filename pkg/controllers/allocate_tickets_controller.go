@@ -7,6 +7,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -22,12 +23,7 @@ func NewAllocateTicketsController(db *gorm.DB, ats *services.AllocateTicketsServ
 }
 
 func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
-	type AllocateTicketsRequest struct {
-		OriginalDeadline       time.Time `json:"original_deadline" binding:"required"`
-		ReservePaymentDuration string    `json:"reserve_payment_duration" binding:"required"`
-	}
-
-	var allocateTicketsRequest AllocateTicketsRequest
+	var allocateTicketsRequest types.AllocateTicketsRequest
 	if err := c.ShouldBindJSON(&allocateTicketsRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
@@ -38,6 +34,8 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration"})
 		return
 	}
+
+	allocateTicketsRequest.CalculatedDuration = duration
 
 	eventID := c.Param("eventID")
 	ticketReleaseID := c.Param("ticketReleaseID")
@@ -54,30 +52,12 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		return
 	}
 
-	var paymentDeadline models.TicketReleasePaymentDeadline = models.TicketReleasePaymentDeadline{
-		TicketReleaseID:        ticketRelease.ID,
-		OriginalDeadline:       allocateTicketsRequest.OriginalDeadline,
-		ReservePaymentDuration: &duration,
-	}
-
-	if !paymentDeadline.Validate(&ticketRelease) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
-		return
-	}
-
-	if err := atc.DB.Create(&paymentDeadline).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating payment deadline"})
-		return
-	}
-
-	ticketRelease.PaymentDeadline = &paymentDeadline
-
 	if ticketRelease.HasAllocatedTickets {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tickets already allocated"})
 		return
 	}
 
-	err = atc.AllocateTicketsService.AllocateTickets(&ticketRelease)
+	err = atc.AllocateTicketsService.AllocateTickets(&ticketRelease, &allocateTicketsRequest)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

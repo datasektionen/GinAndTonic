@@ -54,6 +54,7 @@ func (ps *PaymentService) createPendingTransaction(
 		Currency:        pi.Currency,
 		Status:          models.TransactionStatusPending,
 		UserUGKthID:     user.UGKthID,
+		TransactionType: models.TypePurchase,
 	}
 
 	if err := ps.DB.Create(&transaction).Error; err != nil {

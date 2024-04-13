@@ -6,6 +6,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -64,35 +65,30 @@ func (tc *TicketController) GetTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, ticket)
 }
 
-func (tc *TicketController) EditTicket(c *gin.Context) {
+func (tc *TicketController) UpdateTicket(c *gin.Context) {
+	var body types.UpdateTicketBody
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	id := c.Param("ticketID")
 	var ticket models.Ticket
-	if err := c.ShouldBindJSON(&ticket); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := tc.DB.
+		Preload("TicketRequest.TicketRelease.Event").
+		First(&ticket, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
 		return
 	}
 
-	eventIDstring := c.Param("eventID")
-	eventID, err := strconv.Atoi(eventIDstring)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	ticketIDstring := c.Param("ticketID")
-	ticketID, err := strconv.Atoi(ticketIDstring)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	ticket, err = tc.Service.EditTicket(eventID, ticketID, ticket)
-
+	mTicket, err := tc.Service.UpdateTicket(&ticket, &body)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, ticket)
+	c.JSON(http.StatusOK, gin.H{"ticket": mTicket})
 }
 
 func (tc *TicketController) UsersList(c *gin.Context) {

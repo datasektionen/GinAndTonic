@@ -118,3 +118,14 @@ type PaymentDeadlineRequest struct {
 	OriginalDeadline       time.Time `json:"original_deadline" binding:"required"`
 	ReservePaymentDuration string    `json:"reserve_payment_duration" binding:"required"` // Will be converted to time.Duration
 }
+
+type AllocateTicketsRequest struct {
+	OriginalDeadline       time.Time     `json:"original_deadline" binding:"required"`
+	ReservePaymentDuration string        `json:"reserve_payment_duration" binding:"required"`
+	CalculatedDuration     time.Duration `json:"-"`
+}
+
+type UpdateTicketBody struct {
+	PaymentDeadline *time.Time `json:"payment_deadline"`
+	CheckedIn       *bool      `json:"checked_in"`
+}

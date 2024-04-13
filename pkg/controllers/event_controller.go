@@ -7,6 +7,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/pkg/validation"
 	"github.com/DowLucas/gin-ticket-release/utils"
@@ -15,12 +16,13 @@ import (
 )
 
 type EventController struct {
-	DB *gorm.DB
+	DB      *gorm.DB
+	service *services.EventService
 }
 
 // NewEventController creates a new controller with the given database client
 func NewEventController(db *gorm.DB) *EventController {
-	return &EventController{DB: db}
+	return &EventController{DB: db, service: services.NewEventService(db)}
 }
 
 // CreateEvent handles the creation of an event
@@ -365,3 +367,5 @@ func (ec *EventController) GetEventSecretToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"secret_token": event.SecretToken})
 }
+
+

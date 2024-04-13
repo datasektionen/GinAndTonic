@@ -14,14 +14,14 @@ import (
 
 type CompleteEventWorkflowController struct {
 	DB      *gorm.DB
-	service *services.EventService
+	service *services.CompleteEventWorkflowService
 }
 
 // NewCompleteEventWorkflowcontroller creates a new controller with the given database client
-func NewCompleteEventWorkflowController(db *gorm.DB, service *services.EventService) *CompleteEventWorkflowController {
+func NewCompleteEventWorkflowController(db *gorm.DB, service *services.CompleteEventWorkflowService) *CompleteEventWorkflowController {
 	return &CompleteEventWorkflowController{
 		DB:      db,
-		service: services.NewEventService(db),
+		service: services.NewCompleteEventWorkflowService(db),
 	}
 }
 

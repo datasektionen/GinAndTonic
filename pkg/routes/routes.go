@@ -8,7 +8,6 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
-	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
@@ -86,8 +85,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	eventController := controllers.NewEventController(db)
 
-	eventService := services.NewEventService(db)
-	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db, eventService)
+	completeEventWorkflowService := services.NewCompleteEventWorkflowService(db)
+	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db, completeEventWorkflowService)
 	userController := controllers.NewUserController(db)
 	sendOutService := services.NewSendOutService(db)
 	organizationService := services.NewOrganizationService(db)
@@ -165,11 +164,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.UpdatePaymentDeadline)
 
-	r.GET("/test", func(c *gin.Context) {
-		jobs.AllocateReservedTicketsDirectlyJob(db)
-		c.JSON(http.StatusOK, gin.H{"message": "Job started"})
-	})
-
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/manually-allocate-reserve-tickets",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
@@ -231,7 +225,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
-	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.EditTicket)
+	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
 
 	// Sales report

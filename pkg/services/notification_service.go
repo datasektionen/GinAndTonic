@@ -408,3 +408,49 @@ func Notify_RequestChangePreferredEmail(db *gorm.DB,
 
 	return nil
 }
+
+func Notify_UpdatedPaymentDeadlineEmail(db *gorm.DB, ticketId int, paymentDeadline *time.Time) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var ticket models.Ticket
+	err := db.
+		Preload("TicketRequest.User").
+		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketType").
+		First(&ticket, ticketId).Error
+	if err != nil {
+		return err
+	}
+
+	user := ticket.TicketRequest.User
+	ticketRelease := ticket.TicketRequest.TicketRelease
+	event := ticketRelease.Event
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	var payBeforeString string
+	if paymentDeadline != nil {
+		payBeforeString = paymentDeadline.Format("2006-01-02 15:04:05")
+	}
+
+	data := types.EmailUpdatePaymentDeadline{
+		FullName:          user.FullName(),
+		EventName:         event.Name,
+		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		OrganizationEmail: event.Organization.Email,
+		PayBefore:         payBeforeString,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_updated_payment_deadine.html", data)
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, &user, fmt.Sprintf("Updated payment deadline for %s", event.Name), htmlContent)
+
+	return nil
+}

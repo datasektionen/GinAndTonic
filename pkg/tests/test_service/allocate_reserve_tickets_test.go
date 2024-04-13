@@ -117,7 +117,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestNotAllocatedReserveTicketsWhen
 	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
 	suite.Equal(requests, len(ticketRequests))
 
-	err = service.AllocateTickets(&tr)
+	err = service.AllocateTickets(&tr, nil)
 	suite.NoError(err)
 
 	//Validate
@@ -163,7 +163,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateReserveTicketsWhenRemo
 	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
 	suite.Equal(requests, len(ticketRequests))
 
-	err = service.AllocateTickets(&tr)
+	err = service.AllocateTickets(&tr, nil)
 	suite.NoError(err)
 
 	//Validate
@@ -217,7 +217,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocatedTicketsOnTicketsThatH
 	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
 	suite.Equal(requests, len(ticketRequests))
 
-	err = service.AllocateTickets(&tr)
+	err = service.AllocateTickets(&tr, nil)
 	suite.NoError(err)
 
 	//Validate
@@ -273,7 +273,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestNotAllocatedTicketsOnTicketsTh
 	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
 	suite.Equal(requests, len(ticketRequests))
 
-	err = service.AllocateTickets(&tr)
+	err = service.AllocateTickets(&tr, nil)
 	suite.NoError(err)
 
 	//Validate
@@ -329,7 +329,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateTicketsWithNoRequests(
 	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
 	suite.Equal(requests, len(ticketRequests))
 
-	err = service.AllocateTickets(&tr)
+	err = service.AllocateTickets(&tr, nil)
 	suite.Error(err)
 
 	err = jobs.AllocateReserveTicketsJob(suite.db)
@@ -371,7 +371,7 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateTicketsWithEqualTicket
 	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
 	suite.Equal(requests, len(ticketRequests))
 
-	err = service.AllocateTickets(&tr)
+	err = service.AllocateTickets(&tr, nil)
 	suite.NoError(err)
 
 	err = jobs.AllocateReserveTicketsJob(suite.db)
@@ -428,10 +428,10 @@ func (suite *AllocateReserveTicketsTestSuite) TestAllocateTicketsWithMultipleTic
 	suite.Equal(requests, len(ticketRequests1))
 	suite.Equal(requests, len(ticketRequests2))
 
-	err = service.AllocateTickets(&tr1)
+	err = service.AllocateTickets(&tr1, nil)
 	suite.NoError(err)
 
-	err = service.AllocateTickets(&tr2)
+	err = service.AllocateTickets(&tr2, nil)
 	suite.NoError(err)
 
 	// Remove tickets from each ticket release

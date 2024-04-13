@@ -108,7 +108,7 @@ func (suite *AllocateTicketsTestSuite) TestAllocateTickets() {
 	suite.db.Where("ticket_release_id = ?", tr.ID).Find(&ticketRequests)
 	suite.Equal(requests, len(ticketRequests))
 
-	err = service.AllocateTickets(&tr)
+	err = service.AllocateTickets(&tr, nil)
 	suite.NoError(err)
 
 	// Validate
@@ -137,7 +137,7 @@ func (suite *AllocateTicketsTestSuite) TestAllocateTicketsNoRequestsDuringOpenWi
 	suite.createAndSaveTicketRequests(tr, requests, 100)
 
 	// Allocate tickets
-	err = ats.AllocateTickets(&tr)
+	err = ats.AllocateTickets(&tr, nil)
 
 	// Validate
 	suite.NoError(err)
@@ -167,7 +167,7 @@ func (suite *AllocateTicketsTestSuite) TestAllocateTicketsNoRequestsAfterOpenWin
 	suite.createAndSaveTicketRequests(tr, requests, -100)
 
 	// Allocate tickets
-	err = ats.AllocateTickets(&tr)
+	err = ats.AllocateTickets(&tr, nil)
 
 	// Validate
 	suite.NoError(err)
@@ -197,7 +197,7 @@ func (suite *AllocateTicketsTestSuite) TestCannotAllocateTicketsTwice() {
 
 	suite.createAndSaveTicketRequests(tr, requests, -100)
 
-	err = ats.AllocateTickets(&tr)
+	err = ats.AllocateTickets(&tr, nil)
 	suite.NoError(err)
 
 	// We should have 100 tickets allocated
@@ -206,7 +206,7 @@ func (suite *AllocateTicketsTestSuite) TestCannotAllocateTicketsTwice() {
 	suite.Equal(tr.HasAllocatedTickets, true)
 
 	// Try to allocate tickets again
-	err = ats.AllocateTickets(&tr)
+	err = ats.AllocateTickets(&tr, nil)
 	suite.Error(err)
 }
 

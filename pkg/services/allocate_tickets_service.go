@@ -9,6 +9,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	allocate_fcfs "github.com/DowLucas/gin-ticket-release/pkg/services/allocate_fcfc"
 	"github.com/DowLucas/gin-ticket-release/pkg/services/allocate_service"
+	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
 )
@@ -28,7 +29,7 @@ func init() {
 	r = rand.New(rand.NewSource(seed))
 }
 
-func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketRelease) error {
+func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketRelease, allocateTicketsRequest *types.AllocateTicketsRequest) error {
 	method := ticketRelease.TicketReleaseMethodDetail.TicketReleaseMethod
 	var tickets []*models.Ticket
 	var err error
@@ -53,6 +54,26 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			tx.Rollback()
 		}
 	}()
+
+	if allocateTicketsRequest != nil {
+		var paymentDeadline models.TicketReleasePaymentDeadline = models.TicketReleasePaymentDeadline{
+			TicketReleaseID:        ticketRelease.ID,
+			OriginalDeadline:       allocateTicketsRequest.OriginalDeadline,
+			ReservePaymentDuration: &allocateTicketsRequest.CalculatedDuration,
+		}
+
+		if !paymentDeadline.Validate(ticketRelease) {
+			tx.Rollback()
+			return errors.New("invalid payment deadline")
+		}
+
+		if err := ats.DB.Create(&paymentDeadline).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		ticketRelease.PaymentDeadline = &paymentDeadline
+	}
 
 	if err := tx.Model(ticketRelease).Update("has_allocated_tickets", true).Error; err != nil {
 		tx.Rollback()

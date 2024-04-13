@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -164,4 +165,25 @@ func GetAllReserveTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tic
 	}
 
 	return tickets, nil
+}
+
+func (t *Ticket) ValidatePaymentDeadline() (err error) {
+	// Validate that t.TicketRequest.TicketRelease.Event.Date is loaded
+	if t.TicketRequest.TicketRelease.Event.ID == 0 {
+		// Throw error
+		return fmt.Errorf("Event not loaded")
+	}
+
+	if t.PaymentDeadline != nil {
+		if time.Now().After(*t.PaymentDeadline) {
+			return fmt.Errorf("Payment deadline has passed")
+		}
+	} else {
+		// Check if time is after event start
+		if time.Now().After(t.TicketRequest.TicketRelease.Event.Date) {
+			return fmt.Errorf("Event has already started")
+		}
+	}
+
+	return nil
 }

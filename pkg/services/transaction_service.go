@@ -70,6 +70,8 @@ func SuccessfulPayment(
 
 	transaction.Status = models.TransactionStatusCompleted
 	transaction.PayedAt = &now
+	// transaction.PaymentMethod = &pm.Type // TODO Implement
+	transaction.TransactionType = models.TypePurchase
 
 	if err := db.Save(&transaction).Error; err != nil {
 		return err

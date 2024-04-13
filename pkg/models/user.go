@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -91,7 +90,6 @@ func (u *User) GetUserEmail(db *gorm.DB) string {
 			return u.Email
 		}
 		// Log other database errors
-		fmt.Println(err.Error())
 		return u.Email
 	}
 

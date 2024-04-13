@@ -25,3 +25,23 @@ func (trpd *TicketReleasePaymentDeadline) Validate(ticketRelease *TicketRelease)
 
 	return true
 }
+
+func CreateReservedTicketReleasePaymentDeadline(db *gorm.DB, ticketReleaseID uint) (*TicketReleasePaymentDeadline, error) {
+	// Get event date
+	var ticketRelease TicketRelease
+	if err := db.Preload("Event").First(&ticketRelease, ticketReleaseID).Error; err != nil {
+		return nil, err
+	}
+
+	trpd := &TicketReleasePaymentDeadline{
+		TicketReleaseID:        ticketReleaseID,
+		OriginalDeadline:       ticketRelease.Event.Date,
+		ReservePaymentDuration: nil,
+	}
+
+	if err := db.Create(trpd).Error; err != nil {
+		return nil, err
+	}
+
+	return trpd, nil
+}

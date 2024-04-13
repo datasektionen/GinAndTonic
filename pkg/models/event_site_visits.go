@@ -7,6 +7,6 @@ type EventSiteVisit struct {
 	UserUGKthID string `json:"user_ugkth_id"`
 	UserAgent   string `json:"user_agent"`
 	ReferrerURL string `json:"referrer_url"`
-	Location    string `json:"location"`
+	Location    string `json:"-"`
 	EventID     uint   `json:"event_id"` // foreign key field
 }

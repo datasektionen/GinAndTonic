@@ -11,6 +11,12 @@ import (
 
 func UpdateSiteVisits(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Check if ?dont_count_site_visit query parameter is set
+		if c.Query("dont_count_site_visit") != "" {
+			c.Next()
+			return
+		}
+
 		userID := c.MustGet("ugkthid").(string)
 		eventIDstring := c.Param("eventID")
 		if userID == "" {

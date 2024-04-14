@@ -48,9 +48,14 @@ func (svc *SitVisitsController) Get(c *gin.Context) {
 	lastWeekSummary = summaries[len(summaries)-1]
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_site_visits":         totalSiteVisists,
-		"unique_visitors":           summaries[0].UniqueUsers,
-		"difference_from_last_week": totalSiteVisists - lastWeekSummary.TotalVisits,
-		"last_week_date":            lastWeekSummary.CreatedAt,
+		"total_site_visits":             totalSiteVisists,
+		"total_site_visits_last_week":   lastWeekSummary.TotalVisits,
+		"unique_visitors":               summaries[0].UniqueUsers,
+		"unique_visitors_last_week":     lastWeekSummary.UniqueUsers,
+		"last_week_date":                lastWeekSummary.CreatedAt,
+		"num_ticket_requests":           summaries[0].NumTicketRequests,
+		"num_ticket_requests_last_week": lastWeekSummary.NumTicketRequests,
+		"total_income":                  summaries[0].TotalIncome,
+		"total_income_last_week":        lastWeekSummary.TotalIncome,
 	})
 }

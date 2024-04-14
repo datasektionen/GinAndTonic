@@ -183,7 +183,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
 
 	// Site vists
-	r.GET("/events/:eventID/site-visits", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventSiteVistsController.Get)
+	r.GET("/events/:eventID/overview", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventSiteVistsController.Get)
 
 	// AddOn
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",

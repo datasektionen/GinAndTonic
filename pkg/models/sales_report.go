@@ -46,3 +46,4 @@ func (report *EventSalesReport) Validate() error {
 		return err
 	}
 }
+

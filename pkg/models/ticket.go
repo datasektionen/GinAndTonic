@@ -71,6 +71,19 @@ func (t *Ticket) Delete(db *gorm.DB) error {
 	return tx.Commit().Error
 }
 
+func GetTicketRequestsToEvent(db *gorm.DB, eventID uint) (ticketRequests []TicketRequest, err error) {
+	err = db.
+		Joins("INNER JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Where("ticket_releases.event_id = ?", eventID).
+		Find(&ticketRequests).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ticketRequests, nil
+}
+
 func GetTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) {
 	// eventID is fetched in TicketRequest.TicketRelease.EventID
 	err = db.

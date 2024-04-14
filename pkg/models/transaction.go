@@ -51,3 +51,15 @@ func (trans *Transaction) Validate() error {
 		return err
 	}
 }
+
+func GetEventTotalIncome(db *gorm.DB, eventID int) (float64, error) {
+	var totalIncome float64
+
+	err := db.Model(&Transaction{}).Where("event_id = ?", eventID).Where("status = ?", "completed").Select("SUM(amount)").Scan(&totalIncome).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return totalIncome, nil
+}

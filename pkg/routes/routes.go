@@ -63,6 +63,13 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.Use(cors.New(config))
 
+	// Legal
+	r.Static("/static", "./static")
+
+	r.GET("/privacy-policy", func(c *gin.Context) {
+		c.File("./static/privacy.html")
+	})
+
 	r.GET("/postman-login", controllers.LoginPostman)
 	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)
 

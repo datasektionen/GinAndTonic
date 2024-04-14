@@ -8,6 +8,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
+	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
@@ -114,6 +115,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventFormFieldController := controllers.NewEventFormFieldController(db)
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
 	addOnController := controllers.NewAddOnController(db)
+	eventSiteVistsController := controllers.NewSitVisitsController(db)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -134,6 +136,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember), gin.HandlerFunc(func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
 		}))
+
+	r.GET("/test", authentication.RequireRole("super_admin", db), func(c *gin.Context) {
+		jobs.StartEventSiteVisitsJob(db)
+		c.JSON(http.StatusOK, gin.H{"message": "Job started"})
+	})
 
 	r.GET("/events/:eventID/manage/secret-token",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
@@ -167,6 +174,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/manually-allocate-reserve-tickets",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
+
+	// Site vists
+	r.GET("/events/:eventID/site-visits", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventSiteVistsController.Get)
 
 	// AddOn
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",

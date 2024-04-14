@@ -367,5 +367,3 @@ func (ec *EventController) GetEventSecretToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"secret_token": event.SecretToken})
 }
-
-

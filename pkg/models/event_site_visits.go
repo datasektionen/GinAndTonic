@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type EventSiteVisit struct {
 	gorm.Model
@@ -10,3 +12,12 @@ type EventSiteVisit struct {
 	Location    string `json:"-"`
 	EventID     uint   `json:"event_id"` // foreign key field
 }
+
+type EventSiteVisitSummary struct {
+	gorm.Model
+	EventID     uint `json:"event_id"`
+	TotalVisits int  `json:"total_visits"`
+	UniqueUsers int  `json:"unique_users"`
+}
+
+// Get EventSiteVisits of all events that has passed

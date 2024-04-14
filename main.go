@@ -137,10 +137,14 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 		}).Fatal("Failed to add GDPRCheckRenewalJob to cron")
 	}
 
+	_, err = c.AddFunc("@every 1h", func() {
+		jobs.StartEventSiteVisitsJob(db)
+	})
+
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"error": err,
-		}).Fatal("Failed to add NotifyReserveNumberJob to cron")
+		}).Fatal("Failed to add StartEventSiteVisitsJob to cron")
 	}
 
 	fmt.Println("Starting cron jobs")

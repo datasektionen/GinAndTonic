@@ -37,6 +37,17 @@ func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.Ti
 		return nil, addonErr
 	}
 
+	var ticketRelease models.TicketRelease
+	if err := trx.Preload("TicketReleaseMethodDetail").Where("id = ?", ticketRequests[0].TicketReleaseID).First(&ticketRelease).Error; err != nil {
+		trx.Rollback()
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
+	}
+
+	if len(ticketRequests) > int(ticketRelease.TicketReleaseMethodDetail.MaxTicketsPerUser) {
+		trx.Rollback()
+		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Too many tickets requested"}
+	}
+
 	for _, ticketRequest := range ticketRequests {
 		tr, err := trs.CreateTicketRequest(trx, &ticketRequest)
 		if err != nil {

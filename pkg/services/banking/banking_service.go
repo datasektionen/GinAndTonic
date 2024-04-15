@@ -90,9 +90,13 @@ func (s *BankingService) GetBankingDetails(orgId uint) (bd models.BankingDetail,
 	var bankingDetail models.BankingDetail
 	err := s.DB.Where("organization_id = ?", orgId).First(&bankingDetail).Error
 	if err != nil {
-		return models.BankingDetail{}, &types.ErrorResponse{
-			StatusCode: 404,
-			Message:    "Banking details not found",
+		if err == gorm.ErrRecordNotFound {
+			return models.BankingDetail{}, nil
+		} else {
+			return models.BankingDetail{}, &types.ErrorResponse{
+				StatusCode: 500,
+				Message:    "Failed to get banking details",
+			}
 		}
 	}
 

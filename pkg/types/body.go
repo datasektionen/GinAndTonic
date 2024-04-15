@@ -129,3 +129,10 @@ type UpdateTicketBody struct {
 	PaymentDeadline *time.Time `json:"payment_deadline"`
 	CheckedIn       *bool      `json:"checked_in"`
 }
+
+type BankingDetailsRequest struct {
+	BankName       string `json:"bank_name" binding:"required"`
+	AccountHolder  string `json:"account_holder" binding:"required"`
+	AccountNumber  string `json:"account_number" binding:"required"`
+	ClearingNumber string `json:"clearing_number" binding:"required"`
+}

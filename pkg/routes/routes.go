@@ -12,6 +12,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	banking_service "github.com/DowLucas/gin-ticket-release/pkg/services/banking"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -100,6 +101,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
 	preferredEmailService := services.NewPreferredEmailService(db)
+	bankingService := banking_service.NewBankingService(db)
 
 	organizationController := controllers.NewOrganizationController(db, organizationService)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
@@ -123,6 +125,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
 	addOnController := controllers.NewAddOnController(db)
 	eventSiteVistsController := controllers.NewSitVisitsController(db)
+	bankingController := controllers.NewBankingController(bankingService)
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
@@ -280,6 +283,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/food-preferences", userFoodPreferenceController.ListFoodPreferences)
 
 	r.POST("/admin/create-user", authentication.RequireRole("super_admin", db), userController.CreateUser)
+
+	// Banking details
+	r.GET("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), bankingController.GetBankingDetails)
+	r.POST("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.SubmitBankingDetails)
+	r.DELETE("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.DeleteBankingDetails)
 
 	// Preferred email
 	r.POST("/preferred-email/request", preferredEmailController.Request)

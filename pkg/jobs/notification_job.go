@@ -10,6 +10,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/hibiken/asynq"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -154,11 +155,20 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 			return err
 		}
 
+		content, err := utils.CompressHTML(p.Content)
+		if err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("Error compressing HTML")
+			content = p.Content
+		}
+
 		var notification = models.Notification{
 			UserUGKthID: p.User.UGKthID,
 			Type:        models.EmailNotification,
 			Subject:     p.Subject,
 			EventID:     p.EventID,
+			Content:     content,
 		}
 
 		if err := notification.Validate(); err != nil {
@@ -170,7 +180,7 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 			return err
 		}
 
-		err := SendEmail(p.User, p.Subject, p.Content, db)
+		err = SendEmail(p.User, p.Subject, p.Content, db)
 		if err != nil {
 			notification_logger.WithFields(logrus.Fields{
 				"notification": notification,

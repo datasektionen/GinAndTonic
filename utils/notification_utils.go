@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 )
@@ -36,4 +37,19 @@ func GenerateEmailTable(tickets []types.EmailTicket) (string, error) {
 	emailTemplate += "</ul>"
 
 	return emailTemplate, nil
+}
+
+func CompressHTML(html string) (string, error) {
+	t := template.New("t")
+	t.Funcs(template.FuncMap{"compress": func(s string) string {
+		return strings.Join(strings.Fields(s), " ")
+	}})
+	template.Must(t.Parse(`{{compress .}}`))
+
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, html); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

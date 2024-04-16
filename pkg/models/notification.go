@@ -26,6 +26,7 @@ type Notification struct {
 	Subject     string `json:"subject"`
 	Status      string `json:"status" gorm:"default:'pending'"`
 	EventID     *uint  `json:"event_id" gorm:"default:NULL"`
+	Content     string `json:"content"`
 }
 
 func (n *Notification) Validate() error {

@@ -20,6 +20,23 @@ func NewSendOutController(db *gorm.DB, s *services.SendOutService) *SendOutContr
 	return &SendOutController{DB: db, sos: s}
 }
 
+func (sor *SendOutController) GetEventSendOuts(c *gin.Context) {
+	eventIdString := c.Param("eventID")
+	eventId, e := strconv.Atoi(eventIdString)
+	if e != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": e.Error()})
+		return
+	}
+
+	var sendOuts []models.SendOut
+	if err := sor.DB.Preload("Notifications.User").Where("event_id = ?", eventId).Find(&sendOuts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"send_outs": sendOuts})
+}
+
 func (sor *SendOutController) SendOut(c *gin.Context) {
 	var req types.SendOutRequest
 

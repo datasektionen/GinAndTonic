@@ -7,6 +7,7 @@ import (
 // Define task types.
 const (
 	TypeEmail         = "email:send"
+	TypeSendOutEmail  = "email:send_out"
 	TypeReminderEmail = "email:reminder"
 )
 
@@ -16,6 +17,12 @@ type EmailPayload struct {
 	Subject string
 	Content string
 	EventID *uint
+}
+
+type SendOutEmailPayload struct {
+	User    *models.User
+	SendOut *models.SendOut
+	Content string
 }
 
 type EmailReminderPayload struct {

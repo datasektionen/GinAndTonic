@@ -202,6 +202,7 @@ func startAsynqServer(db *gorm.DB) *asynq.Server {
 	mux.HandleFunc(tasks.TypeEmail, jobs.HandleEmailJob(db))
 	mux.HandleFunc(tasks.TypeReminderEmail, jobs.HandleReminderJob(db))
 	mux.HandleFunc(tasks.SalesReportType, jobs.HandleSalesReportJob(db))
+	mux.HandleFunc(tasks.TypeSendOutEmail, jobs.HandleSendOutEmailJob(db))
 
 	go func() {
 		if err := srv.Run(mux); err != nil {

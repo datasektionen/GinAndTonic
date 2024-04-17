@@ -241,6 +241,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.DELETE("/my-tickets/:ticketID", ticketsController.CancelTicket)
 
 	// send outs
+	r.GET("/events/:eventID/send-outs", middleware.AuthorizeEventAccess(db, models.OrganizationMember), sendOutcontroller.GetEventSendOuts)
 	r.POST("/events/:eventID/send-out", middleware.AuthorizeEventAccess(db, models.OrganizationMember), sendOutcontroller.SendOut)
 
 	// Ticket routes

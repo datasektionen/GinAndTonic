@@ -97,6 +97,11 @@ func (u *User) GetUserEmail(db *gorm.DB) string {
 	return pe.Email
 }
 
+func (u *User) AfterFind(tx *gorm.DB) (err error) {
+	u.Email = u.GetUserEmail(tx)
+	return
+}
+
 // FullName returns the full name of the user
 func (u *User) FullName() string {
 	return u.FirstName + " " + u.LastName

@@ -40,18 +40,7 @@ func init() {
 }
 
 // CreateNotificationInDb creates a notification in the database
-func CreateNotificationInDb(db *gorm.DB, notification *models.Notification) error {
-	// Validate
-	// Start transaction
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	notification.Status = models.NotificationStatusSent
-
+func CreateNotificationInDb(tx *gorm.DB, notification *models.Notification) error {
 	// Create notification
 	if err := tx.Create(&notification).Error; err != nil {
 		tx.Rollback()
@@ -63,7 +52,7 @@ func CreateNotificationInDb(db *gorm.DB, notification *models.Notification) erro
 		return err
 	}
 
-	return tx.Commit().Error
+	return nil
 }
 
 func connectAsynqClient() *asynq.Client {
@@ -150,6 +139,13 @@ func AddReminderEmailJobToQueueAt(db *gorm.DB, user *models.User,
 
 func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error {
 	return func(ctx context.Context, t *asynq.Task) error {
+		tx := db.Begin()
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
+
 		var p tasks.EmailPayload
 		if err := json.Unmarshal(t.Payload(), &p); err != nil {
 			return err
@@ -166,9 +162,10 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 		var notification = models.Notification{
 			UserUGKthID: p.User.UGKthID,
 			Type:        models.EmailNotification,
-			Subject:     p.Subject,
+			Subject:     &p.Subject,
 			EventID:     p.EventID,
-			Content:     content,
+			Content:     &content,
+			Status:      models.PendingNotification,
 		}
 
 		if err := notification.Validate(); err != nil {
@@ -180,7 +177,7 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 			return err
 		}
 
-		err = SendEmail(p.User, p.Subject, p.Content, db)
+		err = SendEmail(p.User, p.Subject, p.Content, tx)
 		if err != nil {
 			notification_logger.WithFields(logrus.Fields{
 				"notification": notification,
@@ -188,21 +185,31 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 				"error":        err,
 			}).Error("Error sending email")
 
-			notification.Status = models.NotificationStatusFailed
+			notification.Status = models.FailedNotification
 
-			CreateNotificationInDb(db, &notification)
+			CreateNotificationInDb(tx, &notification)
 
 			return err
 		}
 		// It was a success, create notification in db
-		notification.Status = models.NotificationStatusSent
+		notification.Status = models.SentNotification
 
-		CreateNotificationInDb(db, &notification)
+		CreateNotificationInDb(tx, &notification)
 
 		notification_logger.WithFields(logrus.Fields{
 			"notification": notification,
 			"email":        p.User.Email,
 		}).Info("Email sent successfully")
+
+		if err := tx.Commit().Error; err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"notification": notification,
+				"error":        err,
+			}).Error("Error committing transaction")
+			tx.Rollback()
+
+			return err
+		}
 
 		return nil
 	}
@@ -210,6 +217,13 @@ func HandleEmailJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error 
 
 func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) error {
 	return func(ctx context.Context, t *asynq.Task) error {
+		tx := db.Begin()
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
+
 		var p tasks.EmailReminderPayload
 		if err := json.Unmarshal(t.Payload(), &p); err != nil {
 			return err
@@ -243,7 +257,7 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 				IsSent:          false,
 			}
 
-			if err := db.Create(&newReminder).Error; err != nil {
+			if err := tx.Create(&newReminder).Error; err != nil {
 				notification_logger.WithFields(logrus.Fields{
 					"reminder_id": p.ReminderID,
 					"error":       err,
@@ -253,7 +267,7 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 			}
 
 			// Schedule a new reminder
-			err := AddReminderEmailJobToQueueAt(db, p.User, p.Subject, p.Content, newReminder.ID, newReminder.ReminderTime)
+			err := AddReminderEmailJobToQueueAt(tx, p.User, p.Subject, p.Content, newReminder.ID, newReminder.ReminderTime)
 			if err != nil {
 				notification_logger.WithFields(logrus.Fields{
 					"reminder_id": p.ReminderID,
@@ -269,8 +283,11 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 		var notification = models.Notification{
 			UserUGKthID: p.User.UGKthID,
 			Type:        models.EmailNotification,
-			Subject:     p.Subject,
+			Subject:     &p.Subject,
+			Content:     &p.Content,
 		}
+
+		CreateNotificationInDb(tx, &notification)
 
 		if err := notification.Validate(); err != nil {
 			notification_logger.WithFields(logrus.Fields{
@@ -278,10 +295,19 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 				"error":        err,
 			}).Error("Error validating notification")
 
+			if err := handleFailedNotification(&notification, err, tx); err != nil {
+				notification_logger.WithFields(logrus.Fields{
+					"notification": notification,
+					"error":        err,
+				}).Error("Error handling failed notification")
+			}
+
+			tx.Rollback()
+
 			return err
 		}
 
-		err := SendEmail(p.User, p.Subject, p.Content, db)
+		err := SendEmail(p.User, p.Subject, p.Content, tx)
 		if err != nil {
 			notification_logger.WithFields(logrus.Fields{
 				"notification": notification,
@@ -289,16 +315,17 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 				"error":        err,
 			}).Error("Error sending email")
 
-			notification.Status = models.NotificationStatusFailed
+			if err := handleFailedNotification(&notification, err, tx); err != nil {
+				notification_logger.WithFields(logrus.Fields{
+					"notification": notification,
+					"error":        err,
+				}).Error("Error handling failed notification")
+			}
 
-			CreateNotificationInDb(db, &notification)
+			tx.Rollback()
 
 			return err
 		}
-		// It was a success, create notification in db
-		notification.Status = models.NotificationStatusSent
-
-		CreateNotificationInDb(db, &notification)
 
 		ticketReleaseReminder.IsSent = true
 		if err := db.Save(&ticketReleaseReminder).Error; err != nil {
@@ -306,6 +333,33 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 				"reminder_id": p.ReminderID,
 				"error":       err,
 			}).Error("Error saving ticket release reminder")
+
+			return err
+		}
+
+		if err := setSentNotification(&notification, tx); err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"notification": notification,
+				"error":        err,
+			}).Error("Error setting notification as sent")
+
+			if err := handleFailedNotification(&notification, err, tx); err != nil {
+				notification_logger.WithFields(logrus.Fields{
+					"notification": notification,
+					"error":        err,
+				}).Error("Error handling failed notification")
+			}
+
+			tx.Rollback()
+			return err
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			notification_logger.WithFields(logrus.Fields{
+				"notification": notification,
+				"error":        err,
+			}).Error("Error committing transaction")
+			tx.Rollback()
 
 			return err
 		}

@@ -2,9 +2,12 @@ package services
 
 import (
 	"fmt"
+	"html/template"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/DowLucas/gin-ticket-release/utils"
+	"github.com/russross/blackfriday/v2"
 	"gorm.io/gorm"
 )
 
@@ -37,8 +40,37 @@ func (sos *SendOutService) SendOutEmails(event *models.Event,
 
 	users := calculateUsers(allTicketRequests, ticketReleases, filters)
 
+	htmlMessage := blackfriday.Run([]byte(message))
+
+	data := types.EmailEventSendOut{
+		Message:          template.HTML(htmlMessage),
+		OrganizationName: event.Organization.Name,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/event_send_out.html", data)
+	if err != nil {
+		return &types.ErrorResponse{StatusCode: 500, Message: "Error parsing template"}
+	}
+
+	var compressedContent string
+	compressedContent, err = utils.CompressHTML(htmlContent)
+	if err != nil {
+		compressedContent = htmlContent
+	}
+
+	// Create the send out
+	sendOut := models.SendOut{
+		EventID: &event.ID,
+		Subject: subject,
+		Content: compressedContent,
+	}
+
+	if err := sos.DB.Create(&sendOut).Error; err != nil {
+		return &types.ErrorResponse{StatusCode: 500, Message: "Error creating send out"}
+	}
+
 	for _, user := range users {
-		err := Notify_EventSendOut(sos.DB, &user, event.Organization.Name, subject, message)
+		err := Notify_EventSendOut(sos.DB, &sendOut, &user, htmlContent)
 		if err != nil {
 			fmt.Println(err)
 			continue

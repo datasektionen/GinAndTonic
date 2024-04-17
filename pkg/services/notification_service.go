@@ -11,7 +11,6 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/utils"
-	"github.com/russross/blackfriday/v2"
 	"gorm.io/gorm"
 )
 
@@ -362,25 +361,12 @@ func Notify_PasswordReset(db *gorm.DB, pwReset *models.UserPasswordReset) error 
 	return nil
 }
 
-func Notify_EventSendOut(db *gorm.DB, user *models.User, organizationName, subject, message string) error {
+func Notify_EventSendOut(db *gorm.DB, sendOut *models.SendOut, user *models.User, message string) error {
 	if os.Getenv("ENV") == "test" {
 		return nil
 	}
 
-	htmlMessage := blackfriday.Run([]byte(message))
-
-	data := types.EmailEventSendOut{
-		Message:          template.HTML(htmlMessage),
-		OrganizationName: organizationName,
-	}
-
-	htmlContent, err := utils.ParseTemplate("templates/emails/event_send_out.html", data)
-
-	if err != nil {
-		return err
-	}
-
-	AddEmailJob(db, user, subject, htmlContent)
+	jobs.AddSendOutEmailJobToQueue(db, user, sendOut, message)
 
 	return nil
 }

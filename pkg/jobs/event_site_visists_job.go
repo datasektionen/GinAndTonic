@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"math"
-	"sync"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"gorm.io/gorm"
@@ -15,53 +14,29 @@ func StartEventSiteVisitsJob(db *gorm.DB) error {
 		return err
 	}
 
-	var wg sync.WaitGroup
-	errs := make(chan error)
-
 	for _, event := range futureEvents {
-		wg.Add(1)
+		eventSiteVisits, err := models.GetEventSiteVisits(db, event.ID)
 
-		go func(event models.Event) {
-			defer wg.Done()
+		if err != nil {
+			return err
+		}
 
-			eventSiteVisits, err := models.GetEventSiteVisits(db, event.ID)
+		ticketRequests, err := models.GetTicketRequestsToEvent(db, event.ID)
 
-			if err != nil {
-				errs <- err
-				return
-			}
+		if err != nil {
+			return err
+		}
 
-			ticketRequests, err := models.GetTicketRequestsToEvent(db, event.ID)
+		totalIncome, err := models.GetEventTotalIncome(db, int(event.ID))
+		if err != nil {
+			return err
+		}
 
-			if err != nil {
-				errs <- err
-				return
-			}
+		// Round totalIncome to 2 decimal places
+		totalIncome = math.Round(totalIncome / 100)
 
-			totalIncome, err := models.GetEventTotalIncome(db, int(event.ID))
-			if err != nil {
-				errs <- err
-				return
-			}
+		err = process_sesvj(db, event.ID, eventSiteVisits, len(ticketRequests), totalIncome)
 
-			// Round totalIncome to 2 decimal places
-			totalIncome = math.Round(totalIncome / 100)
-
-			err = process_sesvj(db, event.ID, eventSiteVisits, len(ticketRequests), totalIncome)
-
-			if err != nil {
-				errs <- err
-				return
-			}
-		}(event)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	for err := range errs {
 		if err != nil {
 			return err
 		}

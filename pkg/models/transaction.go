@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/stripe/stripe-go"
@@ -53,13 +54,13 @@ func (trans *Transaction) Validate() error {
 }
 
 func GetEventTotalIncome(db *gorm.DB, eventID int) (float64, error) {
-	var totalIncome float64
+	var totalIncome sql.NullFloat64
 
-	err := db.Model(&Transaction{}).Where("event_id = ?", eventID).Where("status = ?", "completed").Select("SUM(amount)").Scan(&totalIncome).Error
+	err := db.Model(&Transaction{}).Where("event_id = ?", eventID).Where("status = ?", "completed").Select("COALESCE(SUM(amount), 0)").Scan(&totalIncome).Error
 
 	if err != nil {
 		return 0, err
 	}
 
-	return totalIncome, nil
+	return totalIncome.Float64, nil
 }

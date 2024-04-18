@@ -23,11 +23,11 @@ func NewContactController(db *gorm.DB) *ContactController {
 }
 
 type ContactRequest struct {
-	Name           string `json:"name" binding:"required"`
-	OrganizationID int    `json:"organization_id" binding:"required"`
-	Email          string `json:"email" binding:"required"`
-	Subject        string `json:"subject" binding:"required"`
-	Message        string `json:"message" binding:"required"`
+	Name    string `json:"name" binding:"required"`
+	TeamID  int    `json:"team_id" binding:"required"`
+	Email   string `json:"email" binding:"required"`
+	Subject string `json:"subject" binding:"required"`
+	Message string `json:"message" binding:"required"`
 }
 
 func (cc *ContactController) CreateContact(c *gin.Context) {
@@ -38,19 +38,19 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 		return
 	}
 
-	// get organization
-	var organization models.Organization
-	if err := cc.DB.First(&organization, contact.OrganizationID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Organization not found"})
+	// get team
+	var team models.Team
+	if err := cc.DB.First(&team, contact.TeamID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Team not found"})
 		return
 	}
 
 	var data types.EmailContact = types.EmailContact{
-		FullName:         contact.Name,
-		OrganizationName: organization.Name,
-		Subject:          contact.Subject,
-		Message:          contact.Message,
-		Email:            contact.Email,
+		FullName: contact.Name,
+		TeamName: team.Name,
+		Subject:  contact.Subject,
+		Message:  contact.Message,
+		Email:    contact.Email,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/contact.html", data)
@@ -59,7 +59,7 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 		return
 	}
 
-	jobs.SendContactEmail(contact.Name, organization.Email, contact.Email, contact.Subject, htmlContent)
+	jobs.SendContactEmail(contact.Name, team.Email, contact.Email, contact.Subject, htmlContent)
 
 	c.JSON(http.StatusOK, contact)
 }

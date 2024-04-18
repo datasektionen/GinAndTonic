@@ -21,7 +21,7 @@ func Notify_ReserveTicketConvertedAllocation(db *gorm.DB, ticketId int) error {
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketRelease.Event.Team").
 		Preload("TicketRequest.TicketType").
 		First(&ticket, ticketId).Error
 	if err != nil {
@@ -42,12 +42,12 @@ func Notify_ReserveTicketConvertedAllocation(db *gorm.DB, ticketId int) error {
 	}
 
 	data := types.EmailTicketAllocationCreated{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationName:  event.Organization.Name,
-		OrganizationEmail: event.Organization.Email,
-		PayBefore:         payBeforeString,
+		FullName:  user.FullName(),
+		EventName: event.Name,
+		TicketURL: os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TeamName:  event.Team.Name,
+		TeamEmail: event.Team.Email,
+		PayBefore: payBeforeString,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/reserve_ticket_converted_allocation.html", data)
@@ -84,10 +84,10 @@ func Notify_TicketNotPaidInTime(db *gorm.DB, ticket *models.Ticket) error {
 	emailTicketString, _ := utils.GenerateEmailTable(tickets)
 
 	data := types.EmailTicketNotPaidInTime{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketsHTML:       template.HTML(emailTicketString),
-		OrganizationEmail: event.Organization.Email,
+		FullName:    user.FullName(),
+		EventName:   event.Name,
+		TicketsHTML: template.HTML(emailTicketString),
+		TeamEmail:   event.Team.Email,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_not_paid_in_time.html", data)
@@ -106,7 +106,7 @@ func Notify_UpdateReserveNumbers(db *gorm.DB, ticketId int) error {
 
 	var ticket models.Ticket
 	err := db.
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketRelease.Event.Team").
 		Preload("TicketRequest.User").
 		First(&ticket, ticketId).Error
 	if err != nil {
@@ -124,12 +124,12 @@ func Notify_UpdateReserveNumbers(db *gorm.DB, ticketId int) error {
 	var newReserveNumber int = int(ticket.ReserveNumber)
 
 	data := types.EmailReserveUpdateNumber{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationName:  event.Organization.Name,
-		OrganizationEmail: event.Organization.Email,
-		ReserveNumber:     fmt.Sprintf("%d", newReserveNumber),
+		FullName:      user.FullName(),
+		EventName:     event.Name,
+		TicketURL:     os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TeamName:      event.Team.Name,
+		TeamEmail:     event.Team.Email,
+		ReserveNumber: fmt.Sprintf("%d", newReserveNumber),
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/reserve_update_number.html", data)
@@ -176,7 +176,7 @@ func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, paymentDeadline *
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").First(&ticket, ticketId).Error
+		Preload("TicketRequest.TicketRelease.Event.Team").First(&ticket, ticketId).Error
 	if err != nil {
 		return err
 	}
@@ -195,12 +195,12 @@ func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, paymentDeadline *
 	}
 
 	data := types.EmailTicketAllocationCreated{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationName:  event.Organization.Name,
-		OrganizationEmail: event.Organization.Email,
-		PayBefore:         payBeforeString,
+		FullName:  user.FullName(),
+		EventName: event.Name,
+		TicketURL: os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TeamName:  event.Team.Name,
+		TeamEmail: event.Team.Email,
+		PayBefore: payBeforeString,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_allocation_created.html", data)

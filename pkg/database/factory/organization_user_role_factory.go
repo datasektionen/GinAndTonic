@@ -6,12 +6,12 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 )
 
-func NewOrganizationUserRole(userUGKthID string, organizationID uint, organizationRoleName string) *models.OrganizationUserRole {
-	return &models.OrganizationUserRole{
-		UserUGKthID:          userUGKthID,
-		OrganizationID:       organizationID,
-		OrganizationRoleName: organizationRoleName,
-		CreatedAt:            time.Now(),
-		UpdatedAt:            time.Now(),
+func NewTeamUserRole(userUGKthID string, teamID uint, teamRoleName string) *models.TeamUserRole {
+	return &models.TeamUserRole{
+		UserUGKthID:  userUGKthID,
+		TeamID:       teamID,
+		TeamRoleName: teamRoleName,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 }

@@ -223,11 +223,11 @@ func main() {
 		}).Fatal("Failed to connect to database")
 	}
 
-	err = models.CreateOrganizationUniqueIndex(db)
+	err = models.CreateTeamUniqueIndex(db)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"error": err,
-		}).Fatal("Failed to create unique index for organizations")
+		}).Fatal("Failed to create unique index for teams")
 	}
 
 	// Run migrations
@@ -241,8 +241,8 @@ func main() {
 		panic("Failed to initialize roles: " + err.Error())
 	}
 
-	if err := models.InitializeOrganizationRoles(db); err != nil {
-		panic("Failed to initialize organization roles: " + err.Error())
+	if err := models.InitializeTeamRoles(db); err != nil {
+		panic("Failed to initialize team roles: " + err.Error())
 	}
 
 	if err := models.InitializeTicketReleaseMethods(db); err != nil {

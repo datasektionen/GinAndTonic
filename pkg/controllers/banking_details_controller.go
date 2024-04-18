@@ -20,15 +20,15 @@ func NewBankingController(service *services.BankingService) *BankingController {
 }
 
 func (bc *BankingController) SubmitBankingDetails(c *gin.Context) {
-	organizationIDstring := c.Param("organizationID")
-	if organizationIDstring == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "organization_id is required"})
+	teamIDstring := c.Param("teamID")
+	if teamIDstring == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_id is required"})
 		return
 	}
 
-	organizationID, err := strconv.Atoi(organizationIDstring)
+	teamID, err := strconv.Atoi(teamIDstring)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "organization_id must be an integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_id must be an integer"})
 		return
 	}
 
@@ -39,7 +39,7 @@ func (bc *BankingController) SubmitBankingDetails(c *gin.Context) {
 		return
 	}
 
-	if err := bc.service.SubmitBankingDetails(&details, uint(organizationID)); err != nil {
+	if err := bc.service.SubmitBankingDetails(&details, uint(teamID)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Message})
 		return
 	}
@@ -48,19 +48,19 @@ func (bc *BankingController) SubmitBankingDetails(c *gin.Context) {
 }
 
 func (bc *BankingController) GetBankingDetails(c *gin.Context) {
-	organizationIDstring := c.Param("organizationID")
-	if organizationIDstring == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "organization_id is required"})
+	teamIDstring := c.Param("teamID")
+	if teamIDstring == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_id is required"})
 		return
 	}
 
-	organizationID, err := strconv.Atoi(organizationIDstring)
+	teamID, err := strconv.Atoi(teamIDstring)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "organization_id must be an integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_id must be an integer"})
 		return
 	}
 
-	details, rerr := bc.service.GetBankingDetails(uint(organizationID))
+	details, rerr := bc.service.GetBankingDetails(uint(teamID))
 	if rerr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": rerr.Message})
 		return
@@ -70,19 +70,19 @@ func (bc *BankingController) GetBankingDetails(c *gin.Context) {
 }
 
 func (bc *BankingController) DeleteBankingDetails(c *gin.Context) {
-	organizationIDstring := c.Param("organizationID")
-	if organizationIDstring == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "organization_id is required"})
+	teamIDstring := c.Param("teamID")
+	if teamIDstring == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_id is required"})
 		return
 	}
 
-	organizationID, err := strconv.Atoi(organizationIDstring)
+	teamID, err := strconv.Atoi(teamIDstring)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "organization_id must be an integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_id must be an integer"})
 		return
 	}
 
-	rerr := bc.service.DeleteBankingDetails(uint(organizationID))
+	rerr := bc.service.DeleteBankingDetails(uint(teamID))
 	if rerr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": rerr.Message})
 		return

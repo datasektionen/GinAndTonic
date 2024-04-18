@@ -12,7 +12,7 @@ import (
 
 type BankingDetail struct {
 	gorm.Model
-	OrganizationID uint   `json:"organization_id" gorm:"index"`
+	TeamID         uint   `json:"team_id" gorm:"index"`
 	BankName       string `gorm:"size:512" json:"bank_name"`       // Encrypted, typically 4-10 characters, provided as size:255 for potential extra characters
 	AccountHolder  string `gorm:"size:512" json:"account_holder"`  // Encrypted, typically 4-10 characters, provided as size:255 for potential extra characters
 	AccountNumber  string `gorm:"size:512" json:"account_number"`  // Encrypted, typically 4-10 digits, provided as size:255 for potential extra characters
@@ -44,8 +44,8 @@ func isValidClearingNumber(number string) bool {
 }
 
 func (b *BankingDetail) Validate() error {
-	if b.OrganizationID == 0 {
-		return errors.New("organization id is required")
+	if b.TeamID == 0 {
+		return errors.New("team id is required")
 	}
 	if b.BankName == "" {
 		return errors.New("bank name is required")

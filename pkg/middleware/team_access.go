@@ -10,25 +10,25 @@ import (
 	"gorm.io/gorm"
 )
 
-func AuthorizeOrganizationAccess(db *gorm.DB, requiredRole models.OrgRole) gin.HandlerFunc {
+func AuthorizeTeamAccess(db *gorm.DB, requiredRole models.OrgRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		organizationIDStr := c.Param("organizationID")
+		teamIDStr := c.Param("teamID")
 
-		organizationID, err := utils.ParseStringToUint(organizationIDStr)
+		teamID, err := utils.ParseStringToUint(teamIDStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organization ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid team ID"})
 			c.Abort()
 			return
 		}
 
-		var organization models.Organization
-		if err := db.First(&organization, organizationID).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Organization not found"})
+		var team models.Team
+		if err := db.First(&team, teamID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Team not found"})
 			c.Abort()
 			return
 		}
 
-		authorized, err := CheckUserAuthorization(db, organizationID, c.GetString("ugkthid"), requiredRole)
+		authorized, err := CheckUserAuthorization(db, teamID, c.GetString("ugkthid"), requiredRole)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
 			c.Abort()
@@ -41,20 +41,20 @@ func AuthorizeOrganizationAccess(db *gorm.DB, requiredRole models.OrgRole) gin.H
 			return
 		}
 
-		c.Set("organization", organization) // Store the organization in the context for later use
+		c.Set("team", team) // Store the team in the context for later use
 
 		c.Next()
 	}
 }
 
 func CheckUserAuthorization(db *gorm.DB,
-	organizationID uint,
+	teamID uint,
 	ugkthid string,
 	requiredRole models.OrgRole) (bool, error) {
 	var err error
 
 	var requestingUser models.User
-	var userOrgRole models.OrganizationUserRole
+	var userOrgRole models.TeamUserRole
 
 	err = db.Where("ug_kth_id = ?", ugkthid).First(&requestingUser).Error
 	if err != nil {
@@ -66,23 +66,23 @@ func CheckUserAuthorization(db *gorm.DB,
 		return true, nil
 	}
 
-	err = db.Where("user_ug_kth_id = ? AND organization_id = ?", ugkthid, organizationID).First(&userOrgRole).Error
+	err = db.Where("user_ug_kth_id = ? AND team_id = ?", ugkthid, teamID).First(&userOrgRole).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// User is not found in the organization
+			// User is not found in the team
 			return false, nil
 		}
 		// Other database error
 		return false, err
 	}
 
-	var orgRole models.OrganizationRole
-	err = db.Where("name  = ?", userOrgRole.OrganizationRoleName).First(&orgRole).Error
+	var orgRole models.TeamRole
+	err = db.Where("name  = ?", userOrgRole.TeamRoleName).First(&orgRole).Error
 	if err != nil {
 		return false, err
 	}
 
-	var requiredOrgRole models.OrganizationRole
+	var requiredOrgRole models.TeamRole
 	err = db.Where("name = ?", requiredRole).First(&requiredOrgRole).Error
 	if err != nil {
 		return false, err

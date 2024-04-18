@@ -55,7 +55,7 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 	var ticket models.Ticket
 	if err := ts.DB.
 		Preload("User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketRelease.Event.Team").
 		Where("id = ?", ticketID).First(&ticket).Error; err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket"}
 	}
@@ -82,7 +82,7 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 	}
 
 	// Notify user
-	if err := Notify_TicketCancelled(ts.DB, &ticket.User, &ticket.TicketRequest.TicketRelease.Event.Organization, ticket.TicketRequest.TicketRelease.Event.Name); err != nil {
+	if err := Notify_TicketCancelled(ts.DB, &ticket.User, &ticket.TicketRequest.TicketRelease.Event.Team, ticket.TicketRequest.TicketRelease.Event.Name); err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error notifying user"}
 	}
 

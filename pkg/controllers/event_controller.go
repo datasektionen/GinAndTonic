@@ -41,21 +41,21 @@ func (ec *EventController) CreateEvent(c *gin.Context) {
 		return
 	}
 
-	// Check that organization exists
-	var organization models.Organization
-	if err := ec.DB.First(&organization, eventRequest.OrganizationID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organization ID"})
+	// Check that team exists
+	var team models.Team
+	if err := ec.DB.First(&team, eventRequest.TeamID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid team ID"})
 		return
 	}
 
 	event := models.Event{
-		Name:           eventRequest.Name,
-		Description:    eventRequest.Description,
-		Location:       eventRequest.Location,
-		Date:           time.Unix(eventRequest.Date, 0),
-		OrganizationID: eventRequest.OrganizationID,
-		IsPrivate:      eventRequest.IsPrivate,
-		CreatedBy:      ugkthid.(string),
+		Name:        eventRequest.Name,
+		Description: eventRequest.Description,
+		Location:    eventRequest.Location,
+		Date:        time.Unix(eventRequest.Date, 0),
+		TeamID:      eventRequest.TeamID,
+		IsPrivate:   eventRequest.IsPrivate,
+		CreatedBy:   ugkthid.(string),
 	}
 
 	if event.IsPrivate {
@@ -125,9 +125,9 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 				authorizedEvents = append(authorizedEvents, event)
 			} else {
 				authorized, err := middleware.CheckUserAuthorization(ec.DB,
-					uint(event.OrganizationID),
+					uint(event.TeamID),
 					ugkthid,
-					models.OrganizationMember)
+					models.TeamMember)
 
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
@@ -160,7 +160,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	}
 
 	err := ec.DB.
-		Preload("Organization").
+		Preload("Team").
 		Preload("TicketReleases").
 		Preload("TicketReleases.TicketTypes").
 		Preload("TicketReleases.ReservedUsers").
@@ -185,9 +185,9 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		} else {
 			var err error
 			authorized, err = middleware.CheckUserAuthorization(ec.DB,
-				uint(event.OrganizationID),
+				uint(event.TeamID),
 				user.UGKthID,
-				models.OrganizationMember)
+				models.TeamMember)
 
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
@@ -266,7 +266,7 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 		endDate := time.Unix(*eventRequest.EndDate, 0)
 		event.EndDate = &endDate
 	}
-	event.OrganizationID = eventRequest.OrganizationID
+	event.TeamID = eventRequest.TeamID
 	event.IsPrivate = eventRequest.IsPrivate
 
 	if eventRequest.IsPrivate && event.SecretToken == "" {

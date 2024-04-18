@@ -39,14 +39,14 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 	// Create Event
 	event := models.Event{
-		Name:           data.Event.Name,
-		Description:    data.Event.Description,
-		Date:           time.Unix(data.Event.Date, 0),
-		EndDate:        &endDate,
-		Location:       data.Event.Location,
-		OrganizationID: data.Event.OrganizationID,
-		IsPrivate:      data.Event.IsPrivate,
-		CreatedBy:      createdBy,
+		Name:        data.Event.Name,
+		Description: data.Event.Description,
+		Date:        time.Unix(data.Event.Date, 0),
+		EndDate:     &endDate,
+		Location:    data.Event.Location,
+		TeamID:      data.Event.TeamID,
+		IsPrivate:   data.Event.IsPrivate,
+		CreatedBy:   createdBy,
 	}
 
 	token, err := utils.GenerateSecretToken()

@@ -14,33 +14,33 @@ func SeedEvents(db *gorm.DB) {
 			"Event Description",
 			"Event Location",
 			"CreatedByUser",
-			1, // Example OrganizationID
+			1, // Example TeamID
 			time.Now(),
 		)
 		db.Create(event)
 	}
 }
 
-func SeedOrganizationRoles(db *gorm.DB) {
+func SeedTeamRoles(db *gorm.DB) {
 	roles := []string{"member", "owner"}
 	for _, roleName := range roles {
-		role := factory.NewOrganizationRole(roleName)
+		role := factory.NewTeamRole(roleName)
 		db.Create(role)
 	}
 }
 
-func SeedOrganizationUserRoles(db *gorm.DB) {
-	userRole := factory.NewOrganizationUserRole(
+func SeedTeamUserRoles(db *gorm.DB) {
+	userRole := factory.NewTeamUserRole(
 		"UserUGKthID",
-		1, // Example OrganizationID
+		1, // Example TeamID
 		"member",
 	)
 	db.Create(userRole)
 }
 
-func SeedOrganizations(db *gorm.DB) {
+func SeedTeams(db *gorm.DB) {
 	for i := 0; i < 5; i++ {
-		org := factory.NewOrganization("Organization Name", "Organization Email")
+		org := factory.NewTeam("Team Name", "Team Email")
 		db.Create(org)
 	}
 }

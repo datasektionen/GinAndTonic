@@ -49,8 +49,8 @@ func (nc *NotificationController) SendTestEmail(c *gin.Context) {
 	// 	FullName:          "Tsst",
 	// 	EventName:         "Blums",
 	// 	TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-	// 	OrganizationName:  "DKM",
-	// 	OrganizationEmail: "test@datasektionen.se",
+	// 	TeamName:  "DKM",
+	// 	TeamEmail: "test@datasektionen.se",
 	// 	PayBefore:         PayBefore,
 	// }
 
@@ -63,10 +63,10 @@ func (nc *NotificationController) SendTestEmail(c *gin.Context) {
 	str, _ := utils.GenerateEmailTable(tickets)
 
 	var data = types.EmailTicketNotPaidInTime{
-		FullName:          "Tsst",
-		EventName:         "Blums",
-		TicketsHTML:       template.HTML(str),
-		OrganizationEmail: "test@gmail.com",
+		FullName:    "Tsst",
+		EventName:   "Blums",
+		TicketsHTML: template.HTML(str),
+		TeamEmail:   "test@gmail.com",
 	}
 
 	tmpl, err := template.ParseFiles("templates/emails/ticket_not_paid_in_time.html")

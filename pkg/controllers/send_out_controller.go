@@ -48,7 +48,7 @@ func (sor *SendOutController) SendOut(c *gin.Context) {
 	}
 
 	var event models.Event
-	if err := sor.DB.Preload("Organization").Where("id = ?", eventId).First(&event).Error; err != nil {
+	if err := sor.DB.Preload("Team").Where("id = ?", eventId).First(&event).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

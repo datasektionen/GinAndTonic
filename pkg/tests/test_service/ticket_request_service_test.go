@@ -37,7 +37,7 @@ func SetupTicketRequestDB(db *gorm.DB) {
 	// Seed the database with necessary data for testing
 	// For example, create TicketRelease, TicketType, User, etc.
 	// Creat user
-	testutils.SetupOrganizationWorkflow(db)
+	testutils.SetupTeamWorkflow(db)
 	// Create a Event
 
 	event := testutils.CreateEventWorkflow(db)

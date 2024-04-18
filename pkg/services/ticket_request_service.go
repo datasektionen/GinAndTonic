@@ -92,7 +92,7 @@ func (trs *TicketRequestService) CreateTicketRequest(
 
 	// TODO perhaps create log file this?
 	var ticketRelease models.TicketRelease
-	if err := transaction.Preload("ReservedUsers").Preload("Event.Organization").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
+	if err := transaction.Preload("ReservedUsers").Preload("Event.Team").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
@@ -178,13 +178,13 @@ func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) err
 	// Use your database layer to find the ticket request by ID and cancel it
 	// This is just a placeholder implementation, replace it with your actual code
 	ticketRequest := &models.TicketRequest{}
-	result := trs.DB.Preload("User").Preload("TicketRelease.Event.Organization").Where("id = ?", ticketRequestID).First(ticketRequest)
+	result := trs.DB.Preload("User").Preload("TicketRelease.Event.Team").Where("id = ?", ticketRequestID).First(ticketRequest)
 	if result.Error != nil {
 		return result.Error
 	}
 
 	user := ticketRequest.User
-	org := ticketRequest.TicketRelease.Event.Organization
+	org := ticketRequest.TicketRelease.Event.Team
 
 	// Check if ticket request is allocated to a ticket
 	// If the ticket request is allocated to a ticket, it cannot be cancelled

@@ -14,8 +14,8 @@ type Event struct {
 	Date                 time.Time               `json:"date"`
 	EndDate              *time.Time              `json:"end_date" gorm:"default:null"`
 	Location             string                  `json:"location"`
-	OrganizationID       int                     `gorm:"index" json:"organization_id"`
-	Organization         Organization            `json:"organization"`
+	TeamID               int                     `gorm:"index" json:"team_id"`
+	Team                 Team                    `json:"team"`
 	TicketReleases       []TicketRelease         `gorm:"foreignKey:EventID" json:"ticket_releases"`
 	IsPrivate            bool                    `json:"is_private"`
 	SecretToken          string                  `json:"-"`
@@ -28,7 +28,7 @@ type Event struct {
 
 // GetEvent returns an event from the database
 func GetEvent(db *gorm.DB, id uint) (event Event, err error) {
-	err = db.Preload("Organization").First(&event, id).Error
+	err = db.Preload("Team").First(&event, id).Error
 	return
 }
 

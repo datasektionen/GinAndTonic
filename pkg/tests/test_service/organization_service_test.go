@@ -13,12 +13,12 @@ import (
 )
 
 var err error
-var organizationService *services.OrganisationService
+var teamService *services.OrganisationService
 
-type OrganizationServiceTestSuite struct {
+type TeamServiceTestSuite struct {
 	suite.Suite
-	db                  *gorm.DB
-	organizationService *services.OrganisationService
+	db          *gorm.DB
+	teamService *services.OrganisationService
 }
 
 func createDefaultRole(db *gorm.DB) {
@@ -40,15 +40,15 @@ func createDefaultUser(db *gorm.DB) {
 	}
 }
 
-func createDefaultOrganization(db *gorm.DB) {
-	err := db.Create(factory.NewOrganization("validOrganizationName", "validOrganizationEmail"))
+func createDefaultTeam(db *gorm.DB) {
+	err := db.Create(factory.NewTeam("validTeamName", "validTeamEmail"))
 	if err != nil {
 		panic(err)
 	}
 
 }
 
-func (suite *OrganizationServiceTestSuite) SetupTest() {
+func (suite *TeamServiceTestSuite) SetupTest() {
 	println("SetupTest")
 	var err error
 	suite.db, err = testutils.SetupTestDatabase(false)
@@ -56,66 +56,66 @@ func (suite *OrganizationServiceTestSuite) SetupTest() {
 
 	createDefaultRole(suite.db)
 	createDefaultUser(suite.db)
-	createDefaultOrganization(suite.db)
+	createDefaultTeam(suite.db)
 
-	suite.organizationService = services.NewOrganizationService(suite.db)
+	suite.teamService = services.NewTeamService(suite.db)
 }
 
-func (suite *OrganizationServiceTestSuite) TearDownTest() {
+func (suite *TeamServiceTestSuite) TearDownTest() {
 	testutils.CleanupTestDatabase(suite.db)
 }
 
-func (suite *OrganizationServiceTestSuite) TestAddUserToOrganization() {
-	organizationService = services.NewOrganizationService(suite.db)
+func (suite *TeamServiceTestSuite) TestAddUserToTeam() {
+	teamService = services.NewTeamService(suite.db)
 
-	// Test adding a valid user to an organization
-	err = organizationService.AddUserToOrganization("validUserUGKthID", 1, models.OrgRole("Owner"))
+	// Test adding a valid user to an team
+	err = teamService.AddUserToTeam("validUserUGKthID", 1, models.OrgRole("Owner"))
 	suite.NoError(err) // Replaces assert.Nil(t, err)
 
 	// Test adding a user that does not exist
-	err = organizationService.AddUserToOrganization("invalidUserUGKthID", 1, models.OrgRole("Owner"))
+	err = teamService.AddUserToTeam("invalidUserUGKthID", 1, models.OrgRole("Owner"))
 	suite.Error(err) // Replaces assert.NotNil(t, err)
 
-	// Test adding a user to an organization that does not exist
-	err = organizationService.AddUserToOrganization("validUserUGKthID", 999, models.OrgRole("Owner"))
+	// Test adding a user to an team that does not exist
+	err = teamService.AddUserToTeam("validUserUGKthID", 999, models.OrgRole("Owner"))
 	suite.Error(err) // Replaces assert.NotNil(t, err)
 }
 
-func (suite *OrganizationServiceTestSuite) TestRemoveUserFromOrganization() {
+func (suite *TeamServiceTestSuite) TestRemoveUserFromTeam() {
 
-	organizationService = services.NewOrganizationService(suite.db)
+	teamService = services.NewTeamService(suite.db)
 
-	// Test removing a valid user from an organization
-	err = organizationService.RemoveUserFromOrganization("validUserUGKthID", 1)
+	// Test removing a valid user from an team
+	err = teamService.RemoveUserFromTeam("validUserUGKthID", 1)
 	suite.NoError(err)
 
 	// Test removing a user that does not exist
-	err = organizationService.RemoveUserFromOrganization("invalidUserUGKthID", 1)
+	err = teamService.RemoveUserFromTeam("invalidUserUGKthID", 1)
 	suite.Error(err)
 
-	// Test removing a user from an organization that does not exist
-	err = organizationService.RemoveUserFromOrganization("validUserUGKthID", 999)
+	// Test removing a user from an team that does not exist
+	err = teamService.RemoveUserFromTeam("validUserUGKthID", 999)
 	suite.Error(err)
 
 }
 
-func (suite *OrganizationServiceTestSuite) TestGetOrganizationUsers() {
+func (suite *TeamServiceTestSuite) TestGetTeamUsers() {
 
-	organizationService = services.NewOrganizationService(suite.db)
+	teamService = services.NewTeamService(suite.db)
 
-	// Add a user to an organization
-	organizationService.AddUserToOrganization("validUserUGKthID", 1, models.OrgRole("Owner"))
+	// Add a user to an team
+	teamService.AddUserToTeam("validUserUGKthID", 1, models.OrgRole("Owner"))
 
-	// Test getting users for a valid organization
-	users, _ := organizationService.GetOrganizationUsers(1)
+	// Test getting users for a valid team
+	users, _ := teamService.GetTeamUsers(1)
 	suite.Equal(1, len(users))
 
-	// Test getting users for an organization that does not exist
-	users, _ = organizationService.GetOrganizationUsers(999)
+	// Test getting users for an team that does not exist
+	users, _ = teamService.GetTeamUsers(999)
 
 	suite.Equal(0, len(users))
 }
 
-func TestOrganizationServiceTestSuite(t *testing.T) {
-	suite.Run(t, new(OrganizationServiceTestSuite))
+func TestTeamServiceTestSuite(t *testing.T) {
+	suite.Run(t, new(TeamServiceTestSuite))
 }

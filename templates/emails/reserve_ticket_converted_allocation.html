@@ -13,8 +13,8 @@
     <strong>{{ .EventName }}!</strong> is no longer a reserve ticket.
     <strong> You have received a ticket </strong> to the event! <br />
     You can view and pay your ticket under the "My Tickets" section of your
-    profile. <a style="color: #00494e" href="{{ .v }}">Click here</a> to
-    view your ticket. This is also where you pay for your ticket.
+    profile. <a style="color: #00494e" href="{{ .v }}">Click here</a> to view
+    your ticket. This is also where you pay for your ticket.
   </p>
   <p style="font-size: 16px; line-height: 1.5">
     Go to the "My Tickets" section, select the ticket you want to pay for and
@@ -22,12 +22,12 @@
   </p>
 
   <p style="font-size: 16px; line-height: 1.5">
-    <strong> {{ .OrganizationName }} </strong> would appreciate it if you could
-    pay for your ticket as soon as possible. {{ if .PayBefore }} You therefore
-    have to pay your ticket before <strong>{{ .PayBefore }} CET</strong> (or
-    CEST in the summer). If you do not pay for your ticket before this date and
-    time, your ticket will be given to a reserve. {{ else }} You have to pay for
-    the ticket before the event. {{ end }}
+    <strong> {{ .TeamName }} </strong> would appreciate it if you could pay for
+    your ticket as soon as possible. {{ if .PayBefore }} You therefore have to
+    pay your ticket before <strong>{{ .PayBefore }} CET</strong> (or CEST in the
+    summer). If you do not pay for your ticket before this date and time, your
+    ticket will be given to a reserve. {{ else }} You have to pay for the ticket
+    before the event. {{ end }}
   </p>
 
   <p style="font-size: 16px; line-height: 1.5">
@@ -40,8 +40,8 @@
     If you have any questions, please contact us at
     <a
       style="color: #00494e"
-      href="mailto:{{ .OrganizationEmail }}?subject=Questions about {{ .EventName }}"
-      >{{ .OrganizationEmail }}</a
+      href="mailto:{{ .TeamEmail }}?subject=Questions about {{ .EventName }}"
+      >{{ .TeamEmail }}</a
     >
   </p>
   <br />

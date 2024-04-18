@@ -34,7 +34,7 @@ func AuthorizeEventAccess(db *gorm.DB, requiredRole models.OrgRole) gin.HandlerF
 			return
 		}
 
-		authorized, err := CheckUserAuthorization(db, uint(event.OrganizationID), ugkthid.(string), requiredRole)
+		authorized, err := CheckUserAuthorization(db, uint(event.TeamID), ugkthid.(string), requiredRole)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
 			c.Abort()

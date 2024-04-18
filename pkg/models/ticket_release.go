@@ -64,7 +64,7 @@ func (tr *TicketRelease) UserHasAccessToTicketRelease(DB *gorm.DB, id string) bo
 
 	var user User
 	if err := DB.
-		Preload("Organizations").Where("ug_kth_id = ?", id).First(&user).Error; err != nil {
+		Preload("Teams").Where("ug_kth_id = ?", id).First(&user).Error; err != nil {
 		return false
 	}
 
@@ -74,13 +74,13 @@ func (tr *TicketRelease) UserHasAccessToTicketRelease(DB *gorm.DB, id string) bo
 		}
 	}
 
-	if tr.Event.OrganizationID == 0 {
-		panic("Need to prelaod organization")
+	if tr.Event.TeamID == 0 {
+		panic("Need to prelaod team")
 	}
 
-	// Check if user is in same organization as ticket release
-	for _, organization := range user.Organizations {
-		if organization.ID == uint(tr.Event.OrganizationID) {
+	// Check if user is in same team as ticket release
+	for _, team := range user.Teams {
+		if team.ID == uint(tr.Event.TeamID) {
 			return true
 		}
 	}

@@ -18,15 +18,15 @@ func AddEmailJob(db *gorm.DB, user *models.User, subject, htmlContent string) {
 	jobs.AddEmailJobToQueue(db, user, subject, htmlContent, nil)
 }
 
-func Notify_TicketRequestCancelled(db *gorm.DB, user *models.User, organization *models.Organization, eventName string) error {
+func Notify_TicketRequestCancelled(db *gorm.DB, user *models.User, team *models.Team, eventName string) error {
 	if os.Getenv("ENV") == "test" {
 		return nil
 	}
 
 	data := types.EmailTicketRequestCancelledConfirmation{
-		FullName:          user.FullName(),
-		EventName:         eventName,
-		OrganizationEmail: organization.Email,
+		FullName:  user.FullName(),
+		EventName: eventName,
+		TeamEmail: team.Email,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_request_cancelled_confirmation.html", data)
@@ -39,15 +39,15 @@ func Notify_TicketRequestCancelled(db *gorm.DB, user *models.User, organization 
 	return nil
 }
 
-func Notify_TicketCancelled(db *gorm.DB, user *models.User, organization *models.Organization, eventName string) error {
+func Notify_TicketCancelled(db *gorm.DB, user *models.User, team *models.Team, eventName string) error {
 	if os.Getenv("ENV") == "test" {
 		return nil
 	}
 
 	data := types.EmailTicketCancelledConfirmation{
-		FullName:          user.FullName(),
-		EventName:         eventName,
-		OrganizationEmail: organization.Email,
+		FullName:  user.FullName(),
+		EventName: eventName,
+		TeamEmail: team.Email,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_cancelled_confirmation.html", data)
@@ -68,7 +68,7 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").First(&ticket, ticketId).Error
+		Preload("TicketRequest.TicketRelease.Event.Team").First(&ticket, ticketId).Error
 	if err != nil {
 		return err
 	}
@@ -87,12 +87,12 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *
 	}
 
 	data := types.EmailTicketAllocationCreated{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationName:  event.Organization.Name,
-		OrganizationEmail: event.Organization.Email,
-		PayBefore:         payBeforeString,
+		FullName:  user.FullName(),
+		EventName: event.Name,
+		TicketURL: os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TeamName:  event.Team.Name,
+		TeamEmail: event.Team.Email,
+		PayBefore: payBeforeString,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_allocation_created.html", data)
@@ -113,7 +113,7 @@ func Notify_ReserveTicketAllocationCreated(db *gorm.DB, ticketId int) error {
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketRelease.Event.Team").
 		Preload("TicketRequest.TicketType").
 		First(&ticket, ticketId).Error
 	if err != nil {
@@ -131,12 +131,12 @@ func Notify_ReserveTicketAllocationCreated(db *gorm.DB, ticketId int) error {
 	var reserveNumberString string = fmt.Sprintf("%d", ticket.ReserveNumber)
 
 	data := types.EmailTicketAllocationReserveCreated{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationName:  event.Organization.Name,
-		OrganizationEmail: event.Organization.Email,
-		ReserveNumber:     reserveNumberString,
+		FullName:      user.FullName(),
+		EventName:     event.Name,
+		TicketURL:     os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TeamName:      event.Team.Name,
+		TeamEmail:     event.Team.Email,
+		ReserveNumber: reserveNumberString,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_allocation_reserve_created.html", data)
@@ -158,7 +158,7 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 	var ticketRequests []models.TicketRequest
 	err := db.
 		Preload("User").
-		Preload("TicketRelease.Event.Organization").
+		Preload("TicketRelease.Event.Team").
 		Preload("TicketType").
 		Where("id IN ?", ticketRequestIds).
 		Find(&ticketRequests).Error
@@ -185,11 +185,11 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 	// emailTicketString := "<h1>Test</h1>"
 
 	data := types.EmailTicketRequestConfirmation{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketsHTML:       template.HTML(emailTicketString), // Convert string to template.HTML
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/ticket-requests",
-		OrganizationEmail: event.Organization.Email,
+		FullName:    user.FullName(),
+		EventName:   event.Name,
+		TicketsHTML: template.HTML(emailTicketString), // Convert string to template.HTML
+		TicketURL:   os.Getenv("FRONTEND_BASE_URL") + "/profile/ticket-requests",
+		TeamEmail:   event.Team.Email,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_request_created_confirmation.html", data)
@@ -211,7 +211,7 @@ func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketRelease.Event.Team").
 		Preload("TicketRequest.TicketType").
 		First(&ticket, ticketId).Error
 	if err != nil {
@@ -235,10 +235,10 @@ func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
 	emailTicketString, _ := utils.GenerateEmailTable(tickets)
 
 	data := types.EmailTicketPaymentConfirmation{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketsHTML:       template.HTML(emailTicketString),
-		OrganizationEmail: event.Organization.Email,
+		FullName:    user.FullName(),
+		EventName:   event.Name,
+		TicketsHTML: template.HTML(emailTicketString),
+		TeamEmail:   event.Team.Email,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_payment_confirmation.html", data)
@@ -302,7 +302,7 @@ func Notify_RemindUserOfTicketRelease(db *gorm.DB, trReminder *models.TicketRele
 	}
 
 	var ticketRelease models.TicketRelease
-	err := db.Preload("Event.Organization").First(&ticketRelease, trReminder.TicketReleaseID).Error
+	err := db.Preload("Event.Team").First(&ticketRelease, trReminder.TicketReleaseID).Error
 	if err != nil {
 		return fmt.Errorf("ticket release not found")
 	}
@@ -403,7 +403,7 @@ func Notify_UpdatedPaymentDeadlineEmail(db *gorm.DB, ticketId int, paymentDeadli
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketRelease.Event.Team").
 		Preload("TicketRequest.TicketType").
 		First(&ticket, ticketId).Error
 	if err != nil {
@@ -424,11 +424,11 @@ func Notify_UpdatedPaymentDeadlineEmail(db *gorm.DB, ticketId int, paymentDeadli
 	}
 
 	data := types.EmailUpdatePaymentDeadline{
-		FullName:          user.FullName(),
-		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
-		OrganizationEmail: event.Organization.Email,
-		PayBefore:         payBeforeString,
+		FullName:  user.FullName(),
+		EventName: event.Name,
+		TicketURL: os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TeamEmail: event.Team.Email,
+		PayBefore: payBeforeString,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_updated_payment_deadine.html", data)

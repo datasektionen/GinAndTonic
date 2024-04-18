@@ -24,17 +24,17 @@ func (s *BankingService) SubmitBankingDetails(bdr *types.BankingDetailsRequest, 
 		}
 	}()
 
-	var organization models.Organization
-	err := tx.First(&organization, orgId).Error
+	var team models.Team
+	err := tx.First(&team, orgId).Error
 	if err != nil {
 		return &types.ErrorResponse{
 			StatusCode: 404,
-			Message:    "Organization not found",
+			Message:    "Team not found",
 		}
 	}
 
 	b := models.BankingDetail{
-		OrganizationID: orgId,
+		TeamID:         orgId,
 		BankName:       bdr.BankName,
 		AccountHolder:  bdr.AccountHolder,
 		AccountNumber:  bdr.AccountNumber,
@@ -58,7 +58,7 @@ func (s *BankingService) SubmitBankingDetails(bdr *types.BankingDetailsRequest, 
 	}
 
 	var existingBankingDetail models.BankingDetail
-	if err := tx.Where("organization_id = ?", orgId).First(&existingBankingDetail).Error; err != nil {
+	if err := tx.Where("team_id = ?", orgId).First(&existingBankingDetail).Error; err != nil {
 		if err := tx.Create(&b).Error; err != nil {
 			tx.Rollback()
 			return &types.ErrorResponse{
@@ -88,7 +88,7 @@ func (s *BankingService) SubmitBankingDetails(bdr *types.BankingDetailsRequest, 
 
 func (s *BankingService) GetBankingDetails(orgId uint) (bd models.BankingDetail, rerr *types.ErrorResponse) {
 	var bankingDetail models.BankingDetail
-	err := s.DB.Where("organization_id = ?", orgId).First(&bankingDetail).Error
+	err := s.DB.Where("team_id = ?", orgId).First(&bankingDetail).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return models.BankingDetail{}, nil
@@ -120,7 +120,7 @@ func (s *BankingService) DeleteBankingDetails(orgId uint) (rerr *types.ErrorResp
 	}()
 
 	var bankingDetail models.BankingDetail
-	err := tx.Where("organization_id = ?", orgId).First(&bankingDetail).Error
+	err := tx.Where("team_id = ?", orgId).First(&bankingDetail).Error
 	if err != nil {
 		return &types.ErrorResponse{
 			StatusCode: 404,

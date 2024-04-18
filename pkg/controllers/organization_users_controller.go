@@ -16,54 +16,54 @@ type OrganisationUsersController struct {
 	OrganisationService *services.OrganisationService
 }
 
-func NewOrganizationUsersController(db *gorm.DB, os *services.OrganisationService) *OrganisationUsersController {
+func NewTeamUsersController(db *gorm.DB, os *services.OrganisationService) *OrganisationUsersController {
 	return &OrganisationUsersController{DB: db, OrganisationService: os}
 }
 
-// AddUserToOrganization handles adding a user to an organization
-func (ouc *OrganisationUsersController) AddUserToOrganization(c *gin.Context) {
-	username, organizationID, err := ouc.parseParams(c)
+// AddUserToTeam handles adding a user to an team
+func (ouc *OrganisationUsersController) AddUserToTeam(c *gin.Context) {
+	username, teamID, err := ouc.parseParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = ouc.OrganisationService.AddUserToOrganization(username, organizationID, models.OrganizationMember)
+	err = ouc.OrganisationService.AddUserToTeam(username, teamID, models.TeamMember)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User added to organization"})
+	c.JSON(http.StatusOK, gin.H{"message": "User added to team"})
 }
 
-// RemoveUserFromOrganization handles removing a user from an organization
-func (ouc *OrganisationUsersController) RemoveUserFromOrganization(c *gin.Context) {
-	username, organizationID, err := ouc.parseParams(c)
+// RemoveUserFromTeam handles removing a user from an team
+func (ouc *OrganisationUsersController) RemoveUserFromTeam(c *gin.Context) {
+	username, teamID, err := ouc.parseParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = ouc.OrganisationService.RemoveUserFromOrganization(username, organizationID)
+	err = ouc.OrganisationService.RemoveUserFromTeam(username, teamID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User removed from organization"})
+	c.JSON(http.StatusOK, gin.H{"message": "User removed from team"})
 }
 
-// GetOrganizationUsers handles fetching users of an organization
-func (ouc *OrganisationUsersController) GetOrganizationUsers(c *gin.Context) {
-	organizationIDStr := c.Param("organizationID")
-	organizationID, err := strconv.Atoi(organizationIDStr)
+// GetTeamUsers handles fetching users of an team
+func (ouc *OrganisationUsersController) GetTeamUsers(c *gin.Context) {
+	teamIDStr := c.Param("teamID")
+	teamID, err := strconv.Atoi(teamIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organization ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid team ID"})
 		return
 	}
 
-	users, err := ouc.OrganisationService.GetOrganizationUsers(uint(organizationID))
+	users, err := ouc.OrganisationService.GetTeamUsers(uint(teamID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -72,8 +72,8 @@ func (ouc *OrganisationUsersController) GetOrganizationUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"users": users})
 }
 
-func (ouc *OrganisationUsersController) ChangeUserOrganizationRole(c *gin.Context) {
-	username, organizationID, err := ouc.parseParams(c)
+func (ouc *OrganisationUsersController) ChangeUserTeamRole(c *gin.Context) {
+	username, teamID, err := ouc.parseParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -101,7 +101,7 @@ func (ouc *OrganisationUsersController) ChangeUserOrganizationRole(c *gin.Contex
 		return
 	}
 
-	err = ouc.OrganisationService.ChangeUserRoleInOrganization(username, organizationID, role)
+	err = ouc.OrganisationService.ChangeUserRoleInTeam(username, teamID, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -114,14 +114,14 @@ func (ouc *OrganisationUsersController) ChangeUserOrganizationRole(c *gin.Contex
 
 func (ouc *OrganisationUsersController) parseParams(c *gin.Context) (string, uint, error) {
 	username := c.Param("username")
-	organizationIDStr := c.Param("organizationID")
+	teamIDStr := c.Param("teamID")
 
-	organizationID, err := strconv.Atoi(organizationIDStr)
+	teamID, err := strconv.Atoi(teamIDStr)
 	if err != nil {
-		return "", 0, fmt.Errorf("Invalid organization ID")
+		return "", 0, fmt.Errorf("Invalid team ID")
 	}
 
-	return username, uint(organizationID), nil
+	return username, uint(teamID), nil
 }
 
 // check that checking user is not the same as the user being checked

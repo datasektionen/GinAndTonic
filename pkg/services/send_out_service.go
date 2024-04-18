@@ -43,8 +43,8 @@ func (sos *SendOutService) SendOutEmails(event *models.Event,
 	htmlMessage := blackfriday.Run([]byte(message))
 
 	data := types.EmailEventSendOut{
-		Message:          template.HTML(htmlMessage),
-		OrganizationName: event.Organization.Name,
+		Message:  template.HTML(htmlMessage),
+		TeamName: event.Team.Name,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/event_send_out.html", data)

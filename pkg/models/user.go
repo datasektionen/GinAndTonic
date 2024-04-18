@@ -22,16 +22,16 @@ type User struct {
 	EmailVerificationSentAt *time.Time `json:"-"`
 	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
 
-	Tickets               []Ticket               `json:"tickets"`
-	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
-	Organizations         []Organization         `gorm:"many2many:organization_users;" json:"organizations"`
-	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:UserUGKthID" json:"organization_user_roles"`
-	FoodPreferences       UserFoodPreference     `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`
-	RoleID                uint                   `json:"role_id"`
-	Role                  Role                   `json:"role"`
-	CreatedAt             time.Time              `json:"created_at"`
-	UpdatedAt             time.Time              `json:"updated_at"`
-	DeletedAt             gorm.DeletedAt         `gorm:"index" json:"deleted_at"`
+	Tickets         []Ticket           `json:"tickets"`
+	TicketRequests  []TicketRequest    `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
+	Teams           []Team             `gorm:"many2many:team_users;" json:"teams"`
+	TeamUserRoles   []TeamUserRole     `gorm:"foreignKey:UserUGKthID" json:"team_user_roles"`
+	FoodPreferences UserFoodPreference `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`
+	RoleID          uint               `json:"role_id"`
+	Role            Role               `json:"role"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt     `gorm:"index" json:"deleted_at"`
 }
 
 func CreateUserIfNotExist(db *gorm.DB, user User) error {
@@ -68,7 +68,7 @@ func GetUserByUGKthIDIfExist(db *gorm.DB, UGKthID string) (User, error) {
 	var user User
 	err := db.
 		Preload("Role").
-		Preload("Organizations").
+		Preload("Teams").
 		Preload("PreferredEmail").
 		Where("ug_kth_id = ?", UGKthID).First(&user).Error
 	return user, err

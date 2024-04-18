@@ -9,85 +9,85 @@ type EmailTicket struct {
 
 // Associated with ticket_allocation_created
 type EmailTicketAllocationCreated struct {
-	FullName          string
-	EventName         string
-	TicketURL         string
-	OrganizationName  string
-	OrganizationEmail string
-	PayBefore         string
+	FullName  string
+	EventName string
+	TicketURL string
+	TeamName  string
+	TeamEmail string
+	PayBefore string
 }
 
 // Associated with ticket_reserve_created
 type EmailTicketAllocationReserveCreated struct {
-	FullName          string
-	ReserveNumber     string
-	EventName         string
-	TicketURL         string
-	OrganizationName  string
-	OrganizationEmail string
+	FullName      string
+	ReserveNumber string
+	EventName     string
+	TicketURL     string
+	TeamName      string
+	TeamEmail     string
 }
 
 // Associated with ticket_request_confirmation
 type EmailTicketRequestConfirmation struct {
-	FullName          string
-	EventName         string
-	TicketsHTML       template.HTML
-	TicketURL         string
-	OrganizationEmail string
+	FullName    string
+	EventName   string
+	TicketsHTML template.HTML
+	TicketURL   string
+	TeamEmail   string
 }
 
 // Associated with ticket_payment_confirmation
 type EmailTicketPaymentConfirmation struct {
-	FullName          string
-	EventName         string
-	TicketsHTML       template.HTML
-	OrganizationEmail string
+	FullName    string
+	EventName   string
+	TicketsHTML template.HTML
+	TeamEmail   string
 }
 
 // Associated with ticket_cancelled_confirmation
 type EmailTicketCancelledConfirmation struct {
-	FullName          string
-	EventName         string
-	OrganizationEmail string
+	FullName  string
+	EventName string
+	TeamEmail string
 }
 
 // Associated with ticket_request_cancelled_confirmation
 type EmailTicketRequestCancelledConfirmation struct {
-	FullName          string
-	EventName         string
-	OrganizationEmail string
+	FullName  string
+	EventName string
+	TeamEmail string
 }
 
 // Associated with ticket_request_reserve_number_update
 type EmailTicketRequestReserveNumberUpdate struct {
-	FullName          string
-	EventName         string
-	TicketURL         string
-	RequestNumber     string
-	OrganizationEmail string
+	FullName      string
+	EventName     string
+	TicketURL     string
+	RequestNumber string
+	TeamEmail     string
 }
 
 type EmailTicketNotPaidInTime struct {
-	FullName          string
-	EventName         string
-	TicketsHTML       template.HTML
-	OrganizationEmail string
+	FullName    string
+	EventName   string
+	TicketsHTML template.HTML
+	TeamEmail   string
 }
 
 type EmailReserveTicketConvertedAllocation struct {
-	FullName          string
-	EventName         string
-	OrganizationEmail string
-	OrganizationName  string
+	FullName  string
+	EventName string
+	TeamEmail string
+	TeamName  string
 }
 
 type EmailReserveUpdateNumber struct {
-	FullName          string
-	EventName         string
-	TicketURL         string
-	OrganizationEmail string
-	OrganizationName  string
-	ReserveNumber     string
+	FullName      string
+	EventName     string
+	TicketURL     string
+	TeamEmail     string
+	TeamName      string
+	ReserveNumber string
 }
 
 // EmailWelcome is the struct for the welcome email
@@ -103,11 +103,11 @@ type EmailExternalUserSignupVerification struct {
 
 // EmailContact is the struct for the contact email
 type EmailContact struct {
-	FullName         string
-	OrganizationName string
-	Subject          string
-	Message          string
-	Email            string
+	FullName string
+	TeamName string
+	Subject  string
+	Message  string
+	Email    string
 }
 
 type EmailTicketReleaseReminder struct {
@@ -123,8 +123,8 @@ type EmailPasswordReset struct {
 }
 
 type EmailEventSendOut struct {
-	Message          template.HTML
-	OrganizationName string
+	Message  template.HTML
+	TeamName string
 }
 
 type EmailRequestChangePreferredEmail struct {
@@ -132,9 +132,9 @@ type EmailRequestChangePreferredEmail struct {
 }
 
 type EmailUpdatePaymentDeadline struct {
-	FullName          string
-	EventName         string
-	TicketURL         string
-	PayBefore         string
-	OrganizationEmail string
+	FullName  string
+	EventName string
+	TicketURL string
+	PayBefore string
+	TeamEmail string
 }

@@ -98,17 +98,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db, completeEventWorkflowService)
 	userController := controllers.NewUserController(db)
 	sendOutService := services.NewSendOutService(db)
-	organizationService := services.NewOrganizationService(db)
+	teamService := services.NewTeamService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
 	preferredEmailService := services.NewPreferredEmailService(db)
 	bankingService := banking_service.NewBankingService(db)
 
-	organizationController := controllers.NewOrganizationController(db, organizationService)
+	teamController := controllers.NewTeamController(db, teamService)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
 	ticketReleaseController := controllers.NewTicketReleaseController(db)
 	ticketReleasePromoCodeController := controllers.NewTicketReleasePromoCodeController(db)
 	ticketTypeController := controllers.NewTicketTypeController(db)
-	organizationUsersController := controllers.NewOrganizationUsersController(db, organizationService)
+	teamUsersController := controllers.NewTeamUsersController(db, teamService)
 	userFoodPreferenceController := controllers.NewUserFoodPreferenceController(db)
 	ticketRequestController := controllers.NewTicketRequestController(db)
 	allocateTicketsController := controllers.NewAllocateTicketsController(db, allocateTicketsService)
@@ -143,7 +143,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events", eventController.ListEvents)
 	r.GET("/events/:eventID", middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/events/:eventID/manage", authentication.ValidateTokenMiddleware(),
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember), gin.HandlerFunc(func(c *gin.Context) {
+		middleware.AuthorizeEventAccess(db, models.TeamMember), gin.HandlerFunc(func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
 		}))
 
@@ -153,14 +153,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	})
 
 	r.GET("/events/:eventID/manage/secret-token",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		eventController.GetEventSecretToken)
 
 	r.PUT("/events/:eventID",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		eventController.UpdateEvent)
 	r.DELETE("/events/:eventID",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		eventController.DeleteEvent)
 
 	r.POST("/complete-event-workflow",
@@ -171,32 +171,32 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)
-	r.POST("/events/:eventID/ticket-release", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.CreateTicketRelease)
-	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.GetTicketRelease)
-	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.UpdateTicketRelease)
-	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.DeleteTicketRelease)
-	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketTypeController.GetEventTicketTypes)
-	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketTypeController.UpdateEventTicketTypes)
+	r.POST("/events/:eventID/ticket-release", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketReleaseController.CreateTicketRelease)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketReleaseController.GetTicketRelease)
+	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketReleaseController.UpdateTicketRelease)
+	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketReleaseController.DeleteTicketRelease)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketTypeController.GetEventTicketTypes)
+	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/ticket-types", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketTypeController.UpdateEventTicketTypes)
 	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/payment-deadline",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		ticketReleaseController.UpdatePaymentDeadline)
 
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/manually-allocate-reserve-tickets",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
 
 	// Site vists
-	r.GET("/events/:eventID/overview", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventSiteVistsController.Get)
+	r.GET("/events/:eventID/overview", middleware.AuthorizeEventAccess(db, models.TeamMember), eventSiteVistsController.Get)
 
 	// AddOn
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		addOnController.GetAddOns)
 	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID/add-ons",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		addOnController.UpsertAddOns)
 	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID/add-ons/:addOnID",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		addOnController.DeleteAddOn)
 
 	// Form fields
@@ -215,10 +215,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/activate-promo-code/:eventID", ticketReleasePromoCodeController.Create)
 
 	// Allocate tickets routes
-	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.AllocateTickets)
-	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.ListAllocatedTickets)
+	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.TeamMember), allocateTicketsController.AllocateTickets)
+	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.TeamMember), allocateTicketsController.ListAllocatedTickets)
 	r.POST("/events/:eventID/ticket-requests/:ticketRequestID/allocate",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		middleware.AuthorizeEventAccess(db, models.TeamMember),
 		allocateTicketsController.SelectivelyAllocateTicketRequest)
 
 	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
@@ -230,8 +230,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/ticket-releases/:ticketReleaseID/ticket-requests/:ticketRequestID/add-ons", ticketRequestController.UpdateAddOns)
 
 	// Ticket events routes
-	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventController.ListTickets)
-	r.POST("/events/:eventID/tickets/qr-check-in", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.QrCodeCheckIn)
+	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db, models.TeamMember), eventController.ListTickets)
+	r.POST("/events/:eventID/tickets/qr-check-in", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketsController.QrCodeCheckIn)
 
 	// My tickets
 	r.GET("/my-ticket-requests", ticketRequestController.UsersList)
@@ -241,31 +241,31 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.DELETE("/my-tickets/:ticketID", ticketsController.CancelTicket)
 
 	// send outs
-	r.GET("/events/:eventID/send-outs", middleware.AuthorizeEventAccess(db, models.OrganizationMember), sendOutcontroller.GetEventSendOuts)
-	r.POST("/events/:eventID/send-out", middleware.AuthorizeEventAccess(db, models.OrganizationMember), sendOutcontroller.SendOut)
+	r.GET("/events/:eventID/send-outs", middleware.AuthorizeEventAccess(db, models.TeamMember), sendOutcontroller.GetEventSendOuts)
+	r.POST("/events/:eventID/send-out", middleware.AuthorizeEventAccess(db, models.TeamMember), sendOutcontroller.SendOut)
 
 	// Ticket routes
-	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
-	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicket)
+	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketsController.GetTicket)
+	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.TeamMember), ticketsController.UpdateTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
 
 	// Sales report
-	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.GenerateSalesReport)
-	r.GET("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.ListSalesReport)
+	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.TeamMember), salesReportController.GenerateSalesReport)
+	r.GET("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.TeamMember), salesReportController.ListSalesReport)
 
-	r.POST("/organizations", authentication.RequireRole("super_admin", db), organizationController.CreateOrganization)
-	r.GET("/organizations", organizationController.ListOrganizations)
-	r.GET("my-organizations", organizationController.ListMyOrganizations)
-	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.GetOrganization)
-	r.PUT("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.UpdateOrganization)
-	r.DELETE("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.DeleteOrganization)
-	r.GET("/organizations/:organizationID/events", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.ListOrganizationEvents)
+	r.POST("/teams", authentication.RequireRole("super_admin", db), teamController.CreateTeam)
+	r.GET("/teams", teamController.ListTeams)
+	r.GET("my-teams", teamController.ListMyTeams)
+	r.GET("/teams/:teamID", middleware.AuthorizeTeamAccess(db, models.TeamMember), teamController.GetTeam)
+	r.PUT("/teams/:teamID", middleware.AuthorizeTeamAccess(db, models.TeamMember), teamController.UpdateTeam)
+	r.DELETE("/teams/:teamID", middleware.AuthorizeTeamAccess(db, models.TeamMember), teamController.DeleteTeam)
+	r.GET("/teams/:teamID/events", middleware.AuthorizeTeamAccess(db, models.TeamMember), teamController.ListTeamEvents)
 
-	// Organization Users routes
-	r.GET("/organizations/:organizationID/users", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), organizationUsersController.GetOrganizationUsers)
-	r.POST("/organizations/:organizationID/users/:username", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.AddUserToOrganization)
-	r.DELETE("/organizations/:organizationID/users/:username", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.RemoveUserFromOrganization)
-	r.PUT("/organizations/:organizationID/users/:username", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), organizationUsersController.ChangeUserOrganizationRole)
+	// Team Users routes
+	r.GET("/teams/:teamID/users", middleware.AuthorizeTeamRole(db, models.TeamMember), teamUsersController.GetTeamUsers)
+	r.POST("/teams/:teamID/users/:username", middleware.AuthorizeTeamRole(db, models.TeamOwner), teamUsersController.AddUserToTeam)
+	r.DELETE("/teams/:teamID/users/:username", middleware.AuthorizeTeamRole(db, models.TeamOwner), teamUsersController.RemoveUserFromTeam)
+	r.PUT("/teams/:teamID/users/:username", middleware.AuthorizeTeamRole(db, models.TeamOwner), teamUsersController.ChangeUserTeamRole)
 
 	// Ticket Release Methods routes
 	r.GET("/ticket-release-methods", ticketReleaseMethodsController.ListTicketReleaseMethods)
@@ -286,9 +286,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/admin/create-user", authentication.RequireRole("super_admin", db), userController.CreateUser)
 
 	// Banking details
-	r.GET("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), bankingController.GetBankingDetails)
-	r.POST("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.SubmitBankingDetails)
-	r.DELETE("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.DeleteBankingDetails)
+	r.GET("/teams/:teamID/banking-details", middleware.AuthorizeTeamRole(db, models.TeamMember), bankingController.GetBankingDetails)
+	r.POST("/teams/:teamID/banking-details", middleware.AuthorizeTeamRole(db, models.TeamOwner), bankingController.SubmitBankingDetails)
+	r.DELETE("/teams/:teamID/banking-details", middleware.AuthorizeTeamRole(db, models.TeamOwner), bankingController.DeleteBankingDetails)
 
 	// Preferred email
 	r.POST("/preferred-email/request", preferredEmailController.Request)

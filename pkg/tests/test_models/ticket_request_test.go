@@ -23,7 +23,7 @@ func (suite *TicketRequestTestSuite) SetupTest() {
 	suite.db = db
 	// Perform setup that needs to happen before each test here
 	// e.g., clean database, create necessary records
-	testutils.SetupOrganizationWorkflow(suite.db)
+	testutils.SetupTeamWorkflow(suite.db)
 	testutils.SetupEventWorkflow(suite.db)
 }
 

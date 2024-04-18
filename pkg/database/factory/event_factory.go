@@ -6,13 +6,13 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 )
 
-func NewEvent(name, description, location, createdBy string, organizationID int, eventDate time.Time) *models.Event {
+func NewEvent(name, description, location, createdBy string, teamID int, eventDate time.Time) *models.Event {
 	return &models.Event{
-		Name:           name,
-		Description:    description,
-		Date:           eventDate,
-		Location:       location,
-		OrganizationID: organizationID,
-		CreatedBy:      createdBy,
+		Name:        name,
+		Description: description,
+		Date:        eventDate,
+		Location:    location,
+		TeamID:      teamID,
+		CreatedBy:   createdBy,
 	}
 }

@@ -12,7 +12,7 @@ import (
 )
 
 var modelslist = []interface{}{
-	&models.Organization{},
+	&models.Team{},
 	&models.TicketReleaseMethod{},
 	&models.TicketReleaseMethodDetail{},
 	&models.TicketRelease{},
@@ -23,8 +23,8 @@ var modelslist = []interface{}{
 	&models.Ticket{},
 	&models.TicketRequest{},
 	&models.Role{},
-	&models.OrganizationRole{},
-	&models.OrganizationUserRole{},
+	&models.TeamRole{},
+	&models.TeamUserRole{},
 	&tr_methods.LotteryConfig{},
 }
 
@@ -54,10 +54,10 @@ func SetupTestDatabase(useForeignKeys bool) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to initialize roles: %w", err)
 	}
 
-	err = models.InitializeOrganizationRoles(db)
+	err = models.InitializeTeamRoles(db)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize organization roles: %w", err)
+		return nil, fmt.Errorf("failed to initialize team roles: %w", err)
 	}
 
 	return db, nil
@@ -94,7 +94,7 @@ func SetupUserWorkflow(db *gorm.DB) {
 	db.Create(&user)
 }
 
-func SetupOrganizationWorkflow(db *gorm.DB) {
+func SetupTeamWorkflow(db *gorm.DB) {
 	// Seed the database with necessary data for testing
 	// For example, create TicketRelease, TicketType, User, etc.
 	// Create a Event
@@ -110,24 +110,24 @@ func SetupOrganizationWorkflow(db *gorm.DB) {
 
 	db.Create(&user)
 
-	organization := models.Organization{
-		Name: "validOrganizationName",
+	team := models.Team{
+		Name: "validTeamName",
 	}
 
-	db.Create(&organization)
+	db.Create(&team)
 
-	//Associate user with organization
-	db.Model(&organization).Association("Users").Append(&user)
+	//Associate user with team
+	db.Model(&team).Association("Users").Append(&user)
 }
 
 func CreateEventWorkflow(db *gorm.DB) models.Event {
 	event := models.Event{
-		Name:           "validEventName",
-		Description:    "validEventDescription",
-		Location:       "validEventLocation",
-		Date:           time.Now(),
-		OrganizationID: 1,
-		CreatedBy:      "validUserUGKthID",
+		Name:        "validEventName",
+		Description: "validEventDescription",
+		Location:    "validEventLocation",
+		Date:        time.Now(),
+		TeamID:      1,
+		CreatedBy:   "validUserUGKthID",
 	}
 
 	db.Create(&event)

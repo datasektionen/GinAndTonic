@@ -8,7 +8,7 @@ import (
 
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
-		&models.Organization{},
+		&models.Team{},
 		&models.TicketReleaseMethod{},
 		&models.TicketReleaseMethodDetail{},
 		&models.TicketRelease{},
@@ -22,8 +22,8 @@ func Migrate(db *gorm.DB) error {
 		&models.Ticket{},
 		&models.TicketRequest{},
 		&models.Role{},
-		&models.OrganizationRole{},
-		&models.OrganizationUserRole{},
+		&models.TeamRole{},
+		&models.TeamUserRole{},
 		&models.Transaction{},
 		&models.SendOut{},
 		&models.Notification{},

@@ -151,7 +151,7 @@ func GetAllTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tickets []
 	// Get all tickets to a ticket release thats not soft deleted or reserved
 	err = db.
 		Preload("TicketRequest.TicketType").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketRequest.TicketRelease.Event.Team").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.id = ? AND tickets.is_reserve = ?", ticketReleaseID, false).

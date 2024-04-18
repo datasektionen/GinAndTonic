@@ -41,22 +41,11 @@ func GetTicketReleasesToEvent(db *gorm.DB, eventID uint) (ticketReleases []Ticke
 // Get Events that are in the future
 func GetFutureEvents(db *gorm.DB) (events []Event, err error) {
 	now := time.Now()
-	err = db.Find(&events).Error
+
+	err = db.Where("date > ? OR end_date > ?", now, now).Find(&events).Error
 
 	if err != nil {
 		return nil, err
-	}
-
-	for _, event := range events {
-		if event.EndDate != nil {
-			if event.EndDate.Before(now) {
-				events = append(events, event)
-			}
-		}
-
-		if event.Date.Before(now) {
-			events = append(events, event)
-		}
 	}
 
 	return events, nil
@@ -64,13 +53,9 @@ func GetFutureEvents(db *gorm.DB) (events []Event, err error) {
 
 func GetEventSiteVisits(db *gorm.DB, eventID uint) (eventSiteVisits []EventSiteVisit, err error) {
 	// Check that Event.Date is in the past or if Event.EndDate is in the past
-	var event Event
-	err = db.Preload("SiteVisits").Find(&event, eventID).Error
-	if err != nil {
+	if err := db.Where("event_id = ?", eventID).Find(&eventSiteVisits).Error; err != nil {
 		return nil, err
 	}
-
-	eventSiteVisits = append(eventSiteVisits, event.SiteVisits...)
 
 	return eventSiteVisits, nil
 }

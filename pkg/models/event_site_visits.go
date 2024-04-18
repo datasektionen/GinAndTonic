@@ -6,16 +6,16 @@ import (
 
 type EventSiteVisit struct {
 	gorm.Model
+	EventID     uint   `json:"event_id" gorm:"index"`
 	UserUGKthID string `json:"user_ugkth_id"`
 	UserAgent   string `json:"user_agent"`
 	ReferrerURL string `json:"referrer_url"`
 	Location    string `json:"-"`
-	EventID     uint   `json:"event_id"` // foreign key field
 }
 
 type EventSiteVisitSummary struct {
 	gorm.Model
-	EventID           uint    `json:"event_id"`
+	EventID           uint    `json:"event_id" gorm:"index"`
 	TotalVisits       int     `json:"total_visits"`
 	UniqueUsers       int     `json:"unique_users"`
 	NumTicketRequests int     `json:"num_ticket_requests"`

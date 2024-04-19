@@ -153,3 +153,95 @@ func (tc *TicketService) UpdateTicket(ticket *models.Ticket, body *types.UpdateT
 
 	return ticket, nil
 }
+
+func (tc *TicketService) UpdateTicketType(ticketRequestID int, body *types.UpdateTicketTypeBody) (*models.TicketRequest, error) {
+	// Start a new transaction
+	tx := tc.DB.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Get ticket request
+	var ticketRequest models.TicketRequest
+	if err := tx.
+		Preload("TicketRelease").
+		Preload("Tickets").
+		Where("id = ?", ticketRequestID).First(&ticketRequest).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	var ticketType models.TicketType
+	if err := tx.
+		Where("id = ?", body.TicketTypeID).First(&ticketType).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	if ticketRequest.IsHandled {
+		// Change it of the ticket instead
+		ticket := ticketRequest.Tickets[0]
+
+		if ticket.IsPaid {
+			tx.Rollback()
+			return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already paid"}
+		}
+
+		if ticket.Refunded {
+			tx.Rollback()
+			return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already refunded"}
+		}
+
+		if ticket.CheckedIn {
+			tx.Rollback()
+			return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already checked in"}
+		}
+
+		// If these pass we can update the ticket type
+		ticketRequest.TicketTypeID = ticketType.ID
+
+		// Remove any pending transactions
+		var transaction models.Transaction
+		if err := tx.
+			Where("ticket_id = ?", ticket.ID).First(&transaction).Error; err != nil {
+			if err != gorm.ErrRecordNotFound {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if transaction.ID != 0 {
+			if transaction.Status == models.TransactionStatusCompleted {
+				tx.Rollback()
+				return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "A completed transaction exists for this ticket"}
+			}
+
+			if err := tx.Delete(&transaction).Error; err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+	} else {
+		ticketRequest.TicketTypeID = ticketType.ID
+	}
+
+	// Save ticket request
+	if err := tx.Save(&ticketRequest).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	return &ticketRequest, nil
+}

@@ -248,6 +248,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
+	r.PUT("/events/:eventID/ticket-requests/:ticketRequestID/change-ticket-type", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicketType)
 
 	// Sales report
 	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.GenerateSalesReport)

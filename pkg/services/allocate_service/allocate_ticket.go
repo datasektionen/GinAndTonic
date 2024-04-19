@@ -10,6 +10,35 @@ import (
 	"gorm.io/gorm"
 )
 
+func AllocateFreeTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ticket, error) {
+	var qrCode string = utils.GenerateRandomString(16)
+
+	ticket := models.Ticket{
+		TicketRequestID: ticketRequest.ID,
+		IsReserve:       false,
+		UserUGKthID:     ticketRequest.UserUGKthID,
+		IsPaid:          true,
+		QrCode:          qrCode,
+	}
+
+	if err := tx.Create(&ticket).Error; err != nil {
+		return nil, err
+	}
+
+	ticketRequest.IsHandled = true
+	if err := tx.Save(&ticketRequest).Error; err != nil {
+		return nil, err
+	}
+
+	// Set the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
+
+	if err := tx.Model(&models.TicketAddOn{}).Where("ticket_request_id = ?", ticketRequest.ID).Update("ticket_id", ticket.ID).Error; err != nil {
+		return nil, err
+	}
+
+	return &ticket, nil
+}
+
 func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ticket, error) {
 	if ticketRequest.TicketRelease.PaymentDeadline == nil {
 		return nil, errors.New("no payment deadline specified")
@@ -30,10 +59,15 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 		return nil, errors.New("no ticket type specified")
 	}
 
-	var isPaid bool = false
 	// If the price of the ticket is 0, set it to have been paid
 	if ticketRequest.TicketType.Price == 0 && ticketRequest.TicketType.ID != 0 {
-		isPaid = true
+		ticket, err := AllocateFreeTicket(ticketRequest, tx)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return ticket, nil
 	}
 
 	var qrCode string = utils.GenerateRandomString(16)
@@ -43,7 +77,7 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 		TicketRequestID: ticketRequest.ID,
 		IsReserve:       false,
 		UserUGKthID:     ticketRequest.UserUGKthID,
-		IsPaid:          isPaid,
+		IsPaid:          false,
 		QrCode:          qrCode,
 		PurchasableAt:   &now,
 		PaymentDeadline: &paymentDeadline.OriginalDeadline,

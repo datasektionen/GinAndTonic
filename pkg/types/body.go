@@ -136,3 +136,7 @@ type BankingDetailsRequest struct {
 	AccountNumber  string `json:"account_number" binding:"required"`
 	ClearingNumber string `json:"clearing_number" binding:"required"`
 }
+
+type UpdateTicketTypeBody struct {
+	TicketTypeID uint `json:"ticket_type_id" binding:"required"`
+}

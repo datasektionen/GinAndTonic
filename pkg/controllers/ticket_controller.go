@@ -146,3 +146,27 @@ func (tc *TicketController) QrCodeCheckIn(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User" + ticket.User.FullName() + " checked in successfully!"})
 }
+
+func (tc *TicketController) UpdateTicketType(c *gin.Context) {
+	var body types.UpdateTicketTypeBody
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ticketRequestIDstring := c.Param("ticketRequestID")
+	ticketRequestID, err := strconv.Atoi(ticketRequestIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	mTicket, rerr := tc.Service.UpdateTicketType(ticketRequestID, &body)
+	if rerr != nil {
+		c.JSON(rerr.StatusCode, gin.H{"error": rerr.Message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ticket": mTicket})
+}

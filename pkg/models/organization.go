@@ -16,6 +16,7 @@ type Organization struct {
 	Users                 []User                 `gorm:"many2many:organization_users;" json:"users"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
 	BankingDetail         BankingDetail          `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
+	NetworkID             *uint                  `json:"network_id"`
 }
 
 func CreateOrganizationUniqueIndex(db *gorm.DB) error {

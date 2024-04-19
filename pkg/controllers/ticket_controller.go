@@ -162,9 +162,9 @@ func (tc *TicketController) UpdateTicketType(c *gin.Context) {
 		return
 	}
 
-	mTicket, err := tc.Service.UpdateTicketType(ticketRequestID, &body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	mTicket, rerr := tc.Service.UpdateTicketType(ticketRequestID, &body)
+	if rerr != nil {
+		c.JSON(rerr.StatusCode, gin.H{"error": rerr.Message})
 		return
 	}
 

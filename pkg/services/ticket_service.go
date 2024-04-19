@@ -154,11 +154,11 @@ func (tc *TicketService) UpdateTicket(ticket *models.Ticket, body *types.UpdateT
 	return ticket, nil
 }
 
-func (tc *TicketService) UpdateTicketType(ticketRequestID int, body *types.UpdateTicketTypeBody) (*models.TicketRequest, error) {
+func (tc *TicketService) UpdateTicketType(ticketRequestID int, body *types.UpdateTicketTypeBody) (*models.TicketRequest, *types.ErrorResponse) {
 	// Start a new transaction
 	tx := tc.DB.Begin()
 	if tx.Error != nil {
-		return nil, tx.Error
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error starting transaction"}
 	}
 
 	defer func() {
@@ -174,18 +174,19 @@ func (tc *TicketService) UpdateTicketType(ticketRequestID int, body *types.Updat
 		Preload("Tickets").
 		Where("id = ?", ticketRequestID).First(&ticketRequest).Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket request"}
 	}
 
 	var ticketType models.TicketType
 	if err := tx.
 		Where("id = ?", body.TicketTypeID).First(&ticketType).Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket type"}
 	}
 
 	if ticketRequest.IsHandled {
 		// Change it of the ticket instead
+
 		ticket := ticketRequest.Tickets[0]
 
 		if ticket.IsPaid {
@@ -212,7 +213,17 @@ func (tc *TicketService) UpdateTicketType(ticketRequestID int, body *types.Updat
 			Where("ticket_id = ?", ticket.ID).First(&transaction).Error; err != nil {
 			if err != gorm.ErrRecordNotFound {
 				tx.Rollback()
-				return nil, err
+				return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting transaction"}
+			}
+		}
+
+		if ticketType.ID != 0 && ticketType.Price == 0 {
+			// Allocate free ticket
+			ticket.IsPaid = true
+
+			if err := tx.Save(&ticket).Error; err != nil {
+				tx.Rollback()
+				return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error saving ticket"}
 			}
 		}
 
@@ -224,23 +235,22 @@ func (tc *TicketService) UpdateTicketType(ticketRequestID int, body *types.Updat
 
 			if err := tx.Delete(&transaction).Error; err != nil {
 				tx.Rollback()
-				return nil, err
+				return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting transaction"}
 			}
 		}
 	} else {
 		ticketRequest.TicketTypeID = ticketType.ID
 	}
 
-	// Save ticket request
 	if err := tx.Save(&ticketRequest).Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error saving ticket request"}
 	}
 
 	// Commit the transaction
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error committing transaction"}
 	}
 
 	return &ticketRequest, nil

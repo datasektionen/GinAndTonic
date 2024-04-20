@@ -8,6 +8,8 @@ import (
 
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
+		&models.Network{},
+		&models.NetworkRole{},
 		&models.Organization{},
 		&models.TicketReleaseMethod{},
 		&models.TicketReleaseMethodDetail{},

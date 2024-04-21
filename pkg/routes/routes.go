@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
@@ -53,7 +54,16 @@ func setupAsynqMon() *asynqmon.HTTPHandler {
 
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
-	config := cors.DefaultConfig()
+	// config := cors.DefaultConfig()
+
+	config := cors.Config{
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Range"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Accept", "Authorization", "Range"},
+		AllowCredentials: false,
+		MaxAge:           12 * time.Hour,
+	}
+
 	if os.Getenv("ENV") == "dev" {
 		config.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080"}
 	} else if os.Getenv("ENV") == "prod" {
@@ -294,5 +304,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/preferred-email/request", preferredEmailController.Request)
 
 	r.POST("send-test-email", authentication.RequireRole("super_admin", db), notificationController.SendTestEmail)
+
+	r = AdminRoutes(r, db)
+
 	return r
 }

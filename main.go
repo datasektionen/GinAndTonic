@@ -249,6 +249,10 @@ func main() {
 		panic("Failed to initialize network roles: " + err.Error())
 	}
 
+	if err := models.InitializePackageTiers(db); err != nil {
+		panic("Failed to initialize package tiers: " + err.Error())
+	}
+
 	if err := models.InitializeTicketReleaseMethods(db); err != nil {
 		panic("Failed to initialize ticket release methods: " + err.Error())
 	}

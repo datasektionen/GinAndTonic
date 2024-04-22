@@ -37,6 +37,8 @@ type PackageTier struct {
 	StandardMonthlyPrice int              `json:"standard_monthly_price"` // Monthly amount billed monthly
 	StandardYearlyPrice  int              `json:"standard_yearly_price"`  // Monthly amount billed yearly
 	PricingPackages      []PricingPackage `gorm:"foreignKey:PackageTierID"`
+	DefaultFeatureIDs    []uint           `gorm:"-" json:"default_features"` // Temporary field to hold IDs
+	DefaultFeatures      []Feature        `gorm:"many2many:package_tier_default_features;"`
 }
 
 type PricingPackage struct {
@@ -44,7 +46,7 @@ type PricingPackage struct {
 	OrganizationID       *uint       `json:"organization_id"`
 	NetworkID            *uint       `json:"network_id"`
 	PackageTierID        uint        `json:"package_tier_id" gorm:"not null"`
-	Features             []Feature   `gorm:"many2many:package_features;"`
+	Features             []Feature   `gorm:"many2many:package_features;" json:"features"`
 	StandardMonthlyPrice int         `json:"monthly_price"` // Monthly amount billed monthly
 	StandardYearlyPrice  int         `json:"yearly_price"`  // Monthly amount billed yearly
 	Plan                 PaymentPlan `json:"plan" gorm:"not null"`
@@ -58,20 +60,22 @@ type FeatureGroup struct {
 
 type Feature struct {
 	gorm.Model
-	Name           string
-	Description    string
-	FeatureGroupID uint         `json:"feature_group_id"`
-	FeatureGroup   FeatureGroup `json:"feature_group"`
-	IsAvailable    bool         // Indicates if a feature is available in a tier, can be expanded into specifics per tier
-	FeatureLimit   FeatureLimit `gorm:"foreignKey:FeatureID"`
+	Name            string        `json:"name" gorm:"unique"`
+	Description     string        `json:"description"`
+	FeatureGroupID  uint          `json:"feature_group_id"`
+	FeatureGroup    FeatureGroup  `json:"feature_group"`
+	IsAvailable     bool          `json:"is_available" gorm:"default:true"` // Indicates if a feature is available in a tier, can be expanded into specifics per tier
+	FeatureLimit    FeatureLimit  `gorm:"foreignKey:FeatureID" json:"feature_limit"`
+	PackageTiers    []PackageTier `gorm:"many2many:package_tier_default_features;"`
+	PackageTiersIDs []uint        `gorm:"-" json:"package_tiers"` // Temporary field to hold IDs
 }
 
 type FeatureLimit struct {
 	gorm.Model
-	FeatureID    uint   `json:"feature_id"`
-	FeatureName  string `json:"feature_name" gorm:"-"`
-	MonthlyLimit *int   `json:"monthly_limit"`
-	YearlyLimit  *int   `json:"yearly_limit"`
+	FeatureID    uint   `json:"feature_id" gorm:"unique"` // Make this unique
+	HardLimit    *int   `json:"hard_limit"`               // Hard limit defines that the limit cannot be exceeded
+	MonthlyLimit *int   `json:"monthly_limit"`            // Monthly limit defines the limit per month
+	YearlyLimit  *int   `json:"yearly_limit"`             // Yearly limit defines the limit per year
 	Description  string `json:"description"`
 }
 

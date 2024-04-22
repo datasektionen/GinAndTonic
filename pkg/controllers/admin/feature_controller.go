@@ -28,8 +28,14 @@ func (ctrl *FeatureController) GetAllFeatures(c *gin.Context) {
 
 	sortParam := c.DefaultQuery("sort", "id")
 	sortArray := strings.Split(strings.Trim(sortParam, "[]\""), "\",\"")
-	sort := sortArray[0]
-	order := sortArray[1]
+	var sort, order string
+	if len(sortArray) == 2 {
+		sort = sortArray[0]
+		order = sortArray[1]
+	} else {
+		sort = "id"
+		order = "asc"
+	}
 
 	var features []models.Feature
 	if err := ctrl.DB.Order(sort + " " + order).Offset((queryParams.Page - 1) * queryParams.PerPage).Limit(queryParams.PerPage).Find(&features).Error; err != nil {
@@ -49,30 +55,63 @@ func (ctrl *FeatureController) GetAllFeatures(c *gin.Context) {
 func (ctrl *FeatureController) GetFeature(c *gin.Context) {
 	id := c.Param("id")
 	var feature models.Feature
-	if err := ctrl.DB.Preload("FeatureLimit").First(&feature, id).Error; err != nil {
+	if err := ctrl.DB.Preload("FeatureLimit").Preload("PackageTiers").First(&feature, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Feature not found"})
 		return
 	}
+
+	tierIDs := make([]uint, len(feature.PackageTiers))
+	for i, tier := range feature.PackageTiers {
+		tierIDs[i] = tier.ID
+	}
+
+	feature.PackageTiersIDs = tierIDs
+
 	c.JSON(http.StatusOK, feature)
 }
 
-func (ctrl *FeatureController) CreateFeature(c *gin.Context) {
+func (fc *FeatureController) CreateFeature(c *gin.Context) {
 	var feature models.Feature
 	if err := c.ShouldBindJSON(&feature); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := ctrl.DB.Create(&feature).Error; err != nil {
+	// Start a transaction
+	tx := fc.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Create(&feature).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	if len(feature.PackageTiersIDs) > 0 {
+		var tiers []models.PackageTier
+		if err := tx.Find(&tiers, feature.PackageTiersIDs).Error; err == nil {
+			tx.Model(&feature).Association("PackageTiers").Replace(tiers)
+		}
+	}
+
+	tx.Commit()
 	c.JSON(http.StatusCreated, feature)
 }
 
 func (ctrl *FeatureController) UpdateFeature(c *gin.Context) {
 	id := c.Param("id")
+	tx := ctrl.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	var feature models.Feature
-	if err := ctrl.DB.First(&feature, id).Error; err != nil {
+	if err := tx.First(&feature, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Feature not found"})
 		return
 	}
@@ -80,7 +119,22 @@ func (ctrl *FeatureController) UpdateFeature(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	ctrl.DB.Save(&feature)
+
+	if len(feature.PackageTiersIDs) > 0 {
+		var tiers []models.PackageTier
+		if err := tx.Find(&tiers, feature.PackageTiersIDs).Error; err == nil {
+			tx.Model(&feature).Association("PackageTiers").Replace(tiers)
+		}
+	}
+
+	if err := tx.Save(&feature).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	tx.Commit()
+
 	c.JSON(http.StatusOK, feature)
 }
 

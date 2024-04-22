@@ -18,6 +18,36 @@ func NewCompleteEventWorkflowService(db *gorm.DB) *CompleteEventWorkflowService 
 	return &CompleteEventWorkflowService{DB: db}
 }
 
+func GenerateReferenceID(tx *gorm.DB) (*string, error) {
+	maxAttempts := 10
+	var refId string
+	for i := 0; i < maxAttempts; i++ {
+		referenceID := utils.GenerateRandomString(10)
+
+		var exEvent models.Event
+		if err := tx.First(&exEvent, "reference_id = ?", referenceID).Error; err != nil {
+			// If the error is a record not found error, the referenceID is unique
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Set the unique referenceID and break the loop
+				refId = referenceID
+				break
+			} else {
+				// If there's another kind of error, rollback and return it
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		// If a unique referenceID couldn't be generated after maxAttempts, rollback and return an error
+		if i == maxAttempts-1 {
+			tx.Rollback()
+			return nil, errors.New("could not generate unique reference ID")
+		}
+	}
+
+	return &refId, nil
+}
+
 func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflowRequest, createdBy string) error {
 	// Start a transaction
 	tx := es.DB.Begin()
@@ -31,8 +61,16 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		return tx.Error
 	}
 
+	// Check if reference ID is unique
+	refId, err := GenerateReferenceID(tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// Create Event
 	event := models.Event{
+		ReferenceID:    *refId,
 		Name:           data.Event.Name,
 		Description:    data.Event.Description,
 		Date:           time.Unix(data.Event.Date, 0),

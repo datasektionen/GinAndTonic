@@ -142,6 +142,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.POST("/preferred-email/verify", preferredEmailController.Verify)
 
+	r.GET("/view/events/:refID", middleware.UpdateSiteVisits(db), eventController.CustomerGetEvent)
+
 	r.Use(authentication.ValidateTokenMiddleware())
 	r.Use(middleware.UserLoader(db))
 

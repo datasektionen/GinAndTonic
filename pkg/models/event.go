@@ -9,6 +9,7 @@ import (
 // Event is a struct that represents an event in the database
 type Event struct {
 	gorm.Model
+	ReferenceID          string                  `json:"reference_id" gorm:"unique"`
 	Name                 string                  `json:"name"`
 	Description          string                  `json:"description" gorm:"type:text"`
 	Date                 time.Time               `json:"date"`

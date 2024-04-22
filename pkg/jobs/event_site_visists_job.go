@@ -60,9 +60,9 @@ func process_sesvj(db *gorm.DB, eventID uint, eventSiteVisits []models.EventSite
 	for _, visit := range eventSiteVisits {
 		summary.TotalVisits++
 
-		if _, visited := uniqueUsers[visit.UserUGKthID]; !visited {
+		if _, visited := uniqueUsers[visit.Location]; !visited {
 			summary.UniqueUsers++
-			uniqueUsers[visit.UserUGKthID] = true
+			uniqueUsers[visit.Location] = true
 		}
 	}
 

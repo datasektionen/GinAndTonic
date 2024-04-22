@@ -2,19 +2,19 @@ package models
 
 import "gorm.io/gorm"
 
-type FeatureGroup string
+type FeatureGroupType string
 type PaymentPlan string
 type PackageTierType string
 
 const (
-	FeatureGroupEventManagement     FeatureGroup = "event_management"
-	FeatureGroupTicketManagement    FeatureGroup = "ticket_management"
-	FeatureGroupAPIIntegration      FeatureGroup = "api_integration"
-	FeatureGroupSupport             FeatureGroup = "support"
-	FeatureGroupLandingPage         FeatureGroup = "landing_page"
-	FeatureGroupFinancialManagement FeatureGroup = "financial_management"
-	FeatureGroupEmailManagement     FeatureGroup = "email_management"
-	FeatureGroupOther               FeatureGroup = "other"
+	FeatureGroupEventManagement     FeatureGroupType = "event_management"
+	FeatureGroupTicketManagement    FeatureGroupType = "ticket_management"
+	FeatureGroupAPIIntegration      FeatureGroupType = "api_integration"
+	FeatureGroupSupport             FeatureGroupType = "support"
+	FeatureGroupLandingPage         FeatureGroupType = "landing_page"
+	FeatureGroupFinancialManagement FeatureGroupType = "financial_management"
+	FeatureGroupEmailManagement     FeatureGroupType = "email_management"
+	FeatureGroupOther               FeatureGroupType = "other"
 )
 
 const (
@@ -50,13 +50,20 @@ type PricingPackage struct {
 	Plan                 PaymentPlan `json:"plan" gorm:"not null"`
 }
 
+type FeatureGroup struct {
+	gorm.Model
+	Name        FeatureGroupType `json:"name" gorm:"unique"`
+	Description string           `json:"description"`
+}
+
 type Feature struct {
 	gorm.Model
-	Name         string
-	Description  string
-	Group        FeatureGroup
-	IsAvailable  bool         // Indicates if a feature is available in a tier, can be expanded into specifics per tier
-	FeatureLimit FeatureLimit `gorm:"foreignKey:FeatureID"`
+	Name           string
+	Description    string
+	FeatureGroupID uint         `json:"feature_group_id"`
+	FeatureGroup   FeatureGroup `json:"feature_group"`
+	IsAvailable    bool         // Indicates if a feature is available in a tier, can be expanded into specifics per tier
+	FeatureLimit   FeatureLimit `gorm:"foreignKey:FeatureID"`
 }
 
 type FeatureLimit struct {
@@ -81,6 +88,27 @@ func InitializePackageTiers(db *gorm.DB) error {
 	for _, tier := range tiers {
 		var existingTier PackageTier
 		db.Where("name = ?", tier.Name).FirstOrCreate(&existingTier, tier)
+	}
+	return nil
+}
+
+func InitializeFeatureGroups(db *gorm.DB) error {
+	// Define the feature groups you want to ensure exist
+	featureGroups := []FeatureGroup{
+		{Name: FeatureGroupEventManagement, Description: "Event management features"},
+		{Name: FeatureGroupTicketManagement, Description: "Ticket management features"},
+		{Name: FeatureGroupAPIIntegration, Description: "API integration features"},
+		{Name: FeatureGroupSupport, Description: "Support features"},
+		{Name: FeatureGroupLandingPage, Description: "Landing page features"},
+		{Name: FeatureGroupFinancialManagement, Description: "Financial management features"},
+		{Name: FeatureGroupEmailManagement, Description: "Email management features"},
+		{Name: FeatureGroupOther, Description: "Other features"},
+	}
+
+	// Check each feature group and create it if it doesn't exist
+	for _, featureGroup := range featureGroups {
+		var existingFeatureGroup FeatureGroup
+		db.Where("name = ?", featureGroup.Name).FirstOrCreate(&existingFeatureGroup, featureGroup)
 	}
 	return nil
 }

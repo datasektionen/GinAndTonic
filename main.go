@@ -257,6 +257,10 @@ func main() {
 		panic("Failed to initialize ticket release methods: " + err.Error())
 	}
 
+	if err := models.InitializeFeatureGroups(db); err != nil {
+		panic("Failed to initialize feature groups: " + err.Error())
+	}
+
 	gin.SetMode(gin.ReleaseMode)
 
 	// Setup cron jobs

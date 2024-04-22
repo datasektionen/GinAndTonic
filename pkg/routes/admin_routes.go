@@ -10,6 +10,8 @@ import (
 func AdminRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	pricingPackageAdminController := admin_controllers.NewPricingPackageAdminController(db)
 	packageTierController := admin_controllers.NewPackageTierController(db)
+	featureController := admin_controllers.NewFeatureController(db)
+	fgc := admin_controllers.NewFeatureGroupController(db)
 
 	adminGroup := r.Group("/admin")
 	adminGroup.Use(authentication.RequireRole("super_admin", db))
@@ -26,6 +28,18 @@ func AdminRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	adminGroup.POST("/pricing-packages", pricingPackageAdminController.CreatePackage)
 	adminGroup.PUT("/pricing-packages/:id", pricingPackageAdminController.UpdatePackage)
 	adminGroup.DELETE("/pricing-packages/:id", pricingPackageAdminController.DeletePackage)
+
+	adminGroup.GET("/features", featureController.GetAllFeatures)
+	adminGroup.GET("/features/:id", featureController.GetFeature)
+	adminGroup.POST("/features", featureController.CreateFeature)
+	adminGroup.PUT("/features/:id", featureController.UpdateFeature)
+	adminGroup.DELETE("/features/:id", featureController.DeleteFeature)
+
+	adminGroup.GET("/feature-groups", fgc.GetAllFeatureGroups)
+	adminGroup.POST("/feature-groups", fgc.CreateFeatureGroup)
+	adminGroup.GET("/feature-groups/:id", fgc.GetFeatureGroup)
+	adminGroup.PUT("/feature-groups/:id", fgc.UpdateFeatureGroup)
+	adminGroup.DELETE("/feature-groups/:id", fgc.DeleteFeatureGroup)
 
 	return r
 }

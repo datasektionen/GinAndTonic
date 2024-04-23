@@ -54,11 +54,6 @@ func (uprc *UserPasswordResetController) CreatePasswordReset(c *gin.Context) {
 		return
 	}
 
-	if !user.IsExternal {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Password reset not allowed for internal users"})
-		return
-	}
-
 	passwordReset := models.CreatePasswordReset(uprc.DB, &user)
 	if passwordReset == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error creating the password reset"})

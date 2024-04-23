@@ -15,11 +15,11 @@ func NewOrganizationService(db *gorm.DB) *OrganisationService {
 	return &OrganisationService{DB: db}
 }
 
-func (os *OrganisationService) AddUserToOrganization(username string, organizationID uint, organizationRole models.OrgRole) error {
+func (os *OrganisationService) AddUserToOrganization(email string, organizationID uint, organizationRole models.OrgRole) error {
 	var user models.User
 	var organization models.Organization
 
-	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
+	if err := os.DB.First(&user, "email = ?", email).Error; err != nil {
 		return fmt.Errorf("user not found")
 	}
 

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -61,11 +62,12 @@ func generateExternalUsername(firstName string, lastName string) string {
 	return scrambledName
 }
 
-func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
+func (eac *ExternalAuthController) SignupCustomerUser(c *gin.Context) {
+	var err error
 	/*
 		Handler that creates a new user with the given information.
 	*/
-	var externalSignupRequest types.ExternalSignupRequest
+	var externalSignupRequest types.CustomerSignupRequest
 	if err := c.ShouldBindJSON(&externalSignupRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -77,49 +79,74 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 		return
 	}
 
-	if err := eac.DB.Where("email = ?", externalSignupRequest.Email).First(&models.User{}).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
+	var existingUser models.User
+	if err := eac.DB.Preload("Role").Where("email = ?", strings.ToLower(externalSignupRequest.Email)).First(&existingUser).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+	}
+
+	fmt.Println(existingUser.Role.Name)
+
+	if existingUser.Role.Name != string(models.RoleCustomerGuest) && existingUser.UGKthID != "" {
+		// Basically if the role type is customer it means that the account has not bee saved
+		// And cannot be logged in to, so the email can be used again.
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
 		return
 	}
 
 	newUGKthID := generateExternalUGKthID()
 	// Scramble user firstname and lastname to create a username
 	// This is done to avoid username conflicts
-	username := generateExternalUsername(externalSignupRequest.FirstName, externalSignupRequest.LastName)
 
-	pwHash, err := utils.HashPassword(externalSignupRequest.Password)
-	if err != nil {
-		fmt.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
+	// The role is either customer or customer_guest
+	// Depending on the role, the user can either login or not
+	// Same thing goes for the password
+	var roleName models.RoleType = models.RoleCustomerGuest
+	var pwHash *string = nil
+	if externalSignupRequest.IsSaved {
+		roleName = models.RoleCustomer
+
+		hash, err := utils.HashPassword(*externalSignupRequest.Password)
+		pwHash = &hash
+		if err != nil {
+			fmt.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
 	}
 
 	var role models.Role
-	if err := eac.DB.Where("name = ?", "external").First(&role).Error; err != nil {
+	if err := eac.DB.Where("name = ?", roleName).First(&role).Error; err != nil {
 		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
 	// generate verify email token
-	verifyEmailToken, err := utils.GenerateSecretToken()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
+	// This is also only done if the user is saved
+	var verifyEmailToken *string = nil
+	if externalSignupRequest.IsSaved {
+		token, err := utils.GenerateSecretToken()
+		verifyEmailToken = &token
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
 	}
 
 	currentTime := time.Now()
 
 	var user models.User = models.User{
 		UGKthID:                 newUGKthID,
-		Username:                username,
 		FirstName:               externalSignupRequest.FirstName,
 		LastName:                externalSignupRequest.LastName,
 		Email:                   strings.ToLower(externalSignupRequest.Email),
-		PasswordHash:            &pwHash,
-		IsExternal:              true,
+		PasswordHash:            pwHash,
 		Role:                    role,
-		VerifiedEmail:           false,
+		VerifiedEmail:           roleName == models.RoleCustomerGuest,
 		EmailVerificationToken:  verifyEmailToken,
 		EmailVerificationSentAt: &currentTime,
 	}
@@ -131,25 +158,31 @@ func (eac *ExternalAuthController) SignupExternalUser(c *gin.Context) {
 		return
 	}
 
-	services.Notify_ExternalUserSignupVerification(eac.DB, &user)
+	if externalSignupRequest.IsSaved {
+		services.Notify_ExternalUserSignupVerification(eac.DB, &user)
+	} else {
+		// Do something else
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "User created"})
 }
 
 // LoginExternalUser authenticates an external user and returns a token
-func (eac *ExternalAuthController) LoginExternalUser(c *gin.Context) {
+func (eac *ExternalAuthController) LoginCustomerUser(c *gin.Context) {
 	/*
 		Handler that authenticates an external user and returns a token
 	*/
-	var loginRequest types.ExternalLoginRequest
+	var loginRequest types.CustomerLoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	fmt.Println(loginRequest)
+
 	// Find the user
 	var user models.User
-	if err := eac.DB.Preload("Role").Where("email = ?", strings.ToLower(loginRequest.Email)).
+	if err := eac.DB.Joins("JOIN roles ON users.role_id = roles.id").Where("email = ? AND roles.name = ?", strings.ToLower(loginRequest.Email), models.RoleCustomer).
 		First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return

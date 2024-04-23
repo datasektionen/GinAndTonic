@@ -4,6 +4,16 @@ import (
 	"gorm.io/gorm"
 )
 
+type RoleType string
+
+const (
+	RoleSuperAdmin    RoleType = "super_admin"
+	RoleUser          RoleType = "manager"
+	RoleExternal      RoleType = "external"
+	RoleCustomer      RoleType = "customer"
+	RoleCustomerGuest RoleType = "customer_guest"
+)
+
 type Role struct {
 	gorm.Model
 	Name string `gorm:"unique" json:"name"`
@@ -23,6 +33,8 @@ func InitializeRoles(db *gorm.DB) error {
 		{Name: "super_admin"},
 		{Name: "user"},
 		{Name: "external"},
+		{Name: "customer"},
+		{Name: "customer_guest"},
 	}
 
 	// Check each role and create it if it doesn't exist

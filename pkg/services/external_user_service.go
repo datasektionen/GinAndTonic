@@ -17,7 +17,7 @@ func NewExternalAuthService(db *gorm.DB) *ExternalAuthService {
 	return &ExternalAuthService{DB: db}
 }
 
-func (eas *ExternalAuthService) ValidateSignupRequest(esr types.ExternalSignupRequest) *types.ErrorResponse {
+func (eas *ExternalAuthService) ValidateSignupRequest(esr types.CustomerSignupRequest) *types.ErrorResponse {
 	// Check passwords match
 	if err := esr.Validate(); err != nil {
 		return err

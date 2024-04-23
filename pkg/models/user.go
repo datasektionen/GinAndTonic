@@ -10,15 +10,13 @@ import (
 // User is a struct that represents a user in the database
 type User struct {
 	UGKthID        string          `gorm:"primaryKey;index" json:"ug_kth_id"`
-	Username       string          `gorm:"uniqueIndex" json:"username"`
 	FirstName      string          `json:"first_name"`
 	LastName       string          `json:"last_name"`
-	Email          string          `gorm:"uniqueIndex" json:"email"`
+	Email          string          `json:"email"`
 	PreferredEmail *PreferredEmail `gorm:"foreignKey:UserUGKthID" json:"preferred_email"`
 
-	IsExternal              bool       `gorm:"default:false" json:"is_external"` // External users do not have a KTH account
 	VerifiedEmail           bool       `json:"verified_email"`
-	EmailVerificationToken  string     `gorm:"size:255" json:"-"`
+	EmailVerificationToken  *string    `gorm:"size:255" json:"-"`
 	EmailVerificationSentAt *time.Time `json:"-"`
 	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
 

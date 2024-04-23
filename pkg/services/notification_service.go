@@ -278,7 +278,7 @@ func Notify_ExternalUserSignupVerification(db *gorm.DB, user *models.User) error
 		return nil
 	}
 
-	var verificationURL string = os.Getenv("FRONTEND_BASE_URL") + "/verify-email/" + user.EmailVerificationToken
+	var verificationURL string = os.Getenv("FRONTEND_BASE_URL") + "/verify-email/" + *user.EmailVerificationToken
 
 	data := types.EmailExternalUserSignupVerification{
 		FullName:         user.FullName(),

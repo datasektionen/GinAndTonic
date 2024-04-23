@@ -204,7 +204,6 @@ func LoginComplete(c *gin.Context) {
 		}
 
 		user = models.User{
-			Username:      body.User,
 			FirstName:     body.FirstName,
 			LastName:      body.LastName,
 			Email:         body.Emails,
@@ -326,7 +325,6 @@ func LoginCompletePostman(c *gin.Context) {
 		}
 
 		user = models.User{
-			Username:      body.User,
 			FirstName:     body.FirstName,
 			LastName:      body.LastName,
 			Email:         body.Emails,

@@ -23,13 +23,6 @@ func (pes *PreferredEmailService) RequestPreferredEmailChange(
 	email string,
 ) (r *types.ErrorResponse) {
 	// Handles a request to change the preferred email
-	if user.IsExternal {
-		return &types.ErrorResponse{
-			StatusCode: 400,
-			Message:    "External users cannot change their preffered email",
-		}
-	}
-
 	tx := pes.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {

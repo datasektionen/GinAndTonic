@@ -97,11 +97,6 @@ func (trs *TicketRequestService) CreateTicketRequest(
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
 
-	if user.IsExternal && !ticketRelease.AllowExternal {
-		log.Println("External user cannot request tickets to this event")
-		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "External user cannot request these tickets"}
-	}
-
 	if ticketRelease.HasAllocatedTickets {
 		log.Println("Ticket release has allocated tickets")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release has allocated tickets"}

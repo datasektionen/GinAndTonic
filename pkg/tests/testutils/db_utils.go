@@ -101,7 +101,6 @@ func SetupOrganizationWorkflow(db *gorm.DB) {
 
 	user := models.User{
 		UGKthID:   "validUserUGKthID",
-		Username:  "validUsername",
 		Email:     "validEmail",
 		FirstName: "validFirstName",
 		LastName:  "validLastName",

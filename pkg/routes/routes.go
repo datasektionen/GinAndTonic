@@ -88,8 +88,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	externalAuthController := controllers.NewExternalAuthController(db, externalAuthService)
 	passwordResetController := controllers.NewUserPasswordResetController(db)
 
-	r.POST("/external/signup", externalAuthController.SignupExternalUser)
-	r.POST("/external/login", externalAuthController.LoginExternalUser)
+	r.POST("/customer/signup", externalAuthController.SignupCustomerUser)
+	r.POST("/customer/login", externalAuthController.LoginCustomerUser)
 	r.POST("/external/verify-email", externalAuthController.VerifyEmail)
 	r.POST("/external/resend-verification-email", externalAuthController.ResendVerificationEmail)
 

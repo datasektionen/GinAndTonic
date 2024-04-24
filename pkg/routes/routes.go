@@ -136,6 +136,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	addOnController := controllers.NewAddOnController(db)
 	eventSiteVistsController := controllers.NewSitVisitsController(db)
 	bankingController := controllers.NewBankingController(bankingService)
+	guestController := controllers.NewGuestController(db)
 
 	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
 
@@ -145,6 +146,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/preferred-email/verify", preferredEmailController.Verify)
 
 	r.GET("/view/events/:refID", middleware.UpdateSiteVisits(db), eventController.CustomerGetEvent)
+
+	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
+	r.GET("/guest-customer/:ugkthid", guestController.Get)
+	r.PUT("/guest-customer/:ugkthid/events/:eventID/ticket-requests/:ticketRequestID/form-fields", eventFromFieldResponseController.GuestUpsert)
 	r.GET("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestGet)
 	r.PUT("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestUpdate)
 	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlm.MiddlewareFuncURLParam(), ticketRequestController.GuestCreate)

@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -90,7 +91,6 @@ func (trs *TicketRequestService) CreateTicketRequest(
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
 	}
 
-	// TODO perhaps create log file this?
 	var ticketRelease models.TicketRelease
 	if err := transaction.Preload("ReservedUsers").Preload("Event.Organization").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")
@@ -118,6 +118,22 @@ func (trs *TicketRequestService) CreateTicketRequest(
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release method detail"}
 	}
 
+	// Check if the users email is used for any other ticket request
+	if user.IsGuestCustomer(transaction) {
+		var existingUsersWithSameEmail []models.User
+		if err := transaction.Where("email = ?", user.Email).Find(&existingUsersWithSameEmail).Error; err != nil {
+			log.Println("Error getting users with same email")
+			return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting users with same email"}
+		}
+
+		// If any of these users has a ticke to this event we should not allow the request if its over the limit
+		for _, existingUser := range existingUsersWithSameEmail {
+			if trs.userAlreadyHasATicketToEvent(&existingUser, &ticketRelease, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
+				return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
+			}
+		}
+	}
+
 	if trs.userAlreadyHasATicketToEvent(&user, &ticketRelease, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
 		log.Println("User cannot request more tickets to this event")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
@@ -138,6 +154,13 @@ func (trs *TicketRequestService) CreateTicketRequest(
 	if err := transaction.Create(mTicketRequest).Error; err != nil {
 		log.Println("Error creating ticket request")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
+	}
+
+	reference := intToHex(int(mTicketRequest.ID))
+	if err := transaction.Model(mTicketRequest).Update("reference", reference).Error; err != nil {
+		log.Println("Error updating ticket request reference")
+		transaction.Rollback()
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error updating ticket request reference"}
 	}
 
 	// Check the release method
@@ -333,4 +356,8 @@ func allTicketsRequestIsForSameTicketRelease(ticketRequests []models.TicketReque
 	}
 
 	return true
+}
+
+func intToHex(n int) string {
+	return fmt.Sprintf("%05x", n)
 }

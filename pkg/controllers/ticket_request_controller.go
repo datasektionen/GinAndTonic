@@ -90,6 +90,56 @@ func (trc *TicketRequestController) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, mTicketRequests)
 }
 
+type TicketRequestGuestCreateRequest struct {
+	TicketRequests []models.TicketRequest `json:"ticket_requests"`
+	SelectedAddOns []types.SelectedAddOns `json:"selected_add_ons"`
+	RequestToken   string                 `json:"request_token" binding:"required"`
+}
+
+// Guest reqeust controller
+func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
+	var request TicketRequestGuestCreateRequest
+	var ticketRequestsIds []int
+
+	userUGKTHId := c.Param("ugkthid")
+	if userUGKTHId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing user ID"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get the ueer base on the RequestToken
+	var user models.User
+	if err := trc.Service.DB.Where("ug_kth_id = ? AND request_token = ?", userUGKTHId, request.RequestToken).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
+		return
+	}
+
+	var ticketRequests []models.TicketRequest = request.TicketRequests
+
+	for i := range ticketRequests {
+		ticketRequests[i].UserUGKthID = userUGKTHId
+	}
+
+	mTicketRequests, err := trc.Service.CreateTicketRequests(ticketRequests, &request.SelectedAddOns)
+	if err != nil {
+		c.JSON(err.StatusCode, gin.H{"error": err.Message})
+		return
+	}
+
+	for _, ticketRequest := range mTicketRequests {
+		ticketRequestsIds = append(ticketRequestsIds, int(ticketRequest.ID))
+	}
+
+	services.Notify_TicketRequestCreated(trc.Service.DB, ticketRequestsIds)
+
+	c.JSON(http.StatusCreated, mTicketRequests)
+}
+
 func (trc *TicketRequestController) Get(c *gin.Context) {
 	UGKthID, _ := c.Get("ugkthid")
 	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthID.(string), nil)

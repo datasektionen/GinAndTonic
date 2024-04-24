@@ -137,12 +137,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventSiteVistsController := controllers.NewSitVisitsController(db)
 	bankingController := controllers.NewBankingController(bankingService)
 
+	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
+
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
 	r.POST("/preferred-email/verify", preferredEmailController.Verify)
 
 	r.GET("/view/events/:refID", middleware.UpdateSiteVisits(db), eventController.CustomerGetEvent)
+	r.GET("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestGet)
+	r.PUT("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestUpdate)
+	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlm.MiddlewareFuncURLParam(), ticketRequestController.GuestCreate)
 
 	r.Use(authentication.ValidateTokenMiddleware())
 	r.Use(middleware.UserLoader(db))
@@ -232,8 +237,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/ticket-requests/:ticketRequestID/allocate",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		allocateTicketsController.SelectivelyAllocateTicketRequest)
-
-	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
 
 	// Ticket request event routes
 	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)

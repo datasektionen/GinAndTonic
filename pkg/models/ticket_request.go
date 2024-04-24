@@ -8,6 +8,7 @@ import (
 
 type TicketRequest struct {
 	gorm.Model
+	Reference         string                   `json:"reference"` // Reference to the ticket request
 	TicketAmount      int                      `json:"ticket_amount"`
 	TicketReleaseID   uint                     `json:"ticket_release_id" gorm:"index;constraint:OnDelete:CASCADE;"`
 	TicketRelease     TicketRelease            `json:"ticket_release"`

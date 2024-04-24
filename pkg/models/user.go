@@ -19,6 +19,7 @@ type User struct {
 	EmailVerificationToken  *string    `gorm:"size:255" json:"-"`
 	EmailVerificationSentAt *time.Time `json:"-"`
 	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
+	RequestToken            *string    `json:"-" gorm:"column:request_token;default:NULL"` // Used by guest users to make requests
 
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
@@ -27,9 +28,10 @@ type User struct {
 	FoodPreferences       UserFoodPreference     `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`
 	RoleID                uint                   `json:"role_id"`
 	Role                  Role                   `json:"role"`
-	CreatedAt             time.Time              `json:"created_at"`
-	UpdatedAt             time.Time              `json:"updated_at"`
-	DeletedAt             gorm.DeletedAt         `gorm:"index" json:"deleted_at"`
+
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 }
 
 func CreateUserIfNotExist(db *gorm.DB, user User) error {
@@ -109,4 +111,13 @@ func (u *User) FullName() string {
 func (u *User) IsSuperAdmin() bool {
 	// Preload role
 	return u.RoleID == 1
+}
+
+func (u *User) IsGuestCustomer(db *gorm.DB) bool {
+	var role Role
+	if err := db.Where("id = ?", u.RoleID).First(&role).Error; err != nil {
+		return false
+	}
+
+	return role.Name == string(RoleCustomerGuest)
 }

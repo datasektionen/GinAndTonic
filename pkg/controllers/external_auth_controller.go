@@ -79,22 +79,25 @@ func (eac *ExternalAuthController) SignupCustomerUser(c *gin.Context) {
 		return
 	}
 
-	var existingUser models.User
-	if err := eac.DB.Preload("Role").Where("email = ?", strings.ToLower(externalSignupRequest.Email)).First(&existingUser).Error; err != nil {
+	var existingUsers []models.User
+	if err := eac.DB.Preload("Role").Where("email = ?", strings.ToLower(externalSignupRequest.Email)).Find(&existingUsers).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 	}
 
-	fmt.Println(existingUser.Role.Name)
+	// If any of these users are not a customer_guest, then the email is already in use
+	if len(existingUsers) > 0 {
+		for _, existingUser := range existingUsers {
+			// Basically if the role type is customer it means that the account has not bee saved
+			// And cannot be logged in to, so the email can be used again.
 
-	if existingUser.Role.Name != string(models.RoleCustomerGuest) && existingUser.UGKthID != "" {
-		// Basically if the role type is customer it means that the account has not bee saved
-		// And cannot be logged in to, so the email can be used again.
-
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
-		return
+			if existingUser.Role.Name != string(models.RoleCustomerGuest) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+				return
+			}
+		}
 	}
 
 	newUGKthID := generateExternalUGKthID()
@@ -151,6 +154,17 @@ func (eac *ExternalAuthController) SignupCustomerUser(c *gin.Context) {
 		EmailVerificationSentAt: &currentTime,
 	}
 
+	var requestToken string = ""
+	if !externalSignupRequest.IsSaved {
+		requestToken, err = utils.GenerateSecretToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+
+		user.RequestToken = &requestToken
+	}
+
 	err = models.CreateUserIfNotExist(eac.DB, user)
 
 	if err != nil {
@@ -164,7 +178,7 @@ func (eac *ExternalAuthController) SignupCustomerUser(c *gin.Context) {
 		// Do something else
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User created"})
+	c.JSON(http.StatusCreated, gin.H{"user": user, "request_token": requestToken})
 }
 
 // LoginExternalUser authenticates an external user and returns a token

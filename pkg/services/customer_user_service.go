@@ -9,15 +9,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type ExternalAuthService struct {
+type CustomerAuthService struct {
 	DB *gorm.DB
 }
 
-func NewExternalAuthService(db *gorm.DB) *ExternalAuthService {
-	return &ExternalAuthService{DB: db}
+func NewCustomerAuthService(db *gorm.DB) *CustomerAuthService {
+	return &CustomerAuthService{DB: db}
 }
 
-func (eas *ExternalAuthService) ValidateSignupRequest(esr types.CustomerSignupRequest) *types.ErrorResponse {
+func (eas *CustomerAuthService) ValidateSignupRequest(esr types.CustomerSignupRequest) *types.ErrorResponse {
 	// Check passwords match
 	if err := esr.Validate(); err != nil {
 		return err
@@ -28,16 +28,16 @@ func (eas *ExternalAuthService) ValidateSignupRequest(esr types.CustomerSignupRe
 		return err
 	}
 
-	newUGKthID := fmt.Sprintf("external-%s", utils.GenerateRandomString(8))
+	newUGKthID := fmt.Sprintf("customer-%s", utils.GenerateRandomString(8))
 
 	// Check UGKthID is not already in use
 	if err := esr.CheckUGKthIDNotInUse(eas.DB, newUGKthID); err != nil {
 		return err
 	}
 
-	// Get "external" role
+	// Get "customer" role
 	var role models.Role
-	if err := eas.DB.Where("name = ?", "external").First(&role).Error; err != nil {
+	if err := eas.DB.Where("name = ?", models.RoleCustomer).First(&role).Error; err != nil {
 		fmt.Println(err)
 		return &types.ErrorResponse{
 			StatusCode: 500,

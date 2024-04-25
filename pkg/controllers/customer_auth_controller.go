@@ -17,14 +17,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type ExternalAuthController struct {
+type CustomerAuthController struct {
 	DB      *gorm.DB
-	service *services.ExternalAuthService
+	service *services.CustomerAuthService
 }
 
-// NewExternalAuthController creates a new controller with the given database client
-func NewExternalAuthController(db *gorm.DB, service *services.ExternalAuthService) *ExternalAuthController {
-	return &ExternalAuthController{DB: db, service: service}
+// NewCustomerAuthController creates a new controller with the given database client
+func NewCustomerAuthController(db *gorm.DB, service *services.CustomerAuthService) *CustomerAuthController {
+	return &CustomerAuthController{DB: db, service: service}
 }
 
 /*
@@ -37,7 +37,7 @@ func generateExternalUGKthID() string {
 	/*
 		Generates a random string of length 10
 	*/
-	return "external-" + utils.GenerateRandomString(8)
+	return "customer-" + utils.GenerateRandomString(8)
 }
 
 func scramble(s string) string {
@@ -62,7 +62,7 @@ func generateExternalUsername(firstName string, lastName string) string {
 	return scrambledName
 }
 
-func (eac *ExternalAuthController) SignupCustomerUser(c *gin.Context) {
+func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 	var err error
 	/*
 		Handler that creates a new user with the given information.
@@ -182,7 +182,7 @@ func (eac *ExternalAuthController) SignupCustomerUser(c *gin.Context) {
 }
 
 // LoginExternalUser authenticates an external user and returns a token
-func (eac *ExternalAuthController) LoginCustomerUser(c *gin.Context) {
+func (eac *CustomerAuthController) LoginCustomerUser(c *gin.Context) {
 	/*
 		Handler that authenticates an external user and returns a token
 	*/
@@ -234,7 +234,7 @@ type VerifiedEmailBody struct {
 }
 
 // VerifyEmail verifies the email of an external user
-func (eac *ExternalAuthController) VerifyEmail(c *gin.Context) {
+func (eac *CustomerAuthController) VerifyEmail(c *gin.Context) {
 	/*
 		Handler that verifies the email of an external user
 	*/
@@ -270,7 +270,7 @@ type ResendVerificationEmailBody struct {
 	Email string `json:"email"`
 }
 
-func (eac *ExternalAuthController) ResendVerificationEmail(c *gin.Context) {
+func (eac *CustomerAuthController) ResendVerificationEmail(c *gin.Context) {
 	/*
 		Handler that resends the verification email to an external user
 	*/

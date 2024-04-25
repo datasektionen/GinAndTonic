@@ -85,14 +85,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/postman-login", controllers.LoginPostman)
 	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)
 
-	externalAuthService := services.NewExternalAuthService(db)
-	externalAuthController := controllers.NewExternalAuthController(db, externalAuthService)
+	customerAuthService := services.NewCustomerAuthService(db)
+	customerAuthController := controllers.NewCustomerAuthController(db, customerAuthService)
 	passwordResetController := controllers.NewUserPasswordResetController(db)
 
-	r.POST("/customer/signup", externalAuthController.SignupCustomerUser)
-	r.POST("/customer/login", externalAuthController.LoginCustomerUser)
-	r.POST("/external/verify-email", externalAuthController.VerifyEmail)
-	r.POST("/external/resend-verification-email", externalAuthController.ResendVerificationEmail)
+	r.POST("/customer/signup", customerAuthController.SignupCustomerUser)
+	r.POST("/customer/login", customerAuthController.LoginCustomerUser)
+	r.POST("/customer/verify-email", customerAuthController.VerifyEmail)
+	r.POST("/customer/resend-verification-email", customerAuthController.ResendVerificationEmail)
 
 	// Password reset
 	r.POST("/password-reset", passwordResetController.CreatePasswordReset)

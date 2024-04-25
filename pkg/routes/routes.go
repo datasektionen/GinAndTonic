@@ -18,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
 
@@ -138,15 +139,24 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	bankingController := controllers.NewBankingController(bankingService)
 	guestController := controllers.NewGuestController(db)
 
-	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
-
+	var rlm *RateLimiterMiddleware
+	var rlmURLParam *RateLimiterMiddleware
+	if os.Getenv("ENV") == "dev" {
+		// For development, we dont really care about the rate limit
+		rlm = NewRateLimiterMiddleware(2, 5)
+		rlmURLParam = NewRateLimiterMiddleware(2, 5)
+	} else {
+		rlm = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)
+		rlmURLParam = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)
+	}
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
 	r.POST("/preferred-email/verify", preferredEmailController.Verify)
 
-	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.CustomerGetEvent)
+	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
 
+	r.GET("/guest-customer/:ugkthid/activate-promo-code/:eventID", ticketReleasePromoCodeController.GuestCreate)
 	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
 	r.GET("/guest-customer/:ugkthid", guestController.Get)
 	r.DELETE("/guest-customer/:ugkthid/ticket-requests/:ticketRequestID", ticketRequestController.GuestCancelTicketRequest)
@@ -154,7 +164,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/guest-customer/:ugkthid/events/:eventID/ticket-requests/:ticketRequestID/form-fields", eventFromFieldResponseController.GuestUpsert)
 	r.GET("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestGet)
 	r.PUT("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestUpdate)
-	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlm.MiddlewareFuncURLParam(), ticketRequestController.GuestCreate)
+	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlmURLParam.MiddlewareFuncURLParam(), ticketRequestController.GuestCreate)
 
 	r.Use(authentication.ValidateTokenMiddleware(true))
 	r.Use(middleware.UserLoader(db))

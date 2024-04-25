@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -72,7 +71,6 @@ func (ctrl *UserFoodPreferenceController) Get(c *gin.Context) {
 }
 
 func (ctrl *UserFoodPreferenceController) GuestGet(c *gin.Context) {
-	fmt.Println("GuestGet")
 	requestToken := c.Query("request_token")
 	if requestToken == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing request token"})

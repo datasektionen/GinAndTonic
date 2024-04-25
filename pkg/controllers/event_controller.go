@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -148,6 +147,18 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 }
 
 func (ec *EventController) GetEvent(c *gin.Context) {
+	_, ugkthid_exists := c.Get("ugkthid")
+
+	if ugkthid_exists {
+		ec.UserGetEvent(c)
+	} else {
+		ec.CustomerGetEvent(c)
+	}
+
+	return
+}
+
+func (ec *EventController) UserGetEvent(c *gin.Context) {
 	var event models.Event
 	var user models.User
 
@@ -239,8 +250,6 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		}
 	}
 
-	fmt.Println(len(ticketReleasesFiltered))
-
 	event.TicketReleases = ticketReleasesFiltered
 
 	c.JSON(http.StatusOK, gin.H{"event": event, "timestamp": time.Now().Unix()})
@@ -249,20 +258,9 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 // GetEvent handles retrieving an event by ID
 func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 	var event models.Event
-	var user models.User
-	ugkthid, ugkthid_exists := c.Get("ugkthid")
-
-	if ugkthid_exists {
-		if err := ec.DB.Where("ug_kth_id = ?", ugkthid).First(&user).Error; err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-			return
-		}
-	}
 
 	refID := c.Param("refID")
 	promoCodes := c.QueryArray("promo_codes")
-
-	fmt.Println("promoCodes", promoCodes)
 
 	err := ec.DB.
 		Preload("Organization").
@@ -285,31 +283,15 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 	authorized := false
 
 	if event.IsPrivate {
-		if user.UGKthID != "" && user.IsSuperAdmin() && ugkthid_exists {
+		secretToken := c.Query("secret_token")
+		if secretToken == "" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+			return
+		}
+
+		// Check the secret token
+		if secretToken == event.SecretToken {
 			authorized = true
-		} else {
-			if !ugkthid_exists {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-				return
-			}
-			var err error
-			authorized, err = middleware.CheckUserAuthorization(ec.DB,
-				uint(event.OrganizationID),
-				user.UGKthID,
-				models.OrganizationMember)
-
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
-				return
-			}
-
-			// Get the secret token from the request
-			secretToken := c.Query("secret_token")
-
-			// Check the secret token
-			if secretToken == event.SecretToken {
-				authorized = true
-			}
 		}
 	} else {
 		authorized = true
@@ -318,20 +300,6 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 	if !authorized {
 		c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
 		return
-	}
-
-	for i, ticketRelease := range event.TicketReleases {
-		if ticketRelease.UserHasAccessToTicketRelease(ec.DB, user.UGKthID) {
-			if ticketRelease.PromoCode != nil {
-				decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
-				if err != nil {
-					fmt.Println(err)
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrypting the promo code"})
-					return
-				}
-				event.TicketReleases[i].PromoCode = &decryptedPromoCode
-			}
-		}
 	}
 
 	// Remove duplicates from the promoCodes array
@@ -347,7 +315,14 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 			// Check if any of the promo codes matches
 			if ticketRelease.HasPromoCode() {
 				for _, promoCode := range promoCodes {
-					if promoCode == *ticketRelease.PromoCode {
+					decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
+
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrypting the promo code"})
+						return
+					}
+
+					if promoCode == decryptedPromoCode {
 						ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 					}
 				}

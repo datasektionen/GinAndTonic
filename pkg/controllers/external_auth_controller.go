@@ -192,8 +192,6 @@ func (eac *ExternalAuthController) LoginCustomerUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(loginRequest)
-
 	// Find the user
 	var user models.User
 	if err := eac.DB.Joins("JOIN roles ON users.role_id = roles.id").Where("email = ? AND roles.name = ?", strings.ToLower(loginRequest.Email), models.RoleCustomer).

@@ -70,7 +70,6 @@ func (pc *PricingPackageAdminController) GetPackage(c *gin.Context) {
 func (pc *PricingPackageAdminController) CreatePackage(c *gin.Context) {
 	var pricingPackage models.PricingPackage
 	// Print the body
-	fmt.Println(c.Request.Body)
 
 	if err := c.ShouldBindJSON(&pricingPackage); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

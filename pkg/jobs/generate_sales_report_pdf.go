@@ -216,7 +216,6 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 	}
 
 	filePath := fmt.Sprintf(folder+"/%s", data.FileName)
-	fmt.Println(filePath)
 	// Save
 	err = pdf.OutputFileAndClose(filePath)
 	if err != nil {

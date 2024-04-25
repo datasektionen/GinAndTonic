@@ -106,7 +106,7 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 	}
 
 	// Run every hour
-	_, err = c.AddFunc("@every 10s", func() {
+	_, err = c.AddFunc("@every 1h", func() {
 		jobs.AllocateReservedTicketsDirectlyJob(db)
 	})
 

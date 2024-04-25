@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -135,7 +136,7 @@ func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
 		ticketRequestsIds = append(ticketRequestsIds, int(ticketRequest.ID))
 	}
 
-	services.Notify_TicketRequestCreated(trc.Service.DB, ticketRequestsIds)
+	services.Notify_GuestTicketRequestCreated(trc.Service.DB, ticketRequestsIds)
 
 	c.JSON(http.StatusCreated, mTicketRequests)
 }
@@ -161,6 +162,54 @@ func (trc *TicketRequestController) CancelTicketRequest(c *gin.Context) {
 	if err != nil {
 		// Handle error, for example send a 404 Not Found response
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket request not found"})
+		return
+	}
+
+	// Send a 200 OK response
+	c.JSON(http.StatusOK, gin.H{"status": "Ticket request cancelled"})
+}
+
+func (trc *TicketRequestController) GuestCancelTicketRequest(c *gin.Context) {
+	// Get the ID of the ticket request from the URL parameters
+	ugkthid := c.Param("ugkthid")
+	if ugkthid == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing user ID"})
+		return
+	}
+
+	requestToken := c.Query("request_token")
+	if requestToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing request token"})
+		return
+	}
+
+	ticketRequestID := c.Param("ticketRequestID")
+
+	var user models.User
+	if err := trc.Service.DB.
+		Preload("TicketRequests").
+		Where("ug_kth_id = ? AND request_token = ?", ugkthid, requestToken).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
+		return
+	}
+
+	userTicketRequest := user.TicketRequests[0]
+	if fmt.Sprint(userTicketRequest.ID) != ticketRequestID {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid ticket request ID"})
+		return
+	}
+
+	// Use your database or service layer to find the ticket request by ID and cancel it
+	err := trc.Service.CancelTicketRequest(ticketRequestID)
+	if err != nil {
+		// Handle error, for example send a 404 Not Found response
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket request not found"})
+		return
+	}
+
+	// Delete the user
+	if err := trc.Service.DB.Delete(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -36,6 +36,14 @@ type EmailTicketRequestConfirmation struct {
 	OrganizationEmail string
 }
 
+type EmailGuestTicketRequestConfirmation struct {
+	FullName          string
+	EventName         string
+	TicketsHTML       template.HTML
+	TicketRequestURL  string
+	OrganizationEmail string
+}
+
 // Associated with ticket_payment_confirmation
 type EmailTicketPaymentConfirmation struct {
 	FullName          string

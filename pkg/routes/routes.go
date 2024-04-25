@@ -99,8 +99,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.GET("/login", controllers.Login)
 	r.GET("/login-complete/:token", controllers.LoginComplete)
-	r.GET("/current-user", authentication.ValidateTokenMiddleware(), controllers.CurrentUser)
-	r.GET("/logout", authentication.ValidateTokenMiddleware(), controllers.Logout)
+	r.GET("/current-user", authentication.ValidateTokenMiddleware(true), controllers.CurrentUser)
+	r.GET("/logout", authentication.ValidateTokenMiddleware(true), controllers.Logout)
 
 	eventController := controllers.NewEventController(db)
 
@@ -145,16 +145,18 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.POST("/preferred-email/verify", preferredEmailController.Verify)
 
-	r.GET("/view/events/:refID", middleware.UpdateSiteVisits(db), eventController.CustomerGetEvent)
+	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.CustomerGetEvent)
 
 	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
 	r.GET("/guest-customer/:ugkthid", guestController.Get)
+	r.DELETE("/guest-customer/:ugkthid/ticket-requests/:ticketRequestID", ticketRequestController.GuestCancelTicketRequest)
+	r.DELETE("/guest-customer/:ugkthid/my-tickets/:ticketID", ticketsController.GuestCancelTicket)
 	r.PUT("/guest-customer/:ugkthid/events/:eventID/ticket-requests/:ticketRequestID/form-fields", eventFromFieldResponseController.GuestUpsert)
 	r.GET("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestGet)
 	r.PUT("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestUpdate)
 	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlm.MiddlewareFuncURLParam(), ticketRequestController.GuestCreate)
 
-	r.Use(authentication.ValidateTokenMiddleware())
+	r.Use(authentication.ValidateTokenMiddleware(true))
 	r.Use(middleware.UserLoader(db))
 
 	synqMonHandler := setupAsynqMon()
@@ -164,7 +166,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events", eventController.CreateEvent)
 	r.GET("/events", eventController.ListEvents)
 	r.GET("/events/:eventID", middleware.UpdateSiteVisits(db), eventController.GetEvent)
-	r.GET("/events/:eventID/manage", authentication.ValidateTokenMiddleware(),
+	r.GET("/events/:eventID/manage",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember), gin.HandlerFunc(func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
 		}))

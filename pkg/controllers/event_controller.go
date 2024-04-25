@@ -153,7 +153,6 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 
 	eventID := c.Param("eventID")
 	ugkthid, _ := c.Get("ugkthid")
-	promoCodes := c.QueryArray("promo_codes")
 
 	if ugkthid != nil {
 		if err := ec.DB.Where("ug_kth_id = ?", ugkthid.(string)).First(&user).Error; err != nil {
@@ -234,23 +233,13 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		if !ticketRelease.IsReserved {
 			ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 		} else {
-			// Check if any of the promo codes matches
-			if ticketRelease.HasPromoCode() {
-				for _, promoCode := range promoCodes {
-					decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
-
-					if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrypting the promo code"})
-						return
-					}
-
-					if promoCode == decryptedPromoCode {
-						ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
-					}
-				}
+			if ticketRelease.UserHasAccessToTicketRelease(ec.DB, user.UGKthID) {
+				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 			}
 		}
 	}
+
+	fmt.Println(len(ticketReleasesFiltered))
 
 	event.TicketReleases = ticketReleasesFiltered
 
@@ -261,11 +250,19 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 	var event models.Event
 	var user models.User
+	ugkthid, ugkthid_exists := c.Get("ugkthid")
+
+	if ugkthid_exists {
+		if err := ec.DB.Where("ug_kth_id = ?", ugkthid).First(&user).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
+	}
 
 	refID := c.Param("refID")
 	promoCodes := c.QueryArray("promo_codes")
 
-	fmt.Println("refID", refID)
+	fmt.Println("promoCodes", promoCodes)
 
 	err := ec.DB.
 		Preload("Organization").
@@ -279,7 +276,6 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 		Preload("TicketReleases.AddOns").
 		Where("reference_id = ?", refID).
 		First(&event).Error
-
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -289,9 +285,13 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 	authorized := false
 
 	if event.IsPrivate {
-		if user.UGKthID != "" && user.IsSuperAdmin() {
+		if user.UGKthID != "" && user.IsSuperAdmin() && ugkthid_exists {
 			authorized = true
 		} else {
+			if !ugkthid_exists {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+				return
+			}
 			var err error
 			authorized, err = middleware.CheckUserAuthorization(ec.DB,
 				uint(event.OrganizationID),
@@ -325,6 +325,7 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 			if ticketRelease.PromoCode != nil {
 				decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
 				if err != nil {
+					fmt.Println(err)
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrypting the promo code"})
 					return
 				}
@@ -332,6 +333,9 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 			}
 		}
 	}
+
+	// Remove duplicates from the promoCodes array
+	promoCodes = utils.RemoveDuplicates(promoCodes)
 
 	// Remove ticket releases that have the property IsReserved set to true
 	var ticketReleasesFiltered []models.TicketRelease = []models.TicketRelease{}
@@ -343,14 +347,7 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 			// Check if any of the promo codes matches
 			if ticketRelease.HasPromoCode() {
 				for _, promoCode := range promoCodes {
-					decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
-
-					if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrypting the promo code"})
-						return
-					}
-
-					if promoCode == decryptedPromoCode {
+					if promoCode == *ticketRelease.PromoCode {
 						ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
 					}
 				}

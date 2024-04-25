@@ -28,12 +28,19 @@ func GenerateToken(ugkthid string, role string) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateTokenMiddleware() gin.HandlerFunc {
+func ValidateTokenMiddleware(
+	failOnError bool,
+) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Print cookie
 		cookie, err := c.Request.Cookie("auth_token")
 		// View cookie error
 		if err != nil {
+
+			if !failOnError {
+				c.Next()
+				return
+			}
 			fmt.Println("Error getting cookie:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
@@ -44,6 +51,11 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 		tokenString := cookie.Value
 
 		if tokenString == "" {
+			if !failOnError {
+				c.Next()
+				return
+			}
+
 			fmt.Println("Error getting cookie:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
@@ -67,5 +79,3 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-

@@ -202,6 +202,58 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 	return nil
 }
 
+func Notify_GuestTicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
+	if os.Getenv("ENV") == "test" {
+		return nil
+	}
+
+	var ticketRequests []models.TicketRequest
+	err := db.
+		Preload("User").
+		Preload("TicketRelease.Event.Organization").
+		Preload("TicketType").
+		Where("id IN ?", ticketRequestIds).
+		Find(&ticketRequests).Error
+	if err != nil {
+		return err
+	}
+
+	user := ticketRequests[0].User
+	ticketRelease := ticketRequests[0].TicketRelease
+	event := ticketRelease.Event
+
+	if user.Email == "" {
+		return fmt.Errorf("user email is empty")
+	}
+
+	var tickets []types.EmailTicket
+	for _, ticket := range ticketRequests {
+		tickets = append(tickets, types.EmailTicket{
+			Name:  ticket.TicketType.Name,
+			Price: fmt.Sprintf("%.2f", math.Round(100*ticket.TicketType.Price)/100)})
+	}
+
+	emailTicketString, _ := utils.GenerateEmailTable(tickets)
+	// emailTicketString := "<h1>Test</h1>"
+
+	data := types.EmailGuestTicketRequestConfirmation{
+		FullName:          user.FullName(),
+		EventName:         event.Name,
+		TicketsHTML:       template.HTML(emailTicketString), // Convert string to template.HTML
+		TicketRequestURL:  os.Getenv("FRONTEND_BASE_URL") + "/events/" + event.ReferenceID + "/guest/" + user.UGKthID + "?request_token=" + *user.RequestToken,
+		OrganizationEmail: event.Organization.Email,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/guests/guest_ticket_request_created_confirmation.html", data)
+	if err != nil {
+		return err
+	}
+
+	AddEmailJob(db, &user, fmt.Sprintf("Your ticket request to %s!", event.Name), htmlContent)
+
+	return nil
+}
+
 // Notify_TicketReserveCreated notifies the user that their ticket reserve has been created
 func Notify_TicketPaymentConfirmation(db *gorm.DB, ticketId int) error {
 	if os.Getenv("ENV") == "test" {

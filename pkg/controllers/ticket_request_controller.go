@@ -121,8 +121,20 @@ func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
 	}
 
 	var ticketRequests []models.TicketRequest = request.TicketRequests
+	var ticketRelease models.TicketRelease
 
 	for i := range ticketRequests {
+		ticketReleaseID := ticketRequests[i].TicketReleaseID
+		if err := trc.Service.DB.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").First(&ticketRelease, ticketReleaseID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release ID"})
+			return
+		}
+
+		if ticketRelease.TicketReleaseMethodDetail.TicketReleaseMethod.RequiresCustomerAccount() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release requires customer account"})
+			return
+		}
+
 		ticketRequests[i].UserUGKthID = userUGKTHId
 	}
 
@@ -138,7 +150,9 @@ func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
 
 	services.Notify_GuestTicketRequestCreated(trc.Service.DB, ticketRequestsIds)
 
-	c.JSON(http.StatusCreated, mTicketRequests)
+	c.JSON(http.StatusCreated, gin.H{
+		"ticket_requests": mTicketRequests,
+	})
 }
 
 func (trc *TicketRequestController) Get(c *gin.Context) {

@@ -41,3 +41,14 @@ func InitializeTicketReleaseMethods(db *gorm.DB) error {
 	}
 	return nil
 }
+
+var REQUIRES_ACCOUNT = [...]TRM{FCFS_LOTTERY, FCFS}
+
+func (trm *TicketReleaseMethod) RequiresCustomerAccount() bool {
+	for _, method := range REQUIRES_ACCOUNT {
+		if trm.MethodName == string(method) {
+			return true
+		}
+	}
+	return false
+}

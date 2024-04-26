@@ -86,16 +86,32 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *
 		payBeforeString = paymentDeadline.Format("2006-01-02 15:04:05")
 	}
 
+	var isGuest bool = ticket.TicketRequest.User.IsGuestCustomer(db)
+	var ticketUrl string = os.Getenv("FRONTEND_BASE_URL")
+
+	if !isGuest {
+		ticketUrl += "/profile/tickets"
+	} else {
+		ticketUrl += "/events/" + event.ReferenceID + "/guest/" + user.UGKthID + "?request_token=" + *user.RequestToken
+	}
+
 	data := types.EmailTicketAllocationCreated{
 		FullName:          user.FullName(),
 		EventName:         event.Name,
-		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/tickets",
+		TicketURL:         ticketUrl,
 		OrganizationName:  event.Organization.Name,
 		OrganizationEmail: event.Organization.Email,
 		PayBefore:         payBeforeString,
 	}
 
-	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_allocation_created.html", data)
+	var tempalte string
+	if isGuest {
+		tempalte = "templates/emails/guests/guest_ticket_allocation_created.html"
+	} else {
+		tempalte = "templates/emails/ticket_allocation_created.html"
+	}
+
+	htmlContent, err := utils.ParseTemplate(tempalte, data)
 	if err != nil {
 		return err
 	}

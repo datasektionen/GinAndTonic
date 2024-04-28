@@ -139,12 +139,15 @@ func DecryptSecretToken(encryptedToken, secretKey string) (string, error) {
 }
 
 func GenerateRandomString(n int) string {
-	const characters = "DATSEKIONabcdefghijklmnopqrstuvwxyz0123456789"
+	const characters = "ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	var result strings.Builder
 	length := len(characters)
 
+	// Use the current time as a seed for the local random number generator
+	r := mrand.New(mrand.NewSource(time.Now().UnixNano()))
+
 	for i := 0; i < n; i++ {
-		randomIndex := mrand.Intn(length)
+		randomIndex := r.Intn(length)
 		result.WriteByte(characters[randomIndex])
 	}
 

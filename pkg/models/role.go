@@ -8,8 +8,7 @@ type RoleType string
 
 const (
 	RoleSuperAdmin    RoleType = "super_admin"
-	RoleUser          RoleType = "manager"
-	RoleExternal      RoleType = "external"
+	RoleManager       RoleType = "manager"
 	RoleCustomer      RoleType = "customer"
 	RoleCustomerGuest RoleType = "customer_guest"
 )
@@ -30,11 +29,10 @@ func GetRole(db *gorm.DB, name RoleType) (Role, error) {
 func InitializeRoles(db *gorm.DB) error {
 	// Define the roles you want to ensure exist
 	roles := []Role{
-		{Name: "super_admin"},
-		{Name: "user"},
-		{Name: "external"},
-		{Name: "customer"},
-		{Name: "customer_guest"},
+		{Name: RoleSuperAdmin},
+		{Name: RoleManager},
+		{Name: RoleCustomer},
+		{Name: RoleCustomerGuest},
 	}
 
 	// Check each role and create it if it doesn't exist

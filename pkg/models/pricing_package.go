@@ -3,7 +3,7 @@ package models
 import "gorm.io/gorm"
 
 type FeatureGroupType string
-type PaymentPlan string
+type PaymentPlanType string
 type PackageTierType string
 
 const (
@@ -18,8 +18,8 @@ const (
 )
 
 const (
-	PaymentPlanMonthly PaymentPlan = "monthly"
-	PaymentPlanYearly  PaymentPlan = "yearly"
+	PaymentPlanMonthly PaymentPlanType = "monthly"
+	PaymentPlanYearly  PaymentPlanType = "yearly"
 )
 
 const (
@@ -36,20 +36,23 @@ type PackageTier struct {
 	Description          string           `json:"description"`
 	StandardMonthlyPrice int              `json:"standard_monthly_price"` // Monthly amount billed monthly
 	StandardYearlyPrice  int              `json:"standard_yearly_price"`  // Monthly amount billed yearly
-	PricingPackages      []PricingPackage `gorm:"foreignKey:PackageTierID"`
+	PlanEnrollments      []PlanEnrollment `gorm:"foreignKey:PackageTierID" json:"plan_enrollments"`
 	DefaultFeatureIDs    []uint           `gorm:"-" json:"default_features"` // Temporary field to hold IDs
 	DefaultFeatures      []Feature        `gorm:"many2many:package_tier_default_features;"`
 }
 
-type PricingPackage struct {
+type PlanEnrollment struct {
 	gorm.Model
-	OrganizationID       *uint       `json:"organization_id"`
-	NetworkID            *uint       `json:"network_id"`
-	PackageTierID        uint        `json:"package_tier_id" gorm:"not null"`
-	Features             []Feature   `gorm:"many2many:package_features;" json:"features"`
-	StandardMonthlyPrice int         `json:"monthly_price"` // Monthly amount billed monthly
-	StandardYearlyPrice  int         `json:"yearly_price"`  // Monthly amount billed yearly
-	Plan                 PaymentPlan `json:"plan" gorm:"not null"`
+	CreatorEmail  string          `gorm:"-" json:"creator_email"` // Not stored in the database
+	Creator       User            `json:"creator" gorm:"foreignKey:UgKTHId"`
+	Organizations []Organization  `gorm:"foreignKey:PlanEnrollmentID" json:"organizations"`
+	Network       *Network        `json:"network" gorm:"foreignKey:PlanEnrollmentID"`
+	NetworkID     *uint           `json:"network_id"`
+	PackageTierID uint            `json:"package_tier_id" gorm:"not null"`
+	Features      []Feature       `gorm:"many2many:package_features;" json:"features"`
+	MonthlyPrice  int             `json:"monthly_price"` // Monthly amount billed monthly
+	YearlyPrice   int             `json:"yearly_price"`  // Monthly amount billed yearly
+	Plan          PaymentPlanType `json:"plan" gorm:"not null"`
 }
 
 type FeatureGroup struct {

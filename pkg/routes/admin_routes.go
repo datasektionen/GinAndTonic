@@ -8,7 +8,7 @@ import (
 )
 
 func AdminRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
-	pricingPackageAdminController := admin_controllers.NewPricingPackageAdminController(db)
+	PlanEnrollmentAdminController := admin_controllers.NewPlanEnrollmentAdminController(db)
 	packageTierController := admin_controllers.NewPackageTierController(db)
 	featureController := admin_controllers.NewFeatureController(db)
 	fgc := admin_controllers.NewFeatureGroupController(db)
@@ -23,11 +23,11 @@ func AdminRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	adminGroup.DELETE("/package-tiers/:id", packageTierController.DeleteTier)
 
 	// Setting up routes
-	adminGroup.GET("/pricing-packages", pricingPackageAdminController.GetAllPackages)
-	adminGroup.GET("/pricing-packages/:id", pricingPackageAdminController.GetPackage)
-	adminGroup.POST("/pricing-packages", pricingPackageAdminController.CreatePackage)
-	adminGroup.PUT("/pricing-packages/:id", pricingPackageAdminController.UpdatePackage)
-	adminGroup.DELETE("/pricing-packages/:id", pricingPackageAdminController.DeletePackage)
+	adminGroup.GET("/plan-enrollments", PlanEnrollmentAdminController.GetAllEnrollments)
+	adminGroup.GET("/plan-enrollments/:id", PlanEnrollmentAdminController.GetEnrollment)
+	adminGroup.POST("/plan-enrollments", PlanEnrollmentAdminController.CreateEnrollment)
+	adminGroup.PUT("/plan-enrollments/:id", PlanEnrollmentAdminController.UpdateEnrollment)
+	adminGroup.DELETE("/plan-enrollments/:id", PlanEnrollmentAdminController.DeleteEnrollment)
 
 	adminGroup.GET("/features", featureController.GetAllFeatures)
 	adminGroup.GET("/features/:id", featureController.GetFeature)

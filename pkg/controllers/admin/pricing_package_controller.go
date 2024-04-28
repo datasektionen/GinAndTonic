@@ -12,27 +12,27 @@ import (
 	"gorm.io/gorm"
 )
 
-type PricingPackageAdminController struct {
+type PlanEnrollmentAdminController struct {
 	DB      *gorm.DB
-	service *admin_services.PricingPackageAdminService
+	service *admin_services.PlanEnrollmentAdminService
 }
 
-// NewPricingPackageAdminController creates a new controller with the given database client
-func NewPricingPackageAdminController(db *gorm.DB) *PricingPackageAdminController {
-	return &PricingPackageAdminController{DB: db, service: admin_services.NewPricingPackageAdminService(db)}
+// NewPlanEnrollmentAdminController creates a new controller with the given database client
+func NewPlanEnrollmentAdminController(db *gorm.DB) *PlanEnrollmentAdminController {
+	return &PlanEnrollmentAdminController{DB: db, service: admin_services.NewPlanEnrollmentAdminService(db)}
 }
 
 // GetAllPackages fetches all pricing packages
 // GetAllPackages fetches all pricing packages with query params handling
-func (pc *PricingPackageAdminController) GetAllPackages(c *gin.Context) {
+func (pc *PlanEnrollmentAdminController) GetAllEnrollments(c *gin.Context) {
 	queryParams, err := utils.GetQueryParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid query parameters", "details": err.Error()})
 		return
 	}
 
-	var packages []models.PricingPackage
-	query := pc.DB.Model(&models.PricingPackage{})
+	var packages []models.PlanEnrollment
+	query := pc.DB.Model(&models.PlanEnrollment{})
 
 	sortParam := c.DefaultQuery("sort", "id")
 	sortArray := strings.Split(strings.Trim(sortParam, "[]\""), "\",\"")
@@ -46,11 +46,11 @@ func (pc *PricingPackageAdminController) GetAllPackages(c *gin.Context) {
 	}
 
 	var count int64
-	pc.DB.Model(&models.PricingPackage{}).Count(&count)
+	pc.DB.Model(&models.PlanEnrollment{}).Count(&count)
 
 	// Assuming total count for headers (pagination)
 	var totalCount int64
-	pc.DB.Model(&models.PricingPackage{}).Count(&totalCount)
+	pc.DB.Model(&models.PlanEnrollment{}).Count(&totalCount)
 	c.Header("X-Total-Count", fmt.Sprintf("%d", totalCount))
 	c.Header("Content-Range", fmt.Sprintf("packages %d-%d/%d", (queryParams.Page-1)*queryParams.PerPage, (queryParams.Page-1)*queryParams.PerPage+len(packages)-1, count))
 
@@ -58,52 +58,57 @@ func (pc *PricingPackageAdminController) GetAllPackages(c *gin.Context) {
 }
 
 // GetPackage fetches a single pricing package by ID
-func (pc *PricingPackageAdminController) GetPackage(c *gin.Context) {
+func (pc *PlanEnrollmentAdminController) GetEnrollment(c *gin.Context) {
 	id := c.Param("id")
-	var pricingPackage models.PricingPackage
-	if result := pc.DB.First(&pricingPackage, id); result.Error != nil {
+	var planEnrollment models.PlanEnrollment
+	if result := pc.DB.First(&planEnrollment, id); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": result.Error.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, pricingPackage)
+	c.JSON(http.StatusOK, planEnrollment)
 }
-func (pc *PricingPackageAdminController) CreatePackage(c *gin.Context) {
-	var pricingPackage models.PricingPackage
+
+type CreatePackageRequest struct {
+	PlanEnrollment models.PlanEnrollment `json:"pricing_package"`
+}
+
+func (pc *PlanEnrollmentAdminController) CreateEnrollment(c *gin.Context) {
+	var planEnrollment models.PlanEnrollment
 	// Print the body
 
-	if err := c.ShouldBindJSON(&pricingPackage); err != nil {
+	if err := c.ShouldBindJSON(&planEnrollment); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if result := pc.DB.Create(&pricingPackage); result.Error != nil {
+	if result := pc.DB.Create(&planEnrollment); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, pricingPackage)
+	c.JSON(http.StatusCreated, planEnrollment)
 }
 
 // UpdatePackage updates an existing pricing package
-func (pc *PricingPackageAdminController) UpdatePackage(c *gin.Context) {
+func (pc *PlanEnrollmentAdminController) UpdateEnrollment(c *gin.Context) {
 	id := c.Param("id")
-	var pricingPackage models.PricingPackage
-	if result := pc.DB.First(&pricingPackage, id); result.Error != nil {
+	var planEnrollment models.PlanEnrollment
+	if result := pc.DB.First(&planEnrollment, id); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Package not found"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&pricingPackage); err != nil {
+	if err := c.ShouldBindJSON(&planEnrollment); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	pc.DB.Save(&pricingPackage)
+	pc.DB.Save(&planEnrollment)
 
-	c.JSON(http.StatusOK, pricingPackage)
+	c.JSON(http.StatusOK, planEnrollment)
 }
 
 // DeletePackage deletes a pricing package
-func (pc *PricingPackageAdminController) DeletePackage(c *gin.Context) {
+func (pc *PlanEnrollmentAdminController) DeleteEnrollment(c *gin.Context) {
 	id := c.Param("id")
-	if result := pc.DB.Delete(&models.PricingPackage{}, id); result.Error != nil {
+	if result := pc.DB.Delete(&models.PlanEnrollment{}, id); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}

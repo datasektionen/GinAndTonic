@@ -2,11 +2,11 @@ package admin_services
 
 import "gorm.io/gorm"
 
-type PricingPackageAdminService struct {
+type PlanEnrollmentAdminService struct {
 	DB *gorm.DB
 }
 
-// NewPricingPackageAdminService creates a new service with the given database client
-func NewPricingPackageAdminService(db *gorm.DB) *PricingPackageAdminService {
-	return &PricingPackageAdminService{DB: db}
+// NewPlanEnrollmentAdminService creates a new service with the given database client
+func NewPlanEnrollmentAdminService(db *gorm.DB) *PlanEnrollmentAdminService {
+	return &PlanEnrollmentAdminService{DB: db}
 }

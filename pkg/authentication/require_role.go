@@ -8,9 +8,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func RequireRole(requiredRole string, db *gorm.DB) gin.HandlerFunc {
+func RequireRole(requiredRole models.RoleType, db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		roles, exists := c.Get("role")
+		roles, exists := c.Get("roles")
 
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -19,15 +19,6 @@ func RequireRole(requiredRole string, db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Get role from the database
-		var userRole models.Role
-		var roleString = roles.(string)
-
-		if err := db.Where("name = ?", roleString).First(&userRole).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch role"})
-			c.Abort()
-			return
-		}
-
 		var requiredRoleDB models.Role
 		if err := db.Where("name = ?", requiredRole).First(&requiredRoleDB).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch role"})
@@ -35,9 +26,24 @@ func RequireRole(requiredRole string, db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Check if the ID of the userRole is less than or equal to the ID of the roleDB
-		// If it is not, the user is not authorized
-		if userRole.ID > requiredRoleDB.ID {
+		// Check if the user has the required role
+		hasRequiredRole := false
+		for _, role := range roles.([]string) {
+			var userRole models.Role
+			if err := db.Where("name = ?", role).First(&userRole).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch role"})
+				c.Abort()
+				return
+			}
+
+			if userRole.ID == requiredRoleDB.ID {
+				hasRequiredRole = true
+				break
+			}
+		}
+
+		// If the user does not have the required role, they are not authorized
+		if !hasRequiredRole {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authorized"})
 			c.Abort()
 			return

@@ -104,7 +104,6 @@ func SetupOrganizationWorkflow(db *gorm.DB) {
 		Email:     "validEmail",
 		FirstName: "validFirstName",
 		LastName:  "validLastName",
-		RoleID:    1, // User role
 	}
 
 	db.Create(&user)

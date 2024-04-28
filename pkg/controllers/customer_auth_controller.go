@@ -80,7 +80,7 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 	}
 
 	var existingUsers []models.User
-	if err := eac.DB.Preload("Role").Where("email = ?", strings.ToLower(externalSignupRequest.Email)).Find(&existingUsers).Error; err != nil {
+	if err := eac.DB.Preload("Roles").Where("email = ?", strings.ToLower(externalSignupRequest.Email)).Find(&existingUsers).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
@@ -93,7 +93,7 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 			// Basically if the role type is customer it means that the account has not bee saved
 			// And cannot be logged in to, so the email can be used again.
 
-			if existingUser.Role.Name != string(models.RoleCustomerGuest) {
+			if !existingUser.IsRole(models.RoleCustomer) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
 				return
 			}
@@ -121,12 +121,13 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 		}
 	}
 
-	var role models.Role
-	if err := eac.DB.Where("name = ?", roleName).First(&role).Error; err != nil {
-		fmt.Println(err)
+	var roles []models.Role
+	role, err := models.GetRole(eac.DB, roleName)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
+	roles = append(roles, role)
 
 	// generate verify email token
 	// This is also only done if the user is saved
@@ -148,7 +149,7 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 		LastName:                externalSignupRequest.LastName,
 		Email:                   strings.ToLower(externalSignupRequest.Email),
 		PasswordHash:            pwHash,
-		Role:                    role,
+		Roles:                   roles,
 		VerifiedEmail:           roleName == models.RoleCustomerGuest,
 		EmailVerificationToken:  verifyEmailToken,
 		EmailVerificationSentAt: &currentTime,
@@ -212,7 +213,7 @@ func (eac *CustomerAuthController) LoginCustomerUser(c *gin.Context) {
 	}
 
 	// Generate a token
-	tokenString, err := authentication.GenerateToken(user.UGKthID, user.Role.Name)
+	tokenString, err := authentication.GenerateToken(user.UGKthID, user.Roles)
 
 	if err != nil {
 		fmt.Println(err)

@@ -12,7 +12,6 @@ func NewUser(ugKthID, username, firstName, lastName, email string, roleID uint) 
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
-		RoleID:    roleID,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

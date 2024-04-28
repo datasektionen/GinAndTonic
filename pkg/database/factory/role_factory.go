@@ -4,7 +4,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 )
 
-func NewRole(name string) *models.Role {
+func NewRole(name models.RoleType) *models.Role {
 	return &models.Role{
 		Name: name,
 	}

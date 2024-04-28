@@ -33,7 +33,7 @@ func (gc *GuestController) Get(c *gin.Context) {
 
 	var user models.User
 	if err := gc.DB.
-		Preload("Role").
+		Preload("Roles").
 		Preload("TicketRequests.TicketRelease.Event.FormFields").
 		Preload("TicketRequests.TicketType").
 		Preload("TicketRequests.TicketAddOns.AddOn").

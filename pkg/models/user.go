@@ -1,7 +1,6 @@
 package models
 
 import (
-	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -9,11 +8,10 @@ import (
 
 // User is a struct that represents a user in the database
 type User struct {
-	UGKthID        string          `gorm:"primaryKey;index" json:"ug_kth_id"`
-	FirstName      string          `json:"first_name"`
-	LastName       string          `json:"last_name"`
-	Email          string          `json:"email"`
-	PreferredEmail *PreferredEmail `gorm:"foreignKey:UserUGKthID" json:"preferred_email"`
+	UGKthID   string `gorm:"primaryKey;index" json:"ug_kth_id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
 
 	VerifiedEmail           bool       `json:"verified_email"`
 	EmailVerificationToken  *string    `gorm:"size:255" json:"-"`
@@ -26,8 +24,7 @@ type User struct {
 	Organizations         []Organization         `gorm:"many2many:organization_users;" json:"organizations"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:UserUGKthID" json:"organization_user_roles"`
 	FoodPreferences       UserFoodPreference     `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`
-	RoleID                uint                   `json:"role_id"`
-	Role                  Role                   `json:"role"`
+	Roles                 []Role                 `gorm:"many2many:user_roles;" json:"roles"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -67,9 +64,8 @@ func CreateUserIfNotExist(db *gorm.DB, user User) error {
 func GetUserByUGKthIDIfExist(db *gorm.DB, UGKthID string) (User, error) {
 	var user User
 	err := db.
-		Preload("Role").
+		Preload("Roles").
 		Preload("Organizations").
-		Preload("PreferredEmail").
 		Where("ug_kth_id = ?", UGKthID).First(&user).Error
 	return user, err
 }
@@ -77,29 +73,8 @@ func GetUserByUGKthIDIfExist(db *gorm.DB, UGKthID string) (User, error) {
 // GetUserByEmailIfExists returns a user by email if it exists
 func GetUserByEmailIfExists(db *gorm.DB, email string) (User, error) {
 	var user User
-	err := db.Preload("Role").Where("email = ?", email).First(&user).Error
+	err := db.Preload("Roles").Where("email = ?", email).First(&user).Error
 	return user, err
-}
-
-func (u *User) GetUserEmail(db *gorm.DB) string {
-	// Get preferred email if it exists and is verified
-	var pe PreferredEmail
-	if err := db.Where("user_ug_kth_id = ?", u.UGKthID).First(&pe).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Preferred email not found, return user's default email
-			return u.Email
-		}
-		// Log other database errors
-		return u.Email
-	}
-
-	// Preferred email is found and verified, return it
-	return pe.Email
-}
-
-func (u *User) AfterFind(tx *gorm.DB) (err error) {
-	u.Email = u.GetUserEmail(tx)
-	return
 }
 
 // FullName returns the full name of the user
@@ -107,17 +82,39 @@ func (u *User) FullName() string {
 	return u.FirstName + " " + u.LastName
 }
 
+func (u *User) IsRole(role RoleType) bool {
+	for _, r := range u.Roles {
+		if r.Name == role {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IsSuperAdmin returns true if the user is a super admin
 func (u *User) IsSuperAdmin() bool {
 	// Preload role
-	return u.RoleID == 1
+	for _, r := range u.Roles {
+		if r.Name == RoleSuperAdmin {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (u *User) IsGuestCustomer(db *gorm.DB) bool {
 	var role Role
-	if err := db.Where("id = ?", u.RoleID).First(&role).Error; err != nil {
+	if err := db.Where("name = ?", RoleCustomerGuest).First(&role).Error; err != nil {
 		return false
 	}
 
-	return role.Name == string(RoleCustomerGuest)
+	for _, r := range u.Roles {
+		if r.ID == role.ID {
+			return true
+		}
+	}
+
+	return false
 }

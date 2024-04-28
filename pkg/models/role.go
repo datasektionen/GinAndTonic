@@ -16,12 +16,12 @@ const (
 
 type Role struct {
 	gorm.Model
-	Name string `gorm:"unique" json:"name"`
+	Name RoleType `gorm:"unique" json:"name"`
 
-	Users []User `gorm:"foreignKey:RoleID" json:"users"`
+	Users []User `gorm:"many2many:user_roles;foreignKey:ID;joinForeignKey:RoleID;References:UGKthID;joinReferences:UserUGKthID" json:"users"`
 }
 
-func GetRole(db *gorm.DB, name string) (Role, error) {
+func GetRole(db *gorm.DB, name RoleType) (Role, error) {
 	var role Role
 	err := db.Where("name = ?", name).First(&role).Error
 	return role, err

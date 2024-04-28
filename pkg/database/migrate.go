@@ -18,7 +18,6 @@ func Migrate(db *gorm.DB) error {
 		&models.TicketReleaseMethod{},
 		&models.TicketReleaseMethodDetail{},
 		&models.TicketRelease{},
-		&models.PreferredEmail{},
 		&models.User{},
 		&models.UserFoodPreference{},
 		&models.EventFormField{},

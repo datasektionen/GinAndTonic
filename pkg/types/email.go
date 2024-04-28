@@ -135,10 +135,6 @@ type EmailEventSendOut struct {
 	OrganizationName string
 }
 
-type EmailRequestChangePreferredEmail struct {
-	VerificationLink string
-}
-
 type EmailUpdatePaymentDeadline struct {
 	FullName          string
 	EventName         string

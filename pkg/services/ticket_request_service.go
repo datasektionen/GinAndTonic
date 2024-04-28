@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -154,13 +153,6 @@ func (trs *TicketRequestService) CreateTicketRequest(
 	if err := transaction.Create(mTicketRequest).Error; err != nil {
 		log.Println("Error creating ticket request")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
-	}
-
-	reference := intToHex(int(mTicketRequest.ID))
-	if err := transaction.Model(mTicketRequest).Update("reference", reference).Error; err != nil {
-		log.Println("Error updating ticket request reference")
-		transaction.Rollback()
-		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error updating ticket request reference"}
 	}
 
 	// Check the release method
@@ -356,8 +348,4 @@ func allTicketsRequestIsForSameTicketRelease(ticketRequests []models.TicketReque
 	}
 
 	return true
-}
-
-func intToHex(n int) string {
-	return fmt.Sprintf("%05x", n)
 }

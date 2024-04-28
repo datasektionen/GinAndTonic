@@ -111,7 +111,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	sendOutService := services.NewSendOutService(db)
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
-	preferredEmailService := services.NewPreferredEmailService(db)
 	bankingService := banking_service.NewBankingService(db)
 
 	organizationController := controllers.NewOrganizationController(db, organizationService)
@@ -131,7 +130,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
 	sendOutcontroller := controllers.NewSendOutController(db, sendOutService)
 	salesReportController := controllers.NewSalesReportController(db)
-	preferredEmailController := controllers.NewPreferredEmailController(db, preferredEmailService)
 	eventFormFieldController := controllers.NewEventFormFieldController(db)
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
 	addOnController := controllers.NewAddOnController(db)
@@ -152,8 +150,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
-	r.POST("/preferred-email/verify", preferredEmailController.Verify)
-
 	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
 
 	r.GET("/guest-customer/:ugkthid/activate-promo-code/:eventID", ticketReleasePromoCodeController.GuestCreate)
@@ -170,7 +166,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.Use(middleware.UserLoader(db))
 
 	synqMonHandler := setupAsynqMon()
-	r.Any("/admin/monitoring/*any", authentication.RequireRole("super_admin", db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
+	r.Any("/admin/monitoring/*any", authentication.RequireRole(models.RoleSuperAdmin, db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
 
 	//Event routes
 	r.POST("/events", eventController.CreateEvent)
@@ -181,7 +177,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
 		}))
 
-	r.GET("/test", authentication.RequireRole("super_admin", db), func(c *gin.Context) {
+	r.GET("/test", authentication.RequireRole(models.RoleSuperAdmin, db), func(c *gin.Context) {
 		jobs.StartEventSiteVisitsJob(db)
 		c.JSON(http.StatusOK, gin.H{"message": "Job started"})
 	})
@@ -285,7 +281,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.GenerateSalesReport)
 	r.GET("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.ListSalesReport)
 
-	r.POST("/organizations", authentication.RequireRole("super_admin", db), organizationController.CreateOrganization)
+	r.POST("/organizations", authentication.RequireRole(models.RoleSuperAdmin, db), organizationController.CreateOrganization)
 	r.GET("/organizations", organizationController.ListOrganizations)
 	r.GET("my-organizations", organizationController.ListMyOrganizations)
 	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.GetOrganization)
@@ -301,13 +297,13 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket Release Methods routes
 	r.GET("/ticket-release-methods", ticketReleaseMethodsController.ListTicketReleaseMethods)
-	r.POST("/ticket-release-methods", authentication.RequireRole("super_admin", db), ticketReleaseMethodsController.CreateTicketReleaseMethod)
+	r.POST("/ticket-release-methods", authentication.RequireRole(models.RoleSuperAdmin, db), ticketReleaseMethodsController.CreateTicketReleaseMethod)
 
 	// Ticket Types routes
 	r.GET("/ticket-types",
-		authentication.RequireRole("super_admin", db),
+		authentication.RequireRole(models.RoleSuperAdmin, db),
 		ticketTypeController.ListAllTicketTypes)
-	r.POST("/ticket-types", authentication.RequireRole("super_admin", db),
+	r.POST("/ticket-types", authentication.RequireRole(models.RoleSuperAdmin, db),
 		ticketTypeController.CreateTicketTypes)
 
 	// User Food Preference routes
@@ -315,17 +311,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
 	r.GET("/food-preferences", userFoodPreferenceController.ListFoodPreferences)
 
-	r.POST("/admin/create-user", authentication.RequireRole("super_admin", db), userController.CreateUser)
+	r.POST("/admin/create-user", authentication.RequireRole(models.RoleSuperAdmin, db), userController.CreateUser)
 
 	// Banking details
 	r.GET("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), bankingController.GetBankingDetails)
 	r.POST("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.SubmitBankingDetails)
 	r.DELETE("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.DeleteBankingDetails)
 
-	// Preferred email
-	r.POST("/preferred-email/request", preferredEmailController.Request)
-
-	r.POST("send-test-email", authentication.RequireRole("super_admin", db), notificationController.SendTestEmail)
+	r.POST("send-test-email", authentication.RequireRole(models.RoleSuperAdmin, db), notificationController.SendTestEmail)
 
 	r = AdminRoutes(r, db)
 

@@ -307,6 +307,7 @@ func (ats *AllocateTicketsService) SelectivelyAllocateTicketRequest(ticketReques
 	var ticketRequest models.TicketRequest
 	err := tx.Preload("User").
 		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketRelease.PaymentDeadline").
 		Preload("TicketRelease.Event").
 		Where("id = ?", ticketRequestID).First(&ticketRequest).Error
 

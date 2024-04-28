@@ -107,6 +107,7 @@ func (ps *PaymentService) ProcessEvent(
 		if err := tx.Where("ticket_id = ?", ticket.ID).First(&transaction).Error; err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				tx.Rollback()
+				fmt.Println(err)
 				return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "An unexpected error occurred, contact event organizers"}
 			}
 		}

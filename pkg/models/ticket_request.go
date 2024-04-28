@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -8,6 +9,7 @@ import (
 
 type TicketRequest struct {
 	gorm.Model
+	Reference         string                   `json:"reference"` // Reference to the ticket request
 	TicketAmount      int                      `json:"ticket_amount"`
 	TicketReleaseID   uint                     `json:"ticket_release_id" gorm:"index;constraint:OnDelete:CASCADE;"`
 	TicketRelease     TicketRelease            `json:"ticket_release"`
@@ -20,6 +22,18 @@ type TicketRequest struct {
 	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
 	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketRequestID" json:"ticket_add_ons"`
 	HandledAt         *time.Time               `json:"handled_at" gorm:"default:null"`
+}
+
+func intToHex(n int) string {
+	return fmt.Sprintf("%05x", n)
+}
+
+func (tr *TicketRequest) beforeCreate(tx *gorm.DB) (err error) {
+	if tr.Reference == "" {
+		reference := intToHex(int(tr.ID))
+		tr.Reference = reference
+	}
+	return
 }
 
 func (tr *TicketRequest) BeforeSave(tx *gorm.DB) (err error) {

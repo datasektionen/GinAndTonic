@@ -106,7 +106,7 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 	}
 
 	// Run every hour
-	_, err = c.AddFunc("@every 1h", func() {
+	_, err = c.AddFunc("@every 30s", func() {
 		jobs.AllocateReservedTicketsDirectlyJob(db)
 	})
 
@@ -245,8 +245,20 @@ func main() {
 		panic("Failed to initialize organization roles: " + err.Error())
 	}
 
+	if err := models.InitializeNetworkRoles(db); err != nil {
+		panic("Failed to initialize network roles: " + err.Error())
+	}
+
+	if err := models.InitializePackageTiers(db); err != nil {
+		panic("Failed to initialize package tiers: " + err.Error())
+	}
+
 	if err := models.InitializeTicketReleaseMethods(db); err != nil {
 		panic("Failed to initialize ticket release methods: " + err.Error())
+	}
+
+	if err := models.InitializeFeatureGroups(db); err != nil {
+		panic("Failed to initialize feature groups: " + err.Error())
 	}
 
 	gin.SetMode(gin.ReleaseMode)

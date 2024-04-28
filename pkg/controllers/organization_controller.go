@@ -65,7 +65,7 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 		return
 	}
 
-	ec.OrganisationService.AddUserToOrganization(user.Username, organization.ID, models.OrganizationOwner)
+	ec.OrganisationService.AddUserToOrganization(user.Email, organization.ID, models.OrganizationOwner)
 
 	c.JSON(http.StatusCreated, gin.H{"organization": organization})
 }

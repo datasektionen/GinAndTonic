@@ -65,3 +65,21 @@ func (m *RateLimiterMiddleware) MiddlewareFunc() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func (m *RateLimiterMiddleware) MiddlewareFuncURLParam() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.Param("ugkthid")
+		if userID == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID required"})
+			return
+		}
+
+		limiter := m.addVisitor(userID)
+		if !limiter.Allow() {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Too many requests"})
+			return
+		}
+
+		c.Next()
+	}
+}

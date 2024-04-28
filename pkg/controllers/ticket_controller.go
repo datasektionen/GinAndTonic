@@ -126,6 +126,56 @@ func (tc *TicketController) CancelTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
+func (tc *TicketController) GuestCancelTicket(c *gin.Context) {
+	//
+	ugkthid := c.Param("ugkthid")
+	if ugkthid == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing user ID"})
+		return
+	}
+
+	requestToken := c.Query("request_token")
+	if requestToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing request token"})
+		return
+	}
+
+	var user models.User
+	if err := tc.DB.Preload("Tickets").Where("ug_kth_id = ? AND request_token = ?", ugkthid, requestToken).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	guestTicket := user.Tickets[0]
+
+	ticketIDstring := c.Param("ticketID")
+
+	ticketID, err := strconv.Atoi(ticketIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if guestTicket.ID != uint(ticketID) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid ticket ID"})
+		return
+	}
+
+	errResponse := tc.Service.CancelTicket(ugkthid, ticketID)
+	if errResponse != nil {
+		c.JSON(errResponse.StatusCode, gin.H{"error": errResponse.Message})
+		return
+	}
+
+	// Delete the user
+	if err := tc.DB.Delete(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+
 type QrCodeCheckInRequest struct {
 	QrCode string `json:"qr_code"`
 }

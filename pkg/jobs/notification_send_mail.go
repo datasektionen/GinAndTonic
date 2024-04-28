@@ -83,7 +83,7 @@ func SendEmail(user *models.User, subject, content string, db *gorm.DB) error {
 	if os.Getenv("ENV") == "dev" {
 		to = os.Getenv("SPAM_TEST_EMAIL")
 	} else {
-		to = user.GetUserEmail(db)
+		to = user.Email
 	}
 
 	data := MailData{

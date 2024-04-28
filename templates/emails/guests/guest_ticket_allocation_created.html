@@ -1,0 +1,69 @@
+<style>
+  .btn {
+    background: #e83d84;
+    -webkit-border-radius: 28;
+    -moz-border-radius: 28;
+    border-radius: 28px;
+    color: black;
+    font-size: 20px;
+    padding: 10px 20px 10px 20px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .btn:hover {
+    background: #e83d84;
+    text-decoration: none;
+  }
+</style>
+
+<div style="font-family: Verdana, sans-serif; padding: 10px; color: #303030">
+  <h1 style="font-size: 24px; color: #272727">Hey, {{ .FullName }}!</h1>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    We're glad to inform you that you've received a ticket to
+    <strong>{{ .EventName }}!</strong> <br />
+  </p>
+
+  <button class="btn">
+    <a
+      style="text-decoration: none; color: inherit"
+      href="{{ .TicketURL }}"
+      style="color: #00494e"
+      >View ticket</a
+    >
+  </button>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    Then, click the "Pay" button. A popup will appear where you pay for your
+    ticket.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    <strong> {{ .OrganizationName }} </strong> would appreciate it if you could
+    pay for your ticket as soon as possible. {{ if .PayBefore }} You therefore
+    have to pay your ticket before <strong>{{ .PayBefore }} CET</strong> (or
+    CEST in the summer). If you do not pay for your ticket before this date and
+    time, your ticket will be given to a reserve. {{ else }} You have to pay for
+    the ticket before the event. {{ end }}
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you no longer wish to attend the event select the
+    <strong> "I no longer wish to attend" </strong>.
+  </p>
+
+  <p style="font-size: 16px; line-height: 1.5">
+    If you have any questions, please contact us at
+    <a
+      style="color: #00494e"
+      href="mailto:{{ .OrganizationEmail }}?subject=Questions about {{ .EventName }}"
+      >{{ .OrganizationEmail }}</a
+    >
+  </p>
+  <br />
+
+  <p style="font-size: 14px; line-height: 1.5">
+    Kind regards,<br /><strong>tessera</strong>
+  </p>
+</div>

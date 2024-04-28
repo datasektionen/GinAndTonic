@@ -146,17 +146,30 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, authorizedEvents)
 }
 
-// GetEvent handles retrieving an event by ID
 func (ec *EventController) GetEvent(c *gin.Context) {
+	_, ugkthid_exists := c.Get("ugkthid")
+
+	if ugkthid_exists {
+		ec.UserGetEvent(c)
+	} else {
+		ec.CustomerGetEvent(c)
+	}
+
+	return
+}
+
+func (ec *EventController) UserGetEvent(c *gin.Context) {
 	var event models.Event
 	var user models.User
 
-	id := c.Param("eventID")
+	eventID := c.Param("eventID")
 	ugkthid, _ := c.Get("ugkthid")
 
-	if err := ec.DB.Where("ug_kth_id = ?", ugkthid.(string)).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
+	if ugkthid != nil {
+		if err := ec.DB.Where("ug_kth_id = ?", ugkthid.(string)).First(&user).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+			return
+		}
 	}
 
 	err := ec.DB.
@@ -169,7 +182,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		Preload("TicketReleases.PaymentDeadline").
 		Preload("FormFields").
 		Preload("TicketReleases.AddOns").
-		First(&event, id).Error
+		Find(&event, eventID).Error
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -180,7 +193,7 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	authorized := false
 
 	if event.IsPrivate {
-		if user.IsSuperAdmin() {
+		if user.UGKthID != "" && user.IsSuperAdmin() {
 			authorized = true
 		} else {
 			var err error
@@ -233,6 +246,86 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 		} else {
 			if ticketRelease.UserHasAccessToTicketRelease(ec.DB, user.UGKthID) {
 				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+			}
+		}
+	}
+
+	event.TicketReleases = ticketReleasesFiltered
+
+	c.JSON(http.StatusOK, gin.H{"event": event, "timestamp": time.Now().Unix()})
+}
+
+// GetEvent handles retrieving an event by ID
+func (ec *EventController) CustomerGetEvent(c *gin.Context) {
+	var event models.Event
+
+	refID := c.Param("refID")
+	promoCodes := c.QueryArray("promo_codes")
+
+	err := ec.DB.
+		Preload("Organization").
+		Preload("TicketReleases").
+		Preload("TicketReleases.TicketTypes").
+		Preload("TicketReleases.ReservedUsers").
+		Preload("TicketReleases.Event").
+		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketReleases.PaymentDeadline").
+		Preload("FormFields").
+		Preload("TicketReleases.AddOns").
+		Where("reference_id = ?", refID).
+		First(&event).Error
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if the event is private
+	authorized := false
+
+	if event.IsPrivate {
+		secretToken := c.Query("secret_token")
+		if secretToken == "" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+			return
+		}
+
+		// Check the secret token
+		if secretToken == event.SecretToken {
+			authorized = true
+		}
+	} else {
+		authorized = true
+	}
+
+	if !authorized {
+		c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+		return
+	}
+
+	// Remove duplicates from the promoCodes array
+	promoCodes = utils.RemoveDuplicates(promoCodes)
+
+	// Remove ticket releases that have the property IsReserved set to true
+	var ticketReleasesFiltered []models.TicketRelease = []models.TicketRelease{}
+
+	for _, ticketRelease := range event.TicketReleases {
+		if !ticketRelease.IsReserved {
+			ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+		} else {
+			// Check if any of the promo codes matches
+			if ticketRelease.HasPromoCode() {
+				for _, promoCode := range promoCodes {
+					decryptedPromoCode, err := utils.DecryptString(*ticketRelease.PromoCode)
+
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrypting the promo code"})
+						return
+					}
+
+					if promoCode == decryptedPromoCode {
+						ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+					}
+				}
 			}
 		}
 	}

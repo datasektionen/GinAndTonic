@@ -36,6 +36,14 @@ type EmailTicketRequestConfirmation struct {
 	OrganizationEmail string
 }
 
+type EmailGuestTicketRequestConfirmation struct {
+	FullName          string
+	EventName         string
+	TicketsHTML       template.HTML
+	TicketRequestURL  string
+	OrganizationEmail string
+}
+
 // Associated with ticket_payment_confirmation
 type EmailTicketPaymentConfirmation struct {
 	FullName          string
@@ -125,10 +133,6 @@ type EmailPasswordReset struct {
 type EmailEventSendOut struct {
 	Message          template.HTML
 	OrganizationName string
-}
-
-type EmailRequestChangePreferredEmail struct {
-	VerificationLink string
 }
 
 type EmailUpdatePaymentDeadline struct {

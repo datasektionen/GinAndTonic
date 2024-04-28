@@ -7,18 +7,27 @@ import (
 
 	"net/http"
 
+	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
 
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
-func GenerateToken(ugkthid string, role string) (string, error) {
-	expirationTime := time.Now().Add(7 * time.Hour * 24)
-	claims := &jwt.RegisteredClaims{
-		Subject:   ugkthid,
-		ExpiresAt: jwt.NewNumericDate(expirationTime),
-		ID:        role,
+type Claims struct {
+	UGKTHID string        `json:"ugkthid"`
+	Roles   []models.Role `json:"roles"`
+	jwt.RegisteredClaims
+}
+
+func GenerateToken(ugkthid string, roles []models.Role) (string, error) {
+	expirationTime := time.Now().Add(7 * 24 * time.Hour)
+	claims := &Claims{
+		UGKTHID: ugkthid,
+		Roles:   roles,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtKey)
@@ -28,12 +37,19 @@ func GenerateToken(ugkthid string, role string) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateTokenMiddleware() gin.HandlerFunc {
+func ValidateTokenMiddleware(
+	failOnError bool,
+) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Print cookie
 		cookie, err := c.Request.Cookie("auth_token")
 		// View cookie error
 		if err != nil {
+
+			if !failOnError {
+				c.Next()
+				return
+			}
 			fmt.Println("Error getting cookie:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
@@ -44,13 +60,18 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 		tokenString := cookie.Value
 
 		if tokenString == "" {
+			if !failOnError {
+				c.Next()
+				return
+			}
+
 			fmt.Println("Error getting cookie:", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
 			return
 		}
 
-		token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 			return jwtKey, nil
 		})
 
@@ -60,9 +81,9 @@ func ValidateTokenMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		claims, _ := token.Claims.(*jwt.RegisteredClaims)
-		c.Set("ugkthid", claims.Subject)
-		c.Set("role", claims.ID)
+		claims, _ := token.Claims.(*Claims)
+		c.Set("ugkthid", claims.UGKTHID)
+		c.Set("roles", claims.Roles)
 
 		c.Next()
 	}

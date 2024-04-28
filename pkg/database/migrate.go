@@ -8,11 +8,16 @@ import (
 
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
+		&models.PackageTier{},
+		&models.PricingPackage{},
+		&models.FeatureLimit{},
+		&models.Feature{},
+		&models.Network{},
+		&models.NetworkRole{},
 		&models.Organization{},
 		&models.TicketReleaseMethod{},
 		&models.TicketReleaseMethodDetail{},
 		&models.TicketRelease{},
-		&models.PreferredEmail{},
 		&models.User{},
 		&models.UserFoodPreference{},
 		&models.EventFormField{},

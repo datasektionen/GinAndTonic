@@ -66,26 +66,66 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		Preload("Transaction").
 		Where("id = ? AND user_ug_kth_id = ?", ticketId, ugkthid).First(&ticket).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	pc.HandleCreate(&ticket, c)
+}
+
+func (pc *PaymentController) GuestCreatePaymentIntent(c *gin.Context) {
+	ugkthid := c.Param("ugkthid")
+
+	ticketIdString := c.Param("ticketID")
+	ticketId, err := strconv.Atoi(ticketIdString)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	request_token := c.Query("request_token")
+	if request_token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing request_token"})
+		return
+	}
+
+	var user models.User
+	if err := pc.DB.Where("ug_kth_id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+		return
+	}
+
+	var ticket models.Ticket
+	if err := pc.DB.
+		Preload("TicketRequest.TicketType").
+		Preload("TicketRequest.User").
+		Preload("TicketRequest.TicketRelease.Event").
+		Preload("TicketRequest.TicketRelease.PaymentDeadline").
+		Preload("TicketAddOns.AddOn").
+		Preload("Transaction").
+		Where("id = ? AND user_ug_kth_id = ?", ticketId, user.UGKthID).First(&ticket).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	pc.HandleCreate(&ticket, c)
+}
+
+func (pc *PaymentController) HandleCreate(ticket *models.Ticket, c *gin.Context) error {
 	// Check if the ticket can be paid for
 	if ticket.IsPaid {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket is already paid for"})
-		return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket has already been paid for"})
+		return errors.New("Ticket has already been paid for")
 	}
 
 	// Check the due date for when the ticket needs to be paid
 	if ticket.PaymentDeadline != nil {
 		if time.Now().After(*ticket.PaymentDeadline) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Payment window has expired"})
-			return
+			return errors.New("Payment window has expired")
 		}
 	} else {
 		// Check if time is after event start
 		if time.Now().After(ticket.TicketRequest.TicketRelease.Event.Date) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Event has already started"})
-			return
+			return errors.New("Event has already started")
 		}
 	}
 
@@ -98,7 +138,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 			pi, err := paymentintent.Get(ticket.Transaction.PaymentIntentID, nil)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
+				return err
 			}
 			paymentIntent = pi
 		}
@@ -107,7 +147,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	if paymentIntent != nil && paymentIntent.Status != stripe.PaymentIntentStatusSucceeded {
 		// PaymentIntent exists and is not completed, return the existing client secret.
 		c.JSON(http.StatusOK, gin.H{"client_secret": paymentIntent.ClientSecret})
-		return
+		return nil
 	}
 
 	user := ticket.TicketRequest.User
@@ -150,13 +190,13 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		newCust, err := customer.New(newCustomerParams)
 		if err != nil {
 			fmt.Println("Customer creation failed:", err)
-			return
+			return err
 		}
 		cust = newCust
 	}
 
 	metadata := map[string]string{
-		"tessera_ticket_id":       strconv.Itoa(ticketId),
+		"tessera_ticket_id":       strconv.Itoa(int(ticket.ID)),
 		"tessera_event_id":        strconv.Itoa(ticket.TicketRequest.TicketRelease.EventID),
 		"tessera_event_date":      ticket.TicketRequest.TicketRelease.Event.Date.Format("2006-01-02"),
 		"tessera_ticket_type_id":  strconv.Itoa(int(ticket.TicketRequest.TicketTypeID)),
@@ -184,7 +224,7 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 			ticket.TicketRequest.TicketType.Name)),
 	}
 
-	idempotencyKey := fmt.Sprintf("payment-intent-%d-%s-%s", ticketId, ugkthid, ticket.TicketRequest.TicketRelease.Event.Name)
+	idempotencyKey := fmt.Sprintf("payment-intent-%d-%s-%s", ticket.ID, ticket.TicketRequest.UserUGKthID, ticket.TicketRequest.TicketRelease.Event.Name)
 	params.IdempotencyKey = stripe.String(idempotencyKey)
 
 	// pi, err := paymentintent.New(params)
@@ -194,12 +234,13 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 	// }
 
 	var pi *stripe.PaymentIntent
-	pi, err = paymentintent.Get(idempotencyKey, params)
+	pi, err := paymentintent.Get(idempotencyKey, params)
 	if err == nil && pi != nil {
 		// Found an existing PaymentIntent with this idempotency key
 		if pi.Status != stripe.PaymentIntentStatusSucceeded {
 			// PaymentIntent is not succeeded, return the existing client secret
 			c.JSON(http.StatusOK, gin.H{"client_secret": paymentIntent.ClientSecret})
+			return nil
 		}
 		// If the PaymentIntent is succeeded, you may want to generate a new idempotency key and create a new PaymentIntent
 	} else {
@@ -209,11 +250,12 @@ func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
 		pi, err = paymentintent.New(params)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+			return err
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"client_secret": pi.ClientSecret})
+	return nil
 }
 
 // Payment webhook

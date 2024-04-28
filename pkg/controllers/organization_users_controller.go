@@ -125,7 +125,7 @@ func (ouc *OrganisationUsersController) parseParams(c *gin.Context) (string, uin
 }
 
 // check that checking user is not the same as the user being checked
-func (ouc *OrganisationUsersController) checkUserNotSelf(c *gin.Context, username string) error {
+func (ouc *OrganisationUsersController) checkUserNotSelf(c *gin.Context, email string) error {
 	ugkthid, exists := c.Get("ugkthid")
 	if !exists {
 		return fmt.Errorf("User not authenticated")
@@ -136,7 +136,7 @@ func (ouc *OrganisationUsersController) checkUserNotSelf(c *gin.Context, usernam
 		return err
 	}
 
-	if user.Username == username {
+	if user.Email == email {
 		return fmt.Errorf("Cannot change your own role")
 	}
 

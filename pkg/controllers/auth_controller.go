@@ -173,7 +173,7 @@ func LoginComplete(c *gin.Context) {
 		user, err = models.GetUserByUGKthIDIfExist(db, body.UGKthID)
 		if err == nil {
 			// User exists
-			tokenString, err := authentication.GenerateToken(body.UGKthID, user.Role.Name)
+			tokenString, err := authentication.GenerateToken(body.UGKthID, user.Roles)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -189,11 +189,11 @@ func LoginComplete(c *gin.Context) {
 
 		// User does not exist
 
-		var role models.Role
+		var roles []models.Role
 		if body.Emails == "turetek@kth.se" || body.Emails == "dow@kth.se" { // Given super_admin role
-			role, err = models.GetRole(db, "super_admin")
+			roles = append(roles, models.Role{Name: models.RoleSuperAdmin})
 		} else {
-			role, err = models.GetRole(db, "user")
+			roles = append(roles, models.Role{Name: models.RoleCustomer})
 		}
 
 		if err != nil {
@@ -204,17 +204,15 @@ func LoginComplete(c *gin.Context) {
 		}
 
 		user = models.User{
-			Username:      body.User,
 			FirstName:     body.FirstName,
 			LastName:      body.LastName,
 			Email:         body.Emails,
 			UGKthID:       body.UGKthID,
-			RoleID:        role.ID,
-			Role:          role,
+			Roles:         roles,
 			VerifiedEmail: true,
 		}
 
-		tokenString, err := authentication.GenerateToken(body.UGKthID, user.Role.Name)
+		tokenString, err := authentication.GenerateToken(body.UGKthID, user.Roles)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -294,7 +292,7 @@ func LoginCompletePostman(c *gin.Context) {
 		user, err = models.GetUserByUGKthIDIfExist(db, body.UGKthID)
 		if err == nil {
 			// User exists
-			tokenString, err := authentication.GenerateToken(body.UGKthID, user.Role.Name)
+			tokenString, err := authentication.GenerateToken(body.UGKthID, user.Roles)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -310,12 +308,12 @@ func LoginCompletePostman(c *gin.Context) {
 			return
 		}
 
-		var role models.Role
+		var roles []models.Role
 		if body.Emails == "turetek@kth.se" || body.Emails == "dow@kth.se" {
 			// Given super_admin role
-			role, err = models.GetRole(db, "super_admin")
+			roles = append(roles, models.Role{Name: models.RoleSuperAdmin})
 		} else {
-			role, err = models.GetRole(db, "user")
+			roles = append(roles, models.Role{Name: models.RoleCustomer})
 		}
 
 		if err != nil {
@@ -326,17 +324,15 @@ func LoginCompletePostman(c *gin.Context) {
 		}
 
 		user = models.User{
-			Username:      body.User,
 			FirstName:     body.FirstName,
 			LastName:      body.LastName,
 			Email:         body.Emails,
 			UGKthID:       body.UGKthID,
-			RoleID:        role.ID,
-			Role:          role,
+			Roles:         roles,
 			VerifiedEmail: true,
 		}
 
-		tokenString, err := authentication.GenerateToken(body.UGKthID, user.Role.Name)
+		tokenString, err := authentication.GenerateToken(body.UGKthID, user.Roles)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
@@ -17,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
 
@@ -53,7 +55,16 @@ func setupAsynqMon() *asynqmon.HTTPHandler {
 
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
-	config := cors.DefaultConfig()
+	// config := cors.DefaultConfig()
+
+	config := cors.Config{
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Range"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Accept", "Authorization", "Range"},
+		AllowCredentials: false,
+		MaxAge:           12 * time.Hour,
+	}
+
 	if os.Getenv("ENV") == "dev" {
 		config.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080"}
 	} else if os.Getenv("ENV") == "prod" {
@@ -74,14 +85,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/postman-login", controllers.LoginPostman)
 	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)
 
-	externalAuthService := services.NewExternalAuthService(db)
-	externalAuthController := controllers.NewExternalAuthController(db, externalAuthService)
+	customerAuthService := services.NewCustomerAuthService(db)
+	customerAuthController := controllers.NewCustomerAuthController(db, customerAuthService)
 	passwordResetController := controllers.NewUserPasswordResetController(db)
 
-	r.POST("/external/signup", externalAuthController.SignupExternalUser)
-	r.POST("/external/login", externalAuthController.LoginExternalUser)
-	r.POST("/external/verify-email", externalAuthController.VerifyEmail)
-	r.POST("/external/resend-verification-email", externalAuthController.ResendVerificationEmail)
+	r.POST("/customer/signup", customerAuthController.SignupCustomerUser)
+	r.POST("/customer/login", customerAuthController.LoginCustomerUser)
+	r.POST("/customer/verify-email", customerAuthController.VerifyEmail)
+	r.POST("/customer/resend-verification-email", customerAuthController.ResendVerificationEmail)
 
 	// Password reset
 	r.POST("/password-reset", passwordResetController.CreatePasswordReset)
@@ -89,8 +100,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.GET("/login", controllers.Login)
 	r.GET("/login-complete/:token", controllers.LoginComplete)
-	r.GET("/current-user", authentication.ValidateTokenMiddleware(), controllers.CurrentUser)
-	r.GET("/logout", authentication.ValidateTokenMiddleware(), controllers.Logout)
+	r.GET("/current-user", authentication.ValidateTokenMiddleware(true), controllers.CurrentUser)
+	r.GET("/logout", authentication.ValidateTokenMiddleware(true), controllers.Logout)
 
 	eventController := controllers.NewEventController(db)
 
@@ -100,7 +111,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	sendOutService := services.NewSendOutService(db)
 	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
-	preferredEmailService := services.NewPreferredEmailService(db)
 	bankingService := banking_service.NewBankingService(db)
 
 	organizationController := controllers.NewOrganizationController(db, organizationService)
@@ -120,34 +130,54 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
 	sendOutcontroller := controllers.NewSendOutController(db, sendOutService)
 	salesReportController := controllers.NewSalesReportController(db)
-	preferredEmailController := controllers.NewPreferredEmailController(db, preferredEmailService)
 	eventFormFieldController := controllers.NewEventFormFieldController(db)
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
 	addOnController := controllers.NewAddOnController(db)
 	eventSiteVistsController := controllers.NewSitVisitsController(db)
 	bankingController := controllers.NewBankingController(bankingService)
+	guestController := controllers.NewGuestController(db)
 
+	var rlm *RateLimiterMiddleware
+	var rlmURLParam *RateLimiterMiddleware
+	if os.Getenv("ENV") == "dev" {
+		// For development, we dont really care about the rate limit
+		rlm = NewRateLimiterMiddleware(2, 5)
+		rlmURLParam = NewRateLimiterMiddleware(2, 5)
+	} else {
+		rlm = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)
+		rlmURLParam = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)
+	}
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
-	r.POST("/preferred-email/verify", preferredEmailController.Verify)
+	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
 
-	r.Use(authentication.ValidateTokenMiddleware())
+	r.GET("/guest-customer/:ugkthid/activate-promo-code/:eventID", ticketReleasePromoCodeController.GuestCreate)
+	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
+	r.GET("/guest-customer/:ugkthid", guestController.Get)
+	r.DELETE("/guest-customer/:ugkthid/ticket-requests/:ticketRequestID", ticketRequestController.GuestCancelTicketRequest)
+	r.DELETE("/guest-customer/:ugkthid/my-tickets/:ticketID", ticketsController.GuestCancelTicket)
+	r.PUT("/guest-customer/:ugkthid/events/:eventID/ticket-requests/:ticketRequestID/form-fields", eventFromFieldResponseController.GuestUpsert)
+	r.GET("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestGet)
+	r.PUT("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestUpdate)
+	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlmURLParam.MiddlewareFuncURLParam(), ticketRequestController.GuestCreate)
+
+	r.Use(authentication.ValidateTokenMiddleware(true))
 	r.Use(middleware.UserLoader(db))
 
 	synqMonHandler := setupAsynqMon()
-	r.Any("/admin/monitoring/*any", authentication.RequireRole("super_admin", db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
+	r.Any("/admin/monitoring/*any", authentication.RequireRole(models.RoleSuperAdmin, db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
 
 	//Event routes
 	r.POST("/events", eventController.CreateEvent)
 	r.GET("/events", eventController.ListEvents)
 	r.GET("/events/:eventID", middleware.UpdateSiteVisits(db), eventController.GetEvent)
-	r.GET("/events/:eventID/manage", authentication.ValidateTokenMiddleware(),
+	r.GET("/events/:eventID/manage",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember), gin.HandlerFunc(func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "User has access to this event"})
 		}))
 
-	r.GET("/test", authentication.RequireRole("super_admin", db), func(c *gin.Context) {
+	r.GET("/test", authentication.RequireRole(models.RoleSuperAdmin, db), func(c *gin.Context) {
 		jobs.StartEventSiteVisitsJob(db)
 		c.JSON(http.StatusOK, gin.H{"message": "Job started"})
 	})
@@ -221,8 +251,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		allocateTicketsController.SelectivelyAllocateTicketRequest)
 
-	rlm := NewRateLimiterMiddleware(2, 5) // For example, 1 request per second with a burst of 5
-
 	// Ticket request event routes
 	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)
 	r.POST("/events/:eventID/ticket-requests", rlm.MiddlewareFunc(), ticketRequestController.Create)
@@ -254,7 +282,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.GenerateSalesReport)
 	r.GET("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.ListSalesReport)
 
-	r.POST("/organizations", authentication.RequireRole("super_admin", db), organizationController.CreateOrganization)
+	r.POST("/organizations", authentication.RequireRole(models.RoleSuperAdmin, db), organizationController.CreateOrganization)
 	r.GET("/organizations", organizationController.ListOrganizations)
 	r.GET("my-organizations", organizationController.ListMyOrganizations)
 	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.GetOrganization)
@@ -270,13 +298,13 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket Release Methods routes
 	r.GET("/ticket-release-methods", ticketReleaseMethodsController.ListTicketReleaseMethods)
-	r.POST("/ticket-release-methods", authentication.RequireRole("super_admin", db), ticketReleaseMethodsController.CreateTicketReleaseMethod)
+	r.POST("/ticket-release-methods", authentication.RequireRole(models.RoleSuperAdmin, db), ticketReleaseMethodsController.CreateTicketReleaseMethod)
 
 	// Ticket Types routes
 	r.GET("/ticket-types",
-		authentication.RequireRole("super_admin", db),
+		authentication.RequireRole(models.RoleSuperAdmin, db),
 		ticketTypeController.ListAllTicketTypes)
-	r.POST("/ticket-types", authentication.RequireRole("super_admin", db),
+	r.POST("/ticket-types", authentication.RequireRole(models.RoleSuperAdmin, db),
 		ticketTypeController.CreateTicketTypes)
 
 	// User Food Preference routes
@@ -284,16 +312,16 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
 	r.GET("/food-preferences", userFoodPreferenceController.ListFoodPreferences)
 
-	r.POST("/admin/create-user", authentication.RequireRole("super_admin", db), userController.CreateUser)
+	r.POST("/admin/create-user", authentication.RequireRole(models.RoleSuperAdmin, db), userController.CreateUser)
 
 	// Banking details
 	r.GET("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationMember), bankingController.GetBankingDetails)
 	r.POST("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.SubmitBankingDetails)
 	r.DELETE("/organizations/:organizationID/banking-details", middleware.AuthorizeOrganizationRole(db, models.OrganizationOwner), bankingController.DeleteBankingDetails)
 
-	// Preferred email
-	r.POST("/preferred-email/request", preferredEmailController.Request)
+	r.POST("send-test-email", authentication.RequireRole(models.RoleSuperAdmin, db), notificationController.SendTestEmail)
 
-	r.POST("send-test-email", authentication.RequireRole("super_admin", db), notificationController.SendTestEmail)
+	r = AdminRoutes(r, db)
+
 	return r
 }

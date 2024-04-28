@@ -15,6 +15,8 @@
     profile. <a style="color: #00494e" href="{{ .TicketURL }}">Click here</a> to
     view your ticket. This is also where you pay for your ticket.
   </p>
+
+  {{ if .TicketPrice }}
   <p style="font-size: 16px; line-height: 1.5">
     Go to the "My Tickets" section, select the ticket you want to pay for and
     click the "Pay" button. A popup will appear where you pay for your ticket.
@@ -34,6 +36,19 @@
     <strong> "I no longer wish to attend" </strong> in the "My Tickets" section
     of your profile.
   </p>
+
+  {{ else }}
+  <p style="font-size: 16px; line-height: 1.5">
+    <strong> {{ .OrganizationName }} </strong> would appreciate it if you could
+    confirm your attendance as soon as possible. Please let us know if you can
+    attend the event by contacting us at
+    <a
+      style="color: #00494e"
+      href="mailto:{{ .OrganizationEmail }}?subject=Attendance to {{ .EventName }}"
+      >{{ .OrganizationEmail }}</a
+    >
+  </p>
+  {{ end }}
 
   <p style="font-size: 16px; line-height: 1.5">
     If you have any questions, please contact us at

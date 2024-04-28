@@ -15,6 +15,7 @@ type EmailTicketAllocationCreated struct {
 	OrganizationName  string
 	OrganizationEmail string
 	PayBefore         string
+	TicketPrice       *string
 }
 
 // Associated with ticket_reserve_created

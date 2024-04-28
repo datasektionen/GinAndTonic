@@ -68,6 +68,7 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *
 	var ticket models.Ticket
 	err := db.
 		Preload("TicketRequest.User").
+		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.TicketRelease.Event.Organization").First(&ticket, ticketId).Error
 	if err != nil {
 		return err
@@ -86,6 +87,12 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *
 		payBeforeString = paymentDeadline.Format("2006-01-02 15:04:05")
 	}
 
+	var ticketPrice *string
+	if ticket.TicketRequest.TicketType.Price != 0 {
+		ticketPriceString := fmt.Sprintf("%.2f", math.Round(100*ticket.TicketRequest.TicketType.Price)/100)
+		ticketPrice = &ticketPriceString
+	}
+
 	data := types.EmailTicketAllocationCreated{
 		FullName:          user.FullName(),
 		EventName:         event.Name,
@@ -93,6 +100,7 @@ func Notify_TicketAllocationCreated(db *gorm.DB, ticketId int, paymentDeadline *
 		OrganizationName:  event.Organization.Name,
 		OrganizationEmail: event.Organization.Email,
 		PayBefore:         payBeforeString,
+		TicketPrice:       ticketPrice,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_allocation_created.html", data)

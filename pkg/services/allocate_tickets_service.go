@@ -307,10 +307,24 @@ func (ats *AllocateTicketsService) SelectivelyAllocateTicketRequest(ticketReques
 	var ticketRequest models.TicketRequest
 	err := tx.Preload("User").
 		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketRelease.Event").
 		Where("id = ?", ticketRequestID).First(&ticketRequest).Error
 
 	if err != nil {
 		return err
+	}
+
+	if ticketRequest.TicketRelease.PaymentDeadline == nil {
+		// Set deadline to event start time
+		ticketRequest.TicketRelease.PaymentDeadline = &models.TicketReleasePaymentDeadline{
+			TicketReleaseID:        ticketRequest.TicketReleaseID,
+			OriginalDeadline:       ticketRequest.TicketRelease.Event.Date,
+			ReservePaymentDuration: nil,
+		}
+
+		if err := tx.Create(ticketRequest.TicketRelease.PaymentDeadline).Error; err != nil {
+			return err
+		}
 	}
 
 	if ticketRequest.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod.MethodName != string(models.SELECTIVE) {
@@ -329,7 +343,7 @@ func (ats *AllocateTicketsService) SelectivelyAllocateTicketRequest(ticketReques
 		return err
 	}
 
-	err = Notify_TicketAllocationCreated(tx, int(ticket.ID), nil)
+	err = Notify_TicketAllocationCreated(tx, int(ticket.ID), &ticketRequest.TicketRelease.PaymentDeadline.OriginalDeadline)
 
 	if err != nil {
 		return err

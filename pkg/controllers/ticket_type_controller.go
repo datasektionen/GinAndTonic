@@ -167,9 +167,16 @@ func (ttc *TicketTypeController) UpdateEventTicketTypes(c *gin.Context) {
 			continue
 		}
 
+		updateData := map[string]interface{}{
+			"price":       ticketType.Price,
+			"name":        ticketType.Name,
+			"description": ticketType.Description,
+		}
+
 		// Try to update the ticket type
-		if err := tx.Where("event_id = ? AND ticket_release_id = ? AND id = ?", eventID, ticketReleaseID, ticketType.ID).Updates(&ticketType).Error; err != nil {
-			// If the ticket type doesn't exist, create it
+		if err := tx.Model(&ticketType).
+			Where("event_id = ? AND ticket_release_id = ? AND id = ?", eventID, ticketReleaseID, ticketType.ID).
+			Updates(updateData).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

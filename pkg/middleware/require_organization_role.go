@@ -13,7 +13,7 @@ func AuthorizeOrganizationRole(db *gorm.DB, rr models.OrgRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var requiredRole models.OrganizationRole
 		// Obtain the user ID and organization ID from the context or request parameters
-		UGKthID := c.MustGet("ugkthid").(string)
+		UGKthID := c.MustGet("user_id").(string)
 		organizationID, _ := strconv.Atoi(c.Param("organizationID"))
 
 		// Check the user's role within the organization

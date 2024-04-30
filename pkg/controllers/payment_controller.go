@@ -46,7 +46,7 @@ func NewPaymentController(db *gorm.DB) *PaymentController {
 }
 
 func (pc *PaymentController) CreatePaymentIntent(c *gin.Context) {
-	ugkthid := c.MustGet("ugkthid").(string)
+	ugkthid := c.MustGet("user_id").(string)
 
 	ticketIdString := c.Param("ticketID")
 	ticketId, err := strconv.Atoi(ticketIdString)
@@ -88,7 +88,7 @@ func (pc *PaymentController) GuestCreatePaymentIntent(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := pc.DB.Where("ug_kth_id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
+	if err := pc.DB.Where("id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return
 	}

@@ -138,7 +138,7 @@ func (ps *PaymentService) ProcessEvent(
 
 		userID := paymentIntent.Metadata["tessera_user_id"]
 		var user models.User
-		if err := ps.DB.Where("ug_kth_id = ?", userID).First(&user).Error; err != nil {
+		if err := ps.DB.Where("id = ?", userID).First(&user).Error; err != nil {
 			return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: fmt.Sprintf("Error finding user: %v", err.Error())}
 		}
 

@@ -64,7 +64,7 @@ func (tr *TicketRelease) UserHasAccessToTicketRelease(DB *gorm.DB, id string) bo
 
 	var user User
 	if err := DB.
-		Preload("Organizations").Where("ug_kth_id = ?", id).First(&user).Error; err != nil {
+		Preload("Organizations").Where("id = ?", id).First(&user).Error; err != nil {
 		return false
 	}
 

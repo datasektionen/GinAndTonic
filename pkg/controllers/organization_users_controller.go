@@ -126,7 +126,7 @@ func (ouc *OrganisationUsersController) parseParams(c *gin.Context) (string, uin
 
 // check that checking user is not the same as the user being checked
 func (ouc *OrganisationUsersController) checkUserNotSelf(c *gin.Context, email string) error {
-	ugkthid, exists := c.Get("ugkthid")
+	ugkthid, exists := c.Get("user_id")
 	if !exists {
 		return fmt.Errorf("User not authenticated")
 	}

@@ -23,7 +23,7 @@ func NewTicketRequestController(db *gorm.DB) *TicketRequestController {
 }
 
 func (trc *TicketRequestController) UsersList(c *gin.Context) {
-	UGKthId, exists := c.Get("ugkthid")
+	UGKthId, exists := c.Get("user_id")
 	if !exists {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing user ID"})
 		return
@@ -62,7 +62,7 @@ func (trc *TicketRequestController) Create(c *gin.Context) {
 	var request TicketRequestCreateRequest
 	var ticketRequestsIds []int
 
-	UGKthID, _ := c.Get("ugkthid")
+	UGKthID, _ := c.Get("user_id")
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -115,7 +115,7 @@ func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
 
 	// Get the ueer base on the RequestToken
 	var user models.User
-	if err := trc.Service.DB.Where("ug_kth_id = ? AND request_token = ?", userUGKTHId, request.RequestToken).First(&user).Error; err != nil {
+	if err := trc.Service.DB.Where("id = ? AND request_token = ?", userUGKTHId, request.RequestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
 		return
 	}
@@ -156,7 +156,7 @@ func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
 }
 
 func (trc *TicketRequestController) Get(c *gin.Context) {
-	UGKthID, _ := c.Get("ugkthid")
+	UGKthID, _ := c.Get("user_id")
 	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthID.(string), nil)
 
 	if err != nil {
@@ -202,7 +202,7 @@ func (trc *TicketRequestController) GuestCancelTicketRequest(c *gin.Context) {
 	var user models.User
 	if err := trc.Service.DB.
 		Preload("TicketRequests").
-		Where("ug_kth_id = ? AND request_token = ?", ugkthid, requestToken).First(&user).Error; err != nil {
+		Where("id = ? AND request_token = ?", ugkthid, requestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
 		return
 	}

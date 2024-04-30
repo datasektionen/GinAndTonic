@@ -15,12 +15,12 @@ import (
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
 type Claims struct {
-	UGKTHID string   `json:"ugkthid"`
-	Roles   []string `json:"roles"`
+	UserID string   `json:"user_id"`
+	Roles  []string `json:"roles"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(ugkthid string, roles []models.Role) (string, error) {
+func GenerateToken(user_id string, roles []models.Role) (string, error) {
 	expirationTime := time.Now().Add(7 * 24 * time.Hour)
 
 	roleNames := make([]string, len(roles))
@@ -29,8 +29,8 @@ func GenerateToken(ugkthid string, roles []models.Role) (string, error) {
 	}
 
 	claims := &Claims{
-		UGKTHID: ugkthid,
-		Roles:   roleNames,
+		UserID: user_id,
+		Roles:  roleNames,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -89,7 +89,9 @@ func ValidateTokenMiddleware(
 
 		claims, _ := token.Claims.(*Claims)
 
-		c.Set("ugkthid", claims.UGKTHID)
+		fmt.Println(claims)
+
+		c.Set("user_id", claims.UserID)
 		c.Set("roles", claims.Roles)
 
 		c.Next()

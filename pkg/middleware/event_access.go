@@ -11,7 +11,7 @@ import (
 
 func AuthorizeEventAccess(db *gorm.DB, requiredRole models.OrgRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ugkthid, exists := c.Get("ugkthid")
+		ugkthid, exists := c.Get("user_id")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			c.Abort()

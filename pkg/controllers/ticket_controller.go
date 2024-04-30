@@ -94,7 +94,7 @@ func (tc *TicketController) UpdateTicket(c *gin.Context) {
 func (tc *TicketController) UsersList(c *gin.Context) {
 	// Find all ticket requests for the user
 
-	UGKthId, _ := c.Get("ugkthid")
+	UGKthId, _ := c.Get("user_id")
 
 	ticketRequests, err := tc.Service.GetTicketForUser(UGKthId.(string))
 
@@ -108,7 +108,7 @@ func (tc *TicketController) UsersList(c *gin.Context) {
 
 func (tc *TicketController) CancelTicket(c *gin.Context) {
 	//
-	UGKthId, _ := c.Get("ugkthid")
+	UGKthId, _ := c.Get("user_id")
 	ticketIDstring := c.Param("ticketID")
 
 	ticketID, err := strconv.Atoi(ticketIDstring)
@@ -141,7 +141,7 @@ func (tc *TicketController) GuestCancelTicket(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := tc.DB.Preload("Tickets").Where("ug_kth_id = ? AND request_token = ?", ugkthid, requestToken).First(&user).Error; err != nil {
+	if err := tc.DB.Preload("Tickets").Where("id = ? AND request_token = ?", ugkthid, requestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}

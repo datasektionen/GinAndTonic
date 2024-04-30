@@ -56,7 +56,7 @@ func CheckEmailNotInUse(db *gorm.DB, email string) *ErrorResponse {
 
 func CheckUGKthIDNotInUse(db *gorm.DB, UGKthID string) *ErrorResponse {
 	var user models.User
-	if err := db.Where("ug_kth_id = ?", UGKthID).First(&user).Error; err == nil {
+	if err := db.Where("id = ?", UGKthID).First(&user).Error; err == nil {
 		return &ErrorResponse{
 			StatusCode: 400,
 			Message:    "username already in use",

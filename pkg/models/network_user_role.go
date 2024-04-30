@@ -3,7 +3,7 @@ package models
 import "time"
 
 type NetworkUserRole struct {
-	UserUGKthID     string `gorm:"primaryKey" json:"ug_kth_id"`
+	UserUGKthID     string `gorm:"primaryKey" json:"id"`
 	NetworkID       uint   `gorm:"primaryKey" json:"network_id"`
 	NetworkRoleName string `gorm:"primaryKey" json:"network_role_name"`
 

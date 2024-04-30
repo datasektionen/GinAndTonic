@@ -34,7 +34,7 @@ func (cewc *CompleteEventWorkflowController) CreateEvent(c *gin.Context) {
 		return
 	}
 
-	ugkthid, exists := c.Get("ugkthid")
+	ugkthid, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -66,7 +66,7 @@ func (cewc *CompleteEventWorkflowController) CreateTicketRelease(c *gin.Context)
 		return
 	}
 
-	ugkthid, exists := c.Get("ugkthid")
+	ugkthid, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return

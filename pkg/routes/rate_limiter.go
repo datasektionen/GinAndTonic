@@ -50,7 +50,7 @@ func (m *RateLimiterMiddleware) addVisitor(userID string) *rate.Limiter {
 // MiddlewareFunc returns the Gin middleware function
 func (m *RateLimiterMiddleware) MiddlewareFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID := c.MustGet("ugkthid").(string)
+		userID := c.MustGet("user_id").(string)
 		if userID == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID required"})
 			return

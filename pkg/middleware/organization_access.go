@@ -28,7 +28,7 @@ func AuthorizeOrganizationAccess(db *gorm.DB, requiredRole models.OrgRole) gin.H
 			return
 		}
 
-		authorized, err := CheckUserAuthorization(db, organizationID, c.GetString("ugkthid"), requiredRole)
+		authorized, err := CheckUserAuthorization(db, organizationID, c.GetString("user_id"), requiredRole)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to check authorization"})
 			c.Abort()
@@ -56,7 +56,7 @@ func CheckUserAuthorization(db *gorm.DB,
 	var requestingUser models.User
 	var userOrgRole models.OrganizationUserRole
 
-	err = db.Where("ug_kth_id = ?", ugkthid).First(&requestingUser).Error
+	err = db.Where("id = ?", ugkthid).First(&requestingUser).Error
 	if err != nil {
 		return false, err
 	}

@@ -8,7 +8,7 @@ import (
 
 // User is a struct that represents a user in the database
 type User struct {
-	UGKthID   string `gorm:"primaryKey;index" json:"ug_kth_id"`
+	UGKthID   string `gorm:"column:id;primaryKey;index;not null;unique" json:"id"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Email     string `json:"email"`
@@ -61,12 +61,12 @@ func CreateUserIfNotExist(db *gorm.DB, user User) error {
 }
 
 // GetUserByUGKthIDIfExist returns a user by UGKthID if it exists
-func GetUserByUGKthIDIfExist(db *gorm.DB, UGKthID string) (User, error) {
+func GetUserByUGKthIDIfExist(db *gorm.DB, userId string) (User, error) {
 	var user User
 	err := db.
 		Preload("Roles").
 		Preload("Organizations").
-		Where("ug_kth_id = ?", UGKthID).First(&user).Error
+		Where("id = ?", userId).First(&user).Error
 	return user, err
 }
 

@@ -149,9 +149,9 @@ func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	var user models.User
 
 	eventID := c.Param("eventID")
-	ugkthid, _ := c.Get("ugkthid")
+	ugkthid, _ := c.Get("user_id")
 
-	if err := trmc.DB.Where("ug_kth_id = ?", ugkthid).First(&user).Error; err != nil {
+	if err := trmc.DB.Where("id = ?", ugkthid).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user"})
 		return
 	}

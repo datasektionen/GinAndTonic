@@ -10,7 +10,7 @@ import (
 
 func UserLoader(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		UGKthID, exists := c.Get("ugkthid")
+		UGKthID, exists := c.Get("user_id")
 
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})

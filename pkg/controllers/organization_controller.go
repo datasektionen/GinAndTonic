@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -52,7 +53,7 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 		return
 	}
 
-	createdByUserUGKthID, exists := c.Get("ugkthid")
+	createdByUserUGKthID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -60,7 +61,7 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 
 	// Get username
 	var user models.User
-	if err := ec.DB.Where("ug_kth_id = ?", createdByUserUGKthID).First(&user).Error; err != nil {
+	if err := ec.DB.Where("id = ?", createdByUserUGKthID).First(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetDBError(err)})
 		return
 	}
@@ -82,7 +83,8 @@ func (ec *OrganisationController) ListOrganizations(c *gin.Context) {
 }
 
 func (ec *OrganisationController) ListMyOrganizations(c *gin.Context) {
-	ugkthid, exists := c.Get("ugkthid")
+	ugkthid, exists := c.Get("user_id")
+	fmt.Println(ugkthid)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return

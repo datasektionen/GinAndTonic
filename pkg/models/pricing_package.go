@@ -44,7 +44,8 @@ type PackageTier struct {
 type PlanEnrollment struct {
 	gorm.Model
 	CreatorEmail  string          `gorm:"-" json:"creator_email"` // Not stored in the database
-	Creator       User            `json:"creator" gorm:"foreignKey:UgKTHId"`
+	CreatorID     string          `json:"creator_id" gorm:"foreignKey:UGKthID"`
+	Creator       User            `json:"creator"`
 	Organizations []Organization  `gorm:"foreignKey:PlanEnrollmentID" json:"organizations"`
 	Network       *Network        `json:"network" gorm:"foreignKey:PlanEnrollmentID"`
 	NetworkID     *uint           `json:"network_id"`

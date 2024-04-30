@@ -82,8 +82,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		c.File("./static/privacy.html")
 	})
 
-	r.GET("/postman-login", controllers.LoginPostman)
-	r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)
+	// Deprecated routes, to be removed
+	// r.GET("/postman-login", controllers.LoginPostman)
+	// r.GET("/postman-login-complete/:token", controllers.LoginCompletePostman)
 
 	customerAuthService := services.NewCustomerAuthService(db)
 	customerAuthController := controllers.NewCustomerAuthController(db, customerAuthService)
@@ -98,8 +99,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/password-reset", passwordResetController.CreatePasswordReset)
 	r.POST("/password-reset/complete", passwordResetController.CompletePasswordReset)
 
-	r.GET("/login", controllers.Login)
-	r.GET("/login-complete/:token", controllers.LoginComplete)
+	// Deprecated routes, to be removed
+	// r.GET("/login", controllers.Login)
+	// r.GET("/login-complete/:token", controllers.LoginComplete)
+
 	r.GET("/current-user", authentication.ValidateTokenMiddleware(true), controllers.CurrentUser)
 	r.GET("/logout", authentication.ValidateTokenMiddleware(true), controllers.Logout)
 

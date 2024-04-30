@@ -86,7 +86,7 @@ func (trs *TicketRequestService) CreateTicketRequest(
 ) (mTicketRequest *models.TicketRequest, err *types.ErrorResponse) {
 	var user models.User
 
-	if err := transaction.Where("ug_kth_id = ?", ticketRequest.UserUGKthID).First(&user).Error; err != nil {
+	if err := transaction.Where("id = ?", ticketRequest.UserUGKthID).First(&user).Error; err != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
 	}
 
@@ -223,7 +223,7 @@ List all ticket request for the user
 func (trs *TicketRequestService) Get(c *gin.Context) {
 	var ticketRequests []models.TicketRequest
 
-	UGKthID, _ := c.Get("ugkthid")
+	UGKthID, _ := c.Get("user_id")
 
 	if err := trs.DB.Preload("TicketType").Preload("TicketRelease.TicketReleaseMethodDetail").Where("user_ug_kth_id = ?", UGKthID.(string)).Find(&ticketRequests).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the ticket requests"})

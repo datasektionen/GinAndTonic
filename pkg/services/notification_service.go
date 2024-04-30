@@ -376,7 +376,7 @@ func Notify_RemindUserOfTicketRelease(db *gorm.DB, trReminder *models.TicketRele
 	}
 
 	var user models.User
-	err = db.Where("ug_kth_id = ?", trReminder.UserUGKthID).First(&user).Error
+	err = db.Where("id = ?", trReminder.UserUGKthID).First(&user).Error
 	if err != nil {
 		return fmt.Errorf("user not found")
 	}

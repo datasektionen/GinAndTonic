@@ -67,7 +67,7 @@ func (effrc *EventFormFieldResponseController) GuestUpsert(c *gin.Context) {
 
 	var user models.User
 	if err := effrc.db.
-		Where("ug_kth_id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
+		Where("id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return
 	}

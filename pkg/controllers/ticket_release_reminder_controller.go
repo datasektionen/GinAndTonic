@@ -25,7 +25,7 @@ type CreateTicketReleaseReminderRequest struct {
 }
 
 func (erc *TicketReleaseReminderController) CreateTicketReleaseReminder(c *gin.Context) {
-	ugkthid := c.MustGet("ugkthid").(string)
+	ugkthid := c.MustGet("user_id").(string)
 
 	ticketReleaseString := c.Param("ticketReleaseID")
 	ticketReleaseID, err := strconv.Atoi(ticketReleaseString)
@@ -69,7 +69,7 @@ func (erc *TicketReleaseReminderController) CreateTicketReleaseReminder(c *gin.C
 }
 
 func (erc *TicketReleaseReminderController) GetTicketReleaseReminder(c *gin.Context) {
-	ugkthid := c.MustGet("ugkthid").(string)
+	ugkthid := c.MustGet("user_id").(string)
 
 	ticketReleaseString := c.Param("ticketReleaseID")
 	ticketReleaseID, err := strconv.Atoi(ticketReleaseString)
@@ -89,7 +89,7 @@ func (erc *TicketReleaseReminderController) GetTicketReleaseReminder(c *gin.Cont
 }
 
 func (erc *TicketReleaseReminderController) DeleteTicketReleaseReminder(c *gin.Context) {
-	ugkthid := c.MustGet("ugkthid").(string)
+	ugkthid := c.MustGet("user_id").(string)
 
 	ticketReleaseString := c.Param("ticketReleaseID")
 	ticketReleaseID, err := strconv.Atoi(ticketReleaseString)

@@ -93,7 +93,7 @@ func (ctrl *TicketReleasePromoCodeController) Create(c *gin.Context) {
 		return
 	}
 
-	ugKthId := c.GetString("ugkthid")
+	ugKthId := c.GetString("user_id")
 
 	var user models.User
 	if err := ctrl.DB.Where("ug_kth_id = ?", ugKthId).First(&user).Error; err != nil {

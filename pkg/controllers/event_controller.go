@@ -35,7 +35,7 @@ func (ec *EventController) CreateEvent(c *gin.Context) {
 		return
 	}
 
-	ugkthid, exists := c.Get("ugkthid")
+	ugkthid, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
@@ -112,7 +112,7 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 
 	query.Find(&events)
 
-	ugkthid := c.GetString("ugkthid")
+	ugkthid := c.GetString("user_id")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get user"})
 		return
@@ -147,7 +147,7 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 }
 
 func (ec *EventController) GetEvent(c *gin.Context) {
-	_, ugkthid_exists := c.Get("ugkthid")
+	_, ugkthid_exists := c.Get("user_id")
 
 	if ugkthid_exists {
 		ec.UserGetEvent(c)
@@ -163,10 +163,10 @@ func (ec *EventController) UserGetEvent(c *gin.Context) {
 	var user models.User
 
 	eventID := c.Param("eventID")
-	ugkthid, _ := c.Get("ugkthid")
+	ugkthid, _ := c.Get("user_id")
 
 	if ugkthid != nil {
-		if err := ec.DB.Where("ug_kth_id = ?", ugkthid.(string)).First(&user).Error; err != nil {
+		if err := ec.DB.Where("id = ?", ugkthid.(string)).First(&user).Error; err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			return
 		}

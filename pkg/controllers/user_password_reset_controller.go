@@ -32,7 +32,7 @@ type UserPasswordResetRequest struct {
 func (uprc *UserPasswordResetController) CreatePasswordReset(c *gin.Context) {
 	var user models.User
 	var req UserPasswordResetRequest
-	_, exists := c.Get("ugkthid")
+	_, exists := c.Get("user_id")
 
 	if exists {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Password reset not allowed for authenticated users"})

@@ -28,7 +28,7 @@ func (eas *CustomerAuthService) ValidateSignupRequest(esr types.CustomerSignupRe
 		return err
 	}
 
-	newUGKthID := fmt.Sprintf("customer-%s", utils.GenerateRandomString(8))
+	newUGKthID := fmt.Sprintf("user-%s", utils.GenerateRandomString(8))
 
 	// Check UGKthID is not already in use
 	if err := esr.CheckUGKthIDNotInUse(eas.DB, newUGKthID); err != nil {

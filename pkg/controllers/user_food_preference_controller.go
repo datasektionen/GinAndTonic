@@ -19,7 +19,7 @@ func NewUserFoodPreferenceController(db *gorm.DB) *UserFoodPreferenceController 
 func (ctrl *UserFoodPreferenceController) Update(c *gin.Context) {
 	var userFoodPreference models.UserFoodPreference
 
-	UGKthID, _ := c.Get("ugkthid")
+	UGKthID, _ := c.Get("user_id")
 
 	if err := c.ShouldBindJSON(&userFoodPreference); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -60,7 +60,7 @@ func (ctrl *UserFoodPreferenceController) Update(c *gin.Context) {
 func (ctrl *UserFoodPreferenceController) Get(c *gin.Context) {
 	var userFoodPreference models.UserFoodPreference
 
-	UGKthID, _ := c.Get("ugkthid")
+	UGKthID, _ := c.Get("user_id")
 
 	if err := ctrl.DB.Where("user_ug_kth_id = ?", UGKthID).First(&userFoodPreference).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error getting the user food preference"})
@@ -84,7 +84,7 @@ func (ctrl *UserFoodPreferenceController) GuestGet(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := ctrl.DB.Where("ug_kth_id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
+	if err := ctrl.DB.Where("id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
 		return
 	}
@@ -125,7 +125,7 @@ func (ctrl *UserFoodPreferenceController) GuestUpdate(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := ctrl.DB.Where("ug_kth_id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
+	if err := ctrl.DB.Where("id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
 		return
 	}

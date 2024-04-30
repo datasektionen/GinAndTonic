@@ -39,7 +39,7 @@ func (gc *GuestController) Get(c *gin.Context) {
 		Preload("TicketRequests.TicketAddOns.AddOn").
 		Preload("TicketRequests.EventFormReponses").
 		Preload("TicketRequests.Tickets").
-		Where("ug_kth_id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
+		Where("id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return
 	}

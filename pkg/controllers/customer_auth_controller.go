@@ -159,6 +159,7 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 		FirstName:               externalSignupRequest.FirstName,
 		LastName:                externalSignupRequest.LastName,
 		Email:                   strings.ToLower(externalSignupRequest.Email),
+		PhoneNumber:             externalSignupRequest.PhoneNumber,
 		PasswordHash:            pwHash,
 		Roles:                   roles,
 		VerifiedEmail:           roleName == models.RoleCustomerGuest,

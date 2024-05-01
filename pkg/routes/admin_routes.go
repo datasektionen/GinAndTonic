@@ -12,6 +12,7 @@ func AdminRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	packageTierController := admin_controllers.NewPackageTierController(db)
 	featureController := admin_controllers.NewFeatureController(db)
 	usersController := admin_controllers.NewUserController(db)
+	networkController := admin_controllers.NewNetworkController(db)
 	fgc := admin_controllers.NewFeatureGroupController(db)
 
 	adminGroup := r.Group("/admin")
@@ -44,9 +45,16 @@ func AdminRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 
 	// users
 	adminGroup.GET("/users", usersController.ListUsers)
-	adminGroup.GET("/users/:ug_kth_id", usersController.GetUser)
-	adminGroup.PUT("/users/:ug_kth_id", usersController.UpdateUser)
-	adminGroup.DELETE("/users/:ug_kth_id", usersController.DeleteUser)
+	adminGroup.GET("/users/:user_id", usersController.GetUser)
+	adminGroup.PUT("/users/:user_id", usersController.UpdateUser)
+	adminGroup.DELETE("/users/:user_id", usersController.DeleteUser)
+
+	// network
+	adminGroup.GET("/networks", networkController.ListNetworks)
+	adminGroup.GET("/networks/:id", networkController.GetNetwork)
+	adminGroup.POST("/networks", networkController.CreateNetwork)
+	adminGroup.PUT("/networks/:id", networkController.EditNetwork)
+	adminGroup.DELETE("/networks/:id", networkController.DeleteNetwork)
 
 	return r
 }

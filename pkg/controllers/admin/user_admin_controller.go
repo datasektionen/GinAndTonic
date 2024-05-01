@@ -23,7 +23,7 @@ func (ctrl *UserController) ListUsers(c *gin.Context) {
 
 func (ctrl *UserController) GetUser(c *gin.Context) {
 	var user models.User
-	if err := ctrl.DB.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+	if err := ctrl.DB.Where("id = ?", c.Param("user_id")).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -32,7 +32,7 @@ func (ctrl *UserController) GetUser(c *gin.Context) {
 
 func (ctrl *UserController) UpdateUser(c *gin.Context) {
 	var user models.User
-	if err := ctrl.DB.Where("id = ?", c.Param("id")).First(&user).Error; err != nil {
+	if err := ctrl.DB.Where("id = ?", c.Param("user_id")).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -50,7 +50,7 @@ func (ctrl *UserController) UpdateUser(c *gin.Context) {
 }
 
 func (ctrl *UserController) DeleteUser(c *gin.Context) {
-	if err := ctrl.DB.Where("id = ?", c.Param("id")).Delete(models.User{}).Error; err != nil {
+	if err := ctrl.DB.Where("id = ?", c.Param("user_id")).Delete(models.User{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -32,7 +32,7 @@ func (pc *PlanEnrollmentAdminController) GetAllEnrollments(c *gin.Context) {
 	}
 
 	var packages []models.PlanEnrollment
-	query := pc.DB.Model(&models.PlanEnrollment{})
+	query := pc.DB.Preload("Creator").Preload("Network").Model(&models.PlanEnrollment{})
 
 	sortParam := c.DefaultQuery("sort", "id")
 	sortArray := strings.Split(strings.Trim(sortParam, "[]\""), "\",\"")
@@ -45,14 +45,11 @@ func (pc *PlanEnrollmentAdminController) GetAllEnrollments(c *gin.Context) {
 		return
 	}
 
-	var count int64
-	pc.DB.Model(&models.PlanEnrollment{}).Count(&count)
-
 	// Assuming total count for headers (pagination)
 	var totalCount int64
 	pc.DB.Model(&models.PlanEnrollment{}).Count(&totalCount)
 	c.Header("X-Total-Count", fmt.Sprintf("%d", totalCount))
-	c.Header("Content-Range", fmt.Sprintf("packages %d-%d/%d", (queryParams.Page-1)*queryParams.PerPage, (queryParams.Page-1)*queryParams.PerPage+len(packages)-1, count))
+	c.Header("Content-Range", fmt.Sprintf("packages %d-%d/%d", (queryParams.Page-1)*queryParams.PerPage, (queryParams.Page-1)*queryParams.PerPage+len(packages)-1, totalCount))
 
 	c.JSON(http.StatusOK, packages)
 }
@@ -80,6 +77,9 @@ func (pc *PlanEnrollmentAdminController) CreateEnrollment(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	fmt.Println(planEnrollment)
+
 	if result := pc.DB.Create(&planEnrollment); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return

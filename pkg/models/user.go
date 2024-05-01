@@ -8,10 +8,11 @@ import (
 
 // User is a struct that represents a user in the database
 type User struct {
-	UGKthID   string `gorm:"column:id;primaryKey;index;not null;unique" json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
+	UGKthID     string  `gorm:"column:id;primaryKey;index;not null;unique" json:"id"`
+	FirstName   string  `json:"first_name"`
+	LastName    string  `json:"last_name"`
+	Email       string  `json:"email"`
+	PhoneNumber *string `json:"phone_number" gorm:"default:NULL"`
 
 	VerifiedEmail           bool       `json:"verified_email"`
 	EmailVerificationToken  *string    `gorm:"size:255" json:"-"`

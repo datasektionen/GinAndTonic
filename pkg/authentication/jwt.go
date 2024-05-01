@@ -89,8 +89,6 @@ func ValidateTokenMiddleware(
 
 		claims, _ := token.Claims.(*Claims)
 
-		fmt.Println(claims)
-
 		c.Set("user_id", claims.UserID)
 		c.Set("roles", claims.Roles)
 

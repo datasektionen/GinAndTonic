@@ -1,6 +1,10 @@
 package types
 
-import "html/template"
+import (
+	"html/template"
+
+	"github.com/DowLucas/gin-ticket-release/pkg/models"
+)
 
 type EmailTicket struct {
 	Name  string
@@ -116,6 +120,12 @@ type EmailContact struct {
 	Subject          string
 	Message          string
 	Email            string
+}
+
+type EmailPlanContact struct {
+	FullName string
+	Plan     models.PackageTierType
+	Message  string
 }
 
 type EmailTicketReleaseReminder struct {

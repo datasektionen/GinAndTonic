@@ -73,6 +73,117 @@ func SendContactEmail(name, email_to, from, subject, content string) error {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
+	err = SendPlanContactConfirmationEmail(name, from, subject,
+		"This is a confirmation that we have recieved your message. The team has been notified and will get back to you as soon as possible.")
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SendPlanContactConfirmationEmail(name, sender_email, subject, content string) error {
+	// Create the data to be sent
+	var to string
+	if os.Getenv("ENV") == "dev" {
+		to = os.Getenv("SPAM_TEST_EMAIL")
+	} else {
+		to = sender_email
+	}
+
+	data := MailData{
+		Key:     os.Getenv("SPAM_API_KEY"),
+		To:      to,
+		From:    From,
+		Subject: subject,
+		Content: content,
+		ReplyTo: From,
+	}
+
+	// Marshal the data into a JSON payload
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	payloadBuffer := bytes.NewBuffer(payloadBytes)
+
+	// Create a new request
+	req, err := http.NewRequest("POST", SpamURL, payloadBuffer)
+	if err != nil {
+		return err
+	}
+
+	// Set the appropriate headers (Content-Type)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func SendPlanContactEmail(plan models.PackageTierType, name, email_to, from, content string) error {
+	// Create the data to be sent
+	var to string
+	if os.Getenv("ENV") == "dev" {
+		to = os.Getenv("SPAM_TEST_EMAIL")
+	} else {
+		to = email_to
+	}
+
+	data := MailData{
+		Key:     os.Getenv("SPAM_API_KEY"),
+		To:      to,
+		From:    From,
+		Subject: fmt.Sprintf("Plan Enrollment Contact - %s for %s", name, plan),
+		Content: content,
+		ReplyTo: from,
+	}
+
+	fmt.Println(data)
+
+	// Marshal the data into a JSON payload
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	payloadBuffer := bytes.NewBuffer(payloadBytes)
+	req, err := http.NewRequest("POST", SpamURL, payloadBuffer)
+	if err != nil {
+		return err
+	}
+
+	// Set the appropriate headers (Content-Type)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	err = SendPlanContactConfirmationEmail(name, from, "Plan Enrollment Confirmation",
+		fmt.Sprintf("Thank you for contacting us about the %s plan. We will get back to you as soon as possible.", plan))
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

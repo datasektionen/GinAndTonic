@@ -150,6 +150,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		rlm = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)
 		rlmURLParam = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)
 	}
+
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
@@ -201,6 +202,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Contact
 	r.POST("/contact", contactController.CreateContact)
+	r.POST("/plan-contact", contactController.CreatePlanContact)
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)

@@ -63,3 +63,37 @@ func (cc *ContactController) CreateContact(c *gin.Context) {
 
 	c.JSON(http.StatusOK, contact)
 }
+
+type PlanContactRequest struct {
+	Name    string                 `json:"name" binding:"required"`
+	Email   string                 `json:"email" binding:"required"`
+	Plan    models.PackageTierType `json:"plan" binding:"required"`
+	Message string                 `json:"message" binding:"required"`
+}
+
+func (cc *ContactController) CreatePlanContact(c *gin.Context) {
+	var contact PlanContactRequest
+
+	if err := c.ShouldBindJSON(&contact); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var data types.EmailPlanContact = types.EmailPlanContact{
+		FullName: contact.Name,
+		Plan:     contact.Plan,
+		Message:  contact.Message,
+	}
+
+	htmlContent, err := utils.ParseTemplate("templates/emails/plan_enrollment_contact.html", data)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error sending the email"})
+		return
+	}
+
+	to := "lucdow7@gmail.com"
+
+	jobs.SendPlanContactEmail(contact.Plan, contact.Name, to, contact.Email, htmlContent)
+
+	c.JSON(http.StatusOK, contact)
+}

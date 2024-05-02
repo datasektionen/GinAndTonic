@@ -93,6 +93,16 @@ func (u *User) IsRole(role RoleType) bool {
 	return false
 }
 
+func (u *User) IsEventManager() bool {
+	for _, r := range u.Roles {
+		if r.Name == RoleManager {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IsSuperAdmin returns true if the user is a super admin
 func (u *User) IsSuperAdmin() bool {
 	// Preload role

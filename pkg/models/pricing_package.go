@@ -49,18 +49,26 @@ type PackageTier struct {
 
 type PlanEnrollment struct {
 	gorm.Model
-	Name          string          `json:"name"`
-	CreatorEmail  string          `gorm:"-" json:"creator_email"` // Not stored in the database
-	CreatorID     string          `json:"creator_id" gorm:"foreignKey:UGKthID"`
-	Creator       User            `json:"creator"`
-	Organizations []Organization  `gorm:"foreignKey:PlanEnrollmentID" json:"organizations"`
-	NetworkID     *uint           `json:"network_id"`
-	Network       *Network        `json:"network" gorm:"foreignKey:PlanEnrollmentID"`
-	PackageTierID uint            `json:"package_tier_id" gorm:"not null"`
-	Features      []Feature       `gorm:"many2many:package_features;" json:"features"`
-	MonthlyPrice  int             `json:"monthly_price"` // Monthly amount billed monthly
-	YearlyPrice   int             `json:"yearly_price"`  // Monthly amount billed yearly
-	Plan          PaymentPlanType `json:"plan" gorm:"not null"`
+	Name           string          `json:"name"`
+	CreatorEmail   string          `gorm:"-" json:"creator_email"` // Not stored in the database
+	CreatorID      string          `json:"creator_id" gorm:"foreignKey:UGKthID"`
+	Creator        User            `json:"creator"`
+	Organizations  []Organization  `gorm:"foreignKey:PlanEnrollmentID" json:"organizations"`
+	NetworkID      *uint           `json:"network_id"`
+	Network        *Network        `json:"network" gorm:"foreignKey:PlanEnrollmentID"`
+	PackageTierID  uint            `json:"package_tier_id" gorm:"not null"`
+	Features       []Feature       `gorm:"many2many:package_features;" json:"features"`
+	MonthlyPrice   int             `json:"monthly_price"` // Monthly amount billed monthly
+	YearlyPrice    int             `json:"yearly_price"`  // Monthly amount billed yearly
+	Plan           PaymentPlanType `json:"plan" gorm:"not null"`
+	FeaturesUsages []FeatureUsage  `json:"features_usage" gorm:"foreignKey:PlanEnrollmentID"`
+}
+
+type FeatureUsage struct {
+	gorm.Model
+	FeatureID        uint `json:"feature_id"`
+	PlanEnrollmentID uint `json:"plan_enrollment_id"`
+	Usage            int  `json:"usage"`
 }
 
 type Feature struct {

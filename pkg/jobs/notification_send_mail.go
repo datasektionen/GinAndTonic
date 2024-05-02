@@ -149,8 +149,6 @@ func SendPlanContactEmail(plan models.PackageTierType, name, email_to, from, con
 		ReplyTo: from,
 	}
 
-	fmt.Println(data)
-
 	// Marshal the data into a JSON payload
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {

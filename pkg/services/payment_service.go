@@ -108,7 +108,7 @@ func (ps *PaymentService) ProcessEvent(
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				tx.Rollback()
 				fmt.Println(err)
-				return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "An unexpected error occurred, contact event organizers"}
+				return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "An unexpected error occurred, contact event managers"}
 			}
 		}
 

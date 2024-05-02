@@ -3,6 +3,7 @@ package admin_controllers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
@@ -55,7 +56,7 @@ func (ctrl *FeatureController) GetAllFeatures(c *gin.Context) {
 func (ctrl *FeatureController) GetFeature(c *gin.Context) {
 	id := c.Param("id")
 	var feature models.Feature
-	if err := ctrl.DB.Preload("FeatureLimit").Preload("PackageTiers").First(&feature, id).Error; err != nil {
+	if err := ctrl.DB.Preload("FeatureLimits").Preload("PackageTiers").First(&feature, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Feature not found"})
 		return
 	}
@@ -120,11 +121,29 @@ func (ctrl *FeatureController) UpdateFeature(c *gin.Context) {
 		return
 	}
 
-	if len(feature.PackageTiersIDs) > 0 {
-		var tiers []models.PackageTier
-		if err := tx.Find(&tiers, feature.PackageTiersIDs).Error; err == nil {
-			tx.Model(&feature).Association("PackageTiers").Replace(tiers)
-		}
+	fmt.Println(len(feature.FeatureLimits))
+
+	// Delete Unscoped all current feature limits
+	if err := tx.Unscoped().Where("feature_id = ?", feature.ID).Delete(&models.FeatureLimit{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	packageTiersIds := make([]uint, len(feature.PackageTiers))
+
+	for _, limit := range feature.FeatureLimits {
+		packageTierId := limit.PackageTierID
+		packageTiersIds = append(packageTiersIds, packageTierId)
+	}
+
+	var tiers []models.PackageTier
+	if err := tx.Find(&tiers, packageTiersIds).Error; err == nil {
+		tx.Model(&feature).Association("PackageTiers").Replace(tiers)
+	} else {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	if err := tx.Save(&feature).Error; err != nil {
@@ -134,15 +153,29 @@ func (ctrl *FeatureController) UpdateFeature(c *gin.Context) {
 	}
 
 	tx.Commit()
+	if tx.Error != nil {
+		fmt.Println(tx.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error})
+		return
+	}
 
 	c.JSON(http.StatusOK, feature)
 }
 
 func (ctrl *FeatureController) DeleteFeature(c *gin.Context) {
 	id := c.Param("id")
-	if err := ctrl.DB.Delete(&models.Feature{}, id).Error; err != nil {
+
+	val, err := strconv.Atoi(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	err = models.DeleteFeature(ctrl.DB, uint(val))
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.Status(http.StatusNoContent)
 }

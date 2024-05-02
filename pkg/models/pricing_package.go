@@ -29,6 +29,12 @@ const (
 	PackageTierNetwork      PackageTierType = "network"
 )
 
+type FeatureGroup struct {
+	gorm.Model
+	Name        FeatureGroupType `json:"name" gorm:"unique"`
+	Description string           `json:"description"`
+}
+
 type PackageTier struct {
 	gorm.Model
 	Name                 string           `json:"name" gorm:"unique"`
@@ -57,31 +63,23 @@ type PlanEnrollment struct {
 	Plan          PaymentPlanType `json:"plan" gorm:"not null"`
 }
 
-type FeatureGroup struct {
-	gorm.Model
-	Name        FeatureGroupType `json:"name" gorm:"unique"`
-	Description string           `json:"description"`
-}
-
 type Feature struct {
 	gorm.Model
-	Name            string        `json:"name" gorm:"unique"`
-	Description     string        `json:"description"`
-	FeatureGroupID  uint          `json:"feature_group_id"`
-	FeatureGroup    FeatureGroup  `json:"feature_group"`
-	IsAvailable     bool          `json:"is_available" gorm:"default:true"` // Indicates if a feature is available in a tier, can be expanded into specifics per tier
-	FeatureLimit    FeatureLimit  `gorm:"foreignKey:FeatureID" json:"feature_limit"`
-	PackageTiers    []PackageTier `gorm:"many2many:package_tier_default_features;"`
-	PackageTiersIDs []uint        `gorm:"-" json:"package_tiers"` // Temporary field to hold IDs
+	Name            string         `json:"name" gorm:"unique"`
+	Description     string         `json:"description"`
+	FeatureGroupID  uint           `json:"feature_group_id"`
+	FeatureGroup    FeatureGroup   `json:"feature_group"`
+	IsAvailable     bool           `json:"is_available" gorm:"default:true"` // Indicates if a feature is available in a tier, can be expanded into specifics per tier
+	PackageTiers    []PackageTier  `gorm:"many2many:package_tier_default_features;"`
+	PackageTiersIDs []uint         `gorm:"-" json:"package_tiers"` // Temporary field to hold IDs
+	FeatureLimits   []FeatureLimit `json:"feature_limits" gorm:"foreignKey:FeatureID"`
 }
 
 type FeatureLimit struct {
 	gorm.Model
-	FeatureID    uint   `json:"feature_id" gorm:"unique"` // Make this unique
-	HardLimit    *int   `json:"hard_limit"`               // Hard limit defines that the limit cannot be exceeded
-	MonthlyLimit *int   `json:"monthly_limit"`            // Monthly limit defines the limit per month
-	YearlyLimit  *int   `json:"yearly_limit"`             // Yearly limit defines the limit per year
-	Description  string `json:"description"`
+	FeatureID     uint   `json:"feature_id"`
+	PackageTierID uint   `json:"package_tier_id"`
+	Limit         string `json:"limit"`
 }
 
 func InitializePackageTiers(db *gorm.DB) error {
@@ -119,5 +117,20 @@ func InitializeFeatureGroups(db *gorm.DB) error {
 		var existingFeatureGroup FeatureGroup
 		db.Where("name = ?", featureGroup.Name).FirstOrCreate(&existingFeatureGroup, featureGroup)
 	}
+	return nil
+}
+
+func DeleteFeature(db *gorm.DB, id uint) error {
+	// Find the feature
+	var feature Feature
+	if err := db.First(&feature, id).Error; err != nil {
+		return err
+	}
+
+	// Delete the feature
+	if err := db.Delete(&feature).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

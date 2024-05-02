@@ -29,6 +29,11 @@ func RequireRole(requiredRole models.RoleType, db *gorm.DB) gin.HandlerFunc {
 		// Check if the user has the required role
 		hasRequiredRole := false
 		for _, role := range roles.([]string) {
+			if role == string(models.RoleSuperAdmin) {
+				hasRequiredRole = true
+				break
+			}
+
 			var userRole models.Role
 			if err := db.Where("name = ?", role).First(&userRole).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to fetch role"})

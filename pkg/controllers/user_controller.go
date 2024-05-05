@@ -34,3 +34,16 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
 }
+
+func (uc *UserController) UpdateShowedPostLogin(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	// Update ShowedPostLogin field
+	user.ShowedPostLogin = true
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+}

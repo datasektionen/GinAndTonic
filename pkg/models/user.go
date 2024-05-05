@@ -30,6 +30,9 @@ type User struct {
 	FoodPreferences       UserFoodPreference     `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`
 	Roles                 []Role                 `gorm:"many2many:user_roles;" json:"roles"`
 
+	// Other metrics
+	ShowedPostLogin bool `json:"showed_post_login" gorm:"default:false"`
+
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`

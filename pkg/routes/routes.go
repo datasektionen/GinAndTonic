@@ -316,6 +316,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/user-food-preferences", userFoodPreferenceController.Get)
 	r.GET("/food-preferences", userFoodPreferenceController.ListFoodPreferences)
 
+	// Misc user
+	r.PUT("/user/showed-post-login-screen", userController.UpdateShowedPostLogin)
+
 	r.POST("/admin/create-user", authentication.RequireRole(models.RoleSuperAdmin, db), userController.CreateUser)
 
 	// Banking details

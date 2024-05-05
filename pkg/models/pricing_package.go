@@ -85,9 +85,10 @@ type Feature struct {
 
 type FeatureLimit struct {
 	gorm.Model
-	FeatureID     uint   `json:"feature_id"`
-	PackageTierID uint   `json:"package_tier_id"`
-	Limit         string `json:"limit"`
+	FeatureID        uint   `json:"feature_id"`
+	PackageTierID    uint   `json:"package_tier_id"`
+	LimitDescription string `json:"limit_description"`
+	Limit            *int   `json:"limit"`
 }
 
 func InitializePackageTiers(db *gorm.DB) error {
@@ -141,4 +142,21 @@ func DeleteFeature(db *gorm.DB, id uint) error {
 	}
 
 	return nil
+}
+
+func GetPlanEnrollmentByID(db *gorm.DB, id uint) (PlanEnrollment, error) {
+	var planEnrollment PlanEnrollment
+	err := db.Preload("Features").Preload("FeaturesUsages").Where("id = ?", id).First(&planEnrollment).Error
+	return planEnrollment, err
+}
+func GetPlanEnrollmentByNetworkID(db *gorm.DB, networkID uint) (PlanEnrollment, error) {
+	var planEnrollment PlanEnrollment
+	err := db.Where("network_id = ?", networkID).First(&planEnrollment).Error
+	return planEnrollment, err
+}
+
+func GetFeatureByName(db *gorm.DB, name string) (Feature, error) {
+	var feature Feature
+	err := db.Where("name = ?", name).First(&feature).Error
+	return feature, err
 }

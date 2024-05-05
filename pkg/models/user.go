@@ -20,6 +20,8 @@ type User struct {
 	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
 	RequestToken            *string    `json:"-" gorm:"column:request_token;default:NULL"` // Used by guest users to make requests
 
+	NetworkID *uint `json:"network_id"`
+
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
 	Organizations         []Organization         `gorm:"many2many:organization_users;" json:"organizations"`
@@ -128,4 +130,32 @@ func (u *User) IsGuestCustomer(db *gorm.DB) bool {
 	}
 
 	return false
+}
+
+func GetUserPlanEnrollment(db *gorm.DB, user *User) (plan PlanEnrollment, err error) {
+	// One user can only belong to one PlanEnrollment since they can only be manager of one organization or network
+	// Since the user cannot belong to different plan enrollments, we can just get the first one
+
+	// Get my network
+	if user.NetworkID != nil {
+		plan, err = GetPlanEnrollmentByNetworkID(db, *user.NetworkID)
+		if err != nil {
+			return plan, err
+		}
+	}
+
+	// If that doesnt exist, get the plan enrollment of the first organization
+	for _, org := range user.Organizations {
+		if org.PlanEnrollmentID == nil {
+			continue
+		}
+
+		plan, err = GetPlanEnrollmentByID(db, *org.PlanEnrollmentID)
+		if err != nil {
+			return plan, err
+		}
+		break
+	}
+
+	return plan, nil
 }

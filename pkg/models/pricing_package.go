@@ -20,6 +20,8 @@ const (
 const (
 	PaymentPlanMonthly PaymentPlanType = "monthly"
 	PaymentPlanYearly  PaymentPlanType = "yearly"
+	OneTimePayment     PaymentPlanType = "one_time"
+	NoPayment          PaymentPlanType = "no_payment"
 )
 
 const (
@@ -49,17 +51,16 @@ type PackageTier struct {
 
 type PlanEnrollment struct {
 	gorm.Model
-	Name           string          `json:"name"`
 	CreatorEmail   string          `gorm:"-" json:"creator_email"` // Not stored in the database
 	CreatorID      string          `json:"creator_id" gorm:"foreignKey:UGKthID"`
 	Creator        User            `json:"creator"`
 	Organizations  []Organization  `gorm:"foreignKey:PlanEnrollmentID" json:"organizations"`
 	NetworkID      *uint           `json:"network_id"`
-	Network        *Network        `json:"network" gorm:"foreignKey:PlanEnrollmentID"`
 	PackageTierID  uint            `json:"package_tier_id" gorm:"not null"`
 	Features       []Feature       `gorm:"many2many:package_features;" json:"features"`
-	MonthlyPrice   int             `json:"monthly_price"` // Monthly amount billed monthly
-	YearlyPrice    int             `json:"yearly_price"`  // Monthly amount billed yearly
+	MonthlyPrice   int             `json:"monthly_price"`  // Monthly amount billed monthly
+	YearlyPrice    int             `json:"yearly_price"`   // Monthly amount billed yearly
+	OneTimePrice   int             `json:"one_time_price"` // One time payment
 	Plan           PaymentPlanType `json:"plan" gorm:"not null"`
 	FeaturesUsages []FeatureUsage  `json:"features_usage" gorm:"foreignKey:PlanEnrollmentID"`
 }
@@ -149,6 +150,7 @@ func GetPlanEnrollmentByID(db *gorm.DB, id uint) (PlanEnrollment, error) {
 	err := db.Preload("Features").Preload("FeaturesUsages").Where("id = ?", id).First(&planEnrollment).Error
 	return planEnrollment, err
 }
+
 func GetPlanEnrollmentByNetworkID(db *gorm.DB, networkID uint) (PlanEnrollment, error) {
 	var planEnrollment PlanEnrollment
 	err := db.Where("network_id = ?", networkID).First(&planEnrollment).Error
@@ -159,4 +161,16 @@ func GetFeatureByName(db *gorm.DB, name string) (Feature, error) {
 	var feature Feature
 	err := db.Where("name = ?", name).First(&feature).Error
 	return feature, err
+}
+
+func GetPackageTier(db *gorm.DB, id uint) (PackageTier, error) {
+	var packageTier PackageTier
+	err := db.Preload("DefaultFeatures").Where("id = ?", id).First(&packageTier).Error
+	return packageTier, err
+}
+
+func GetPackageTierByType(db *gorm.DB, tier PackageTierType) (PackageTier, error) {
+	var packageTier PackageTier
+	err := db.Preload("DefaultFeatures").Where("tier = ?", tier).First(&packageTier).Error
+	return packageTier, err
 }

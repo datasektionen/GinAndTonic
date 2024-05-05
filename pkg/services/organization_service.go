@@ -35,22 +35,12 @@ func (os *OrganisationService) AddUserToOrganization(email string, organizationI
 		}
 	}()
 
-	// 1. Associate user with organization
-	if err := tx.Model(&organization).Association("Users").Append(&user); err != nil {
+	// Assign user to organization and set its role
+	if err := organization.AddUserWithRole(tx, user, organizationRole); err != nil {
 		tx.Rollback()
 		return err
-	}
-	// 2. Create organization user role
-	organizationUserRole := models.OrganizationUserRole{
-		UserUGKthID:          user.UGKthID,
-		OrganizationID:       organization.ID,
-		OrganizationRoleName: string(organizationRole),
 	}
 
-	if err := tx.Create(&organizationUserRole).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
 	// Commit transaction
 	tx.Commit()
 
@@ -78,14 +68,22 @@ func (os *OrganisationService) RemoveUserFromOrganization(username string, organ
 		return fmt.Errorf("user %v is the owner of the organization %v", username, organizationID)
 	}
 
-	if err := os.DB.Model(&organization).Association("Users").Delete(&user); err != nil {
-		return fmt.Errorf("there was an error removing the user from the organization: %w", err)
+	// Start transaction
+	tx := os.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Remove user from organization and delete its role
+	if err := organization.RemoveUserWithRole(tx, user); err != nil {
+		tx.Rollback()
+		return err
 	}
 
-	// Remove the user.OrganizationUserRole for this organization
-	if err := os.DB.Unscoped().Where("user_ug_kth_id = ? AND organization_id = ?", user.UGKthID, organization.ID).Delete(&models.OrganizationUserRole{}).Error; err != nil {
-		return fmt.Errorf("there was an error removing the user from the organization: %w", err)
-	}
+	// Commit transaction
+	tx.Commit()
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -146,6 +147,7 @@ func GetUserPlanEnrollment(db *gorm.DB, user *User) (plan PlanEnrollment, err er
 
 	// If that doesnt exist, get the plan enrollment of the first organization
 	for _, org := range user.Organizations {
+		fmt.Println("Org: ", org)
 		if org.PlanEnrollmentID == nil {
 			continue
 		}

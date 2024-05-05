@@ -6,23 +6,23 @@ import (
 	"gorm.io/gorm"
 )
 
-
-
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
-		&models.PackageTier{},
 		&models.PlanEnrollment{},
-		&models.FeatureLimit{},
 		&models.Feature{},
 		&models.Network{},
+		&models.NetworkUserRole{},
 		&models.NetworkRole{},
+		&models.PackageTier{},
+		&models.FeatureUsage{},
+		&models.FeatureLimit{},
 		&models.Organization{},
 		&models.TicketReleaseMethod{},
 		&models.TicketReleaseMethodDetail{},
 		&models.TicketRelease{},
-		&models.User{},
 		&models.UserFoodPreference{},
 		&models.EventFormField{},
+		&models.User{},
 		&models.EventFormFieldResponse{},
 		&models.Event{},
 		&models.TicketType{},
@@ -44,6 +44,7 @@ func Migrate(db *gorm.DB) error {
 		&models.EventSiteVisit{},
 		&models.EventSiteVisitSummary{},
 		&models.BankingDetail{},
+		&models.ReferralSource{},
 		&tr_methods.LotteryConfig{},
 	)
 	return err

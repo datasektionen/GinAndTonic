@@ -18,7 +18,6 @@ type Organization struct {
 	BankingDetail         BankingDetail          `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
 	PlanEnrollmentID      *uint                  `json:"plan_enrollment_id"`
 	NetworkID             *uint                  `json:"network_id"`
-	PackageID             *uint                  `json:"package_id"`
 }
 
 func CreateOrganizationUniqueIndex(db *gorm.DB) error {
@@ -108,4 +107,38 @@ func GetOrganizationOwners(db *gorm.DB, organization Organization) (users []User
 func GetAllOrganizationEvents(db *gorm.DB, orgId uint) (events []Event, err error) {
 	err = db.Where("organization_id = ?", orgId).Find(&events).Error
 	return
+}
+
+func (o *Organization) AddUserWithRole(tx *gorm.DB, user User, role OrgRole) error {
+	// 1. Associate user with organization
+	if err := tx.Model(o).Association("Users").Append(&user); err != nil {
+		return err
+	}
+
+	// 2. Create organization user role
+	organizationUserRole := OrganizationUserRole{
+		UserUGKthID:          user.UGKthID,
+		OrganizationID:       o.ID,
+		OrganizationRoleName: string(role),
+	}
+
+	if err := tx.Create(&organizationUserRole).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *Organization) RemoveUserWithRole(tx *gorm.DB, user User) error {
+	// 1. Remove user from organization
+	if err := tx.Model(o).Association("Users").Delete(&user); err != nil {
+		return err
+	}
+
+	// 2. Remove the user.OrganizationUserRole for this organization
+	if err := tx.Unscoped().Where("user_ug_kth_id = ? AND organization_id = ?", user.UGKthID, o.ID).Delete(&OrganizationUserRole{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

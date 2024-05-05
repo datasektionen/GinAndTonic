@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -165,6 +166,10 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 		VerifiedEmail:           roleName == models.RoleCustomerGuest,
 		EmailVerificationToken:  verifyEmailToken,
 		EmailVerificationSentAt: &currentTime,
+	}
+
+	if os.Getenv("ENV") == "dev" {
+		user.VerifiedEmail = true
 	}
 
 	var requestToken string = ""

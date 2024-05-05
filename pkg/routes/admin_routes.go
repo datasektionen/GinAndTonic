@@ -16,6 +16,7 @@ func AdminRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	fgc := admin_controllers.NewFeatureGroupController(db)
 
 	adminGroup := r.Group("/admin")
+	adminGroup.Use(authentication.ValidateTokenMiddleware(true))
 	adminGroup.Use(authentication.RequireRole("super_admin", db))
 
 	adminGroup.GET("/package-tiers", packageTierController.GetAllTiers)

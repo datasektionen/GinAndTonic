@@ -328,6 +328,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.POST("send-test-email", authentication.RequireRole(models.RoleSuperAdmin, db), notificationController.SendTestEmail)
 
+	r = ManagerRoutes(r, db)
 	r = PlanEnrollmentRoutes(r, db)
 	r = AdminRoutes(r, db)
 

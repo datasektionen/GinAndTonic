@@ -54,8 +54,7 @@ type PlanEnrollment struct {
 	CreatorEmail   string          `gorm:"-" json:"creator_email"` // Not stored in the database
 	CreatorID      string          `json:"creator_id" gorm:"foreignKey:UGKthID"`
 	Creator        User            `json:"creator"`
-	Organizations  []Organization  `gorm:"foreignKey:PlanEnrollmentID" json:"organizations"`
-	NetworkID      *uint           `json:"network_id"`
+	NetworkID      uint            `json:"network_id"`
 	PackageTierID  uint            `json:"package_tier_id" gorm:"not null"`
 	Features       []Feature       `gorm:"many2many:package_features;" json:"features"`
 	MonthlyPrice   int             `json:"monthly_price"`  // Monthly amount billed monthly

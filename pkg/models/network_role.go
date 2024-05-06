@@ -7,8 +7,9 @@ import (
 type NetRole string
 
 const (
-	NetworkNode NetRole = "node"
-	NetworkRoot NetRole = "root"
+	NetworkSuperAdmin NetRole = "super_admin"
+	NetworkAdmin      NetRole = "admin"
+	NetworkMember     NetRole = "member"
 )
 
 type NetworkRole struct {
@@ -19,8 +20,9 @@ type NetworkRole struct {
 func InitializeNetworkRoles(db *gorm.DB) error {
 	// Define the roles you want to ensure exist
 	netRoles := []NetworkRole{
-		{Name: string(NetworkNode)},
-		{Name: string(NetworkRoot)},
+		{Name: string(NetworkSuperAdmin)},
+		{Name: string(NetworkAdmin)},
+		{Name: string(NetworkMember)},
 	}
 
 	// Check each role and create it if it doesn't exist
@@ -29,4 +31,10 @@ func InitializeNetworkRoles(db *gorm.DB) error {
 		db.Where("name = ?", netRole.Name).FirstOrCreate(&existingRole, netRole)
 	}
 	return nil
+}
+
+func GetNetworkRoleByName(db *gorm.DB, name string) (NetworkRole, error) {
+	var role NetworkRole
+	err := db.Where("name = ?", name).First(&role).Error
+	return role, err
 }

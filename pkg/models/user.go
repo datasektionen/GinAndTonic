@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -21,7 +20,7 @@ type User struct {
 	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
 	RequestToken            *string    `json:"-" gorm:"column:request_token;default:NULL"` // Used by guest users to make requests
 
-	NetworkID *uint `json:"network_id"`
+	NetworkID *uint `json:"network_id"` // Can be null since a user doesnt need to be a manager
 
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
@@ -29,6 +28,7 @@ type User struct {
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:UserUGKthID" json:"organization_user_roles"`
 	FoodPreferences       UserFoodPreference     `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`
 	Roles                 []Role                 `gorm:"many2many:user_roles;" json:"roles"`
+	NetworkUserRoles      []NetworkUserRole      `gorm:"foreignKey:UserUGKthID" json:"network_user_roles"`
 
 	// Other metrics
 	ShowedPostLogin bool `json:"showed_post_login" gorm:"default:false"`
@@ -73,6 +73,7 @@ func GetUserByUGKthIDIfExist(db *gorm.DB, userId string) (User, error) {
 	err := db.
 		Preload("Roles").
 		Preload("Organizations").
+		Preload("NetworkUserRoles").
 		Where("id = ?", userId).First(&user).Error
 	return user, err
 }
@@ -136,6 +137,36 @@ func (u *User) IsGuestCustomer(db *gorm.DB) bool {
 	return false
 }
 
+func (u *User) IsNetworkSuperAdmin() bool {
+	for _, r := range u.NetworkUserRoles {
+		if r.NetworkRoleName == NetworkSuperAdmin {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (u *User) IsNetworkAdmin() bool {
+	for _, r := range u.NetworkUserRoles {
+		if r.NetworkRoleName == NetworkAdmin {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (u *User) IsNetworkMember() bool {
+	for _, r := range u.NetworkUserRoles {
+		if r.NetworkRoleName == NetworkMember {
+			return true
+		}
+	}
+
+	return false
+}
+
 func GetUserPlanEnrollment(db *gorm.DB, user *User) (plan PlanEnrollment, err error) {
 	// One user can only belong to one PlanEnrollment since they can only be manager of one organization or network
 	// Since the user cannot belong to different plan enrollments, we can just get the first one
@@ -146,20 +177,6 @@ func GetUserPlanEnrollment(db *gorm.DB, user *User) (plan PlanEnrollment, err er
 		if err != nil {
 			return plan, err
 		}
-	}
-
-	// If that doesnt exist, get the plan enrollment of the first organization
-	for _, org := range user.Organizations {
-		fmt.Println("Org: ", org)
-		if org.PlanEnrollmentID == nil {
-			continue
-		}
-
-		plan, err = GetPlanEnrollmentByID(db, *org.PlanEnrollmentID)
-		if err != nil {
-			return plan, err
-		}
-		break
 	}
 
 	return plan, nil

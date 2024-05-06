@@ -11,9 +11,20 @@ type Network struct {
 	Name             string            `json:"name"`
 	PlanEnrollmentID uint              `json:"plan_enrollment_id"`
 	PlanEnrollment   PlanEnrollment    `json:"plan_enrollment"`
-	Users            []User            `gorm:"foreignKey:NetworkID" json:"users"`
+	Users            []User            `gorm:"-" json:"users"`
 	NetworkUserRoles []NetworkUserRole `gorm:"foreignKey:NetworkID" json:"network_user_roles"`
 	Organizations    []Organization    `gorm:"foreignKey:NetworkID" json:"organizations"`
+}
+
+// Get users when the network is loaded
+func (n *Network) AfterFind(tx *gorm.DB) (err error) {
+	var users []User
+	if err := tx.Where("network_id = ?", n.ID).Find(&users).Error; err != nil {
+		return err
+	}
+
+	n.Users = users
+	return nil
 }
 
 func GetNetworkByID(db *gorm.DB, id uint) (*Network, error) {
@@ -21,7 +32,6 @@ func GetNetworkByID(db *gorm.DB, id uint) (*Network, error) {
 	if err := db.
 		Preload("PlanEnrollment.Features").
 		Preload("PlanEnrollment.FeaturesUsages").
-		Preload("Users").
 		Preload("NetworkUserRoles").
 		Preload("Organizations.Users").
 		Preload("Organizations.OrganizationUserRoles").

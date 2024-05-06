@@ -39,7 +39,7 @@ func (ctrl *FeatureController) GetAllFeatures(c *gin.Context) {
 	}
 
 	var features []models.Feature
-	if err := ctrl.DB.Order(sort + " " + order).Offset((queryParams.Page - 1) * queryParams.PerPage).Limit(queryParams.PerPage).Find(&features).Error; err != nil {
+	if err := ctrl.DB.Order(sort + " " + order).Offset(queryParams.Range[0]).Limit(queryParams.Range[1] - queryParams.Range[0] + 1).Find(&features).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -48,11 +48,10 @@ func (ctrl *FeatureController) GetAllFeatures(c *gin.Context) {
 	ctrl.DB.Model(&models.Feature{}).Count(&count)
 
 	c.Header("X-Total-Count", fmt.Sprintf("%d", count))
-	c.Header("Content-Range", fmt.Sprintf("features %d-%d/%d", (queryParams.Page-1)*queryParams.PerPage, (queryParams.Page-1)*queryParams.PerPage+len(features)-1, count))
+	c.Header("Content-Range", fmt.Sprintf("features %d-%d/%d", queryParams.Range[0], queryParams.Range[1], count))
 
 	c.JSON(http.StatusOK, features)
 }
-
 func (ctrl *FeatureController) GetFeature(c *gin.Context) {
 	id := c.Param("id")
 	var feature models.Feature

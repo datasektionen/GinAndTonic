@@ -31,16 +31,19 @@ func (pc *PlanEnrollmentAdminController) GetAllEnrollments(c *gin.Context) {
 		return
 	}
 
-	var packages []models.PlanEnrollment
-	query := pc.DB.Preload("Creator").Preload("Network").Model(&models.PlanEnrollment{})
+	var enrollments []models.PlanEnrollment
+	query := pc.DB.Preload("Creator").Model(&models.PlanEnrollment{})
 
 	sortParam := c.DefaultQuery("sort", "id")
 	sortArray := strings.Split(strings.Trim(sortParam, "[]\""), "\",\"")
 	sort := sortArray[0]
-	order := sortArray[1]
+	order := "asc" // default order
+	if len(sortArray) > 1 {
+		order = sortArray[1]
+	}
 
 	// Execute query
-	if result := query.Order(fmt.Sprintf("%s %s", sort, order)).Offset((queryParams.Page - 1) * queryParams.PerPage).Limit(queryParams.PerPage).Find(&packages); result.Error != nil {
+	if result := query.Order(fmt.Sprintf("%s %s", sort, order)).Offset(queryParams.Range[0]).Limit(queryParams.Range[1] - queryParams.Range[0] + 1).Find(&enrollments); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
@@ -49,9 +52,9 @@ func (pc *PlanEnrollmentAdminController) GetAllEnrollments(c *gin.Context) {
 	var totalCount int64
 	pc.DB.Model(&models.PlanEnrollment{}).Count(&totalCount)
 	c.Header("X-Total-Count", fmt.Sprintf("%d", totalCount))
-	c.Header("Content-Range", fmt.Sprintf("packages %d-%d/%d", (queryParams.Page-1)*queryParams.PerPage, (queryParams.Page-1)*queryParams.PerPage+len(packages)-1, totalCount))
+	c.Header("Content-Range", fmt.Sprintf("enrollments %d-%d/%d", queryParams.Range[0], queryParams.Range[1], totalCount))
 
-	c.JSON(http.StatusOK, packages)
+	c.JSON(http.StatusOK, enrollments)
 }
 
 // GetPackage fetches a single pricing package by ID
@@ -77,8 +80,6 @@ func (pc *PlanEnrollmentAdminController) CreateEnrollment(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	fmt.Println(planEnrollment)
 
 	if result := pc.DB.Create(&planEnrollment); result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})

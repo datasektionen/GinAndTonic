@@ -67,6 +67,7 @@ func (fpes *FreePlanEnrollmentService) Enroll(user *models.User, body types.Free
 
 	// Create the plan enrollment
 	plan = models.PlanEnrollment{
+		ReferenceName: tier.Name + "-" + user.UGKthID,
 		CreatorID:     user.UGKthID,
 		OneTimePrice:  0,
 		Plan:          models.NoPayment,

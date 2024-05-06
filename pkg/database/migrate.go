@@ -1,23 +1,35 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/models/tr_methods"
 	"gorm.io/gorm"
 )
 
 func Migrate(db *gorm.DB) error {
+	fmt.Println("Migrating database...")
+
+	if err := db.AutoMigrate(&models.Network{}); err != nil {
+		fmt.Println("error", err)
+		return err
+	}
+
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		fmt.Println("error", err)
+		return err
+	}
+
 	err := db.AutoMigrate(
-		&models.Network{},
 		&models.PlanEnrollment{},
-		&models.User{},
+		&models.Organization{},
 		&models.FeatureGroup{},
 		&models.FeatureUsage{},
 		&models.FeatureLimit{},
 		&models.Feature{},
 		&models.PackageTier{},
 		&models.TicketReleaseMethod{},
-		&models.Organization{},
 		&models.TicketReleaseMethodDetail{},
 		&models.TicketRelease{},
 		&models.UserFoodPreference{},
@@ -48,5 +60,12 @@ func Migrate(db *gorm.DB) error {
 		&models.ReferralSource{},
 		&tr_methods.LotteryConfig{},
 	)
-	return err
+	if err != nil {
+		fmt.Println("error", err)
+		return err
+	}
+
+	fmt.Println("Database migrated successfully")
+
+	return nil
 }

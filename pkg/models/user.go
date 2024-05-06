@@ -20,8 +20,8 @@ type User struct {
 	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
 	RequestToken            *string    `json:"-" gorm:"column:request_token;default:NULL"` // Used by guest users to make requests
 
-	NetworkID *uint    `json:"network_id" gorm:"default:NULL"`
-	Network   *Network `json:"network"`
+	NetworkID *uint `json:"network_id" gorm:"default:NULL"`
+	Network   *Network
 
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`

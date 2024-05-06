@@ -41,9 +41,6 @@ func SetupTestDatabase(useForeignKeys bool) (*gorm.DB, error) {
 		db.Exec("PRAGMA foreign_keys = ON")
 	}
 
-	// Run migrations
-	err = db.AutoMigrate(modelslist...)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}

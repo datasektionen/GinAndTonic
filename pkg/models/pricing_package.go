@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type FeatureGroupType string
 type PaymentPlanType string
@@ -8,6 +12,7 @@ type PackageTierType string
 
 const (
 	FeatureGroupEventManagement     FeatureGroupType = "event_management"
+	FeatureGroupTeamManagement      FeatureGroupType = "team_management"
 	FeatureGroupTicketManagement    FeatureGroupType = "ticket_management"
 	FeatureGroupAPIIntegration      FeatureGroupType = "api_integration"
 	FeatureGroupSupport             FeatureGroupType = "support"
@@ -51,8 +56,9 @@ type PackageTier struct {
 
 type PlanEnrollment struct {
 	gorm.Model
+	ReferenceName  string          `json:"reference_name" gorm:"unique"`
 	CreatorEmail   string          `gorm:"-" json:"creator_email"` // Not stored in the database
-	CreatorID      string          `json:"creator_id" gorm:"foreignKey:UGKthID"`
+	CreatorID      string          `json:"creator_id"`
 	Creator        User            `json:"creator"`
 	PackageTierID  uint            `json:"package_tier_id" gorm:"not null"`
 	Features       []Feature       `gorm:"many2many:package_features;" json:"features"`
@@ -64,11 +70,12 @@ type PlanEnrollment struct {
 }
 
 type FeatureUsage struct {
-	gorm.Model
-	FeatureID        uint `json:"feature_id"`
-	PlanEnrollmentID uint `json:"plan_enrollment_id"`
-	Usage            int  `json:"usage"`
+	CreatedAt        time.Time `gorm:"primaryKey"`
+	FeatureID        uint      `gorm:"primaryKey;autoIncrement:false"`
+	PlanEnrollmentID uint      `gorm:"primaryKey;autoIncrement:false"`
+	Usage            int       `json:"usage"`
 }
+
 type Feature struct {
 	gorm.Model
 	Name            string         `json:"name" gorm:"unique"`
@@ -86,7 +93,9 @@ type FeatureLimit struct {
 	FeatureID        uint   `json:"feature_id"`
 	PackageTierID    uint   `json:"package_tier_id"`
 	LimitDescription string `json:"limit_description"`
-	Limit            *int   `json:"limit"`
+	Limit            *int   `json:"limit"` // This is a hard limit
+	MonthlyLimit     *int   `json:"monthly_limit"`
+	YearlyLimit      *int   `json:"yearly_limit"`
 }
 
 func InitializePackageTiers(db *gorm.DB) error {
@@ -111,6 +120,7 @@ func InitializeFeatureGroups(db *gorm.DB) error {
 	featureGroups := []FeatureGroup{
 		{Name: FeatureGroupEventManagement, Description: "Event management features"},
 		{Name: FeatureGroupTicketManagement, Description: "Ticket management features"},
+		{Name: FeatureGroupTeamManagement, Description: "Team management features"},
 		{Name: FeatureGroupAPIIntegration, Description: "API integration features"},
 		{Name: FeatureGroupSupport, Description: "Support features"},
 		{Name: FeatureGroupLandingPage, Description: "Landing page features"},

@@ -23,6 +23,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	model_default_values "github.com/DowLucas/gin-ticket-release/pkg/models/default_values"
 	"github.com/DowLucas/gin-ticket-release/pkg/routes"
 )
 
@@ -223,16 +224,16 @@ func main() {
 		}).Fatal("Failed to connect to database")
 	}
 
+	// Run migrations
+	if err := database.Migrate(db); err != nil {
+		panic("Failed to migrate database: " + err.Error())
+	}
+
 	err = models.CreateOrganizationUniqueIndex(db)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"error": err,
 		}).Fatal("Failed to create unique index for organizations")
-	}
-
-	// Run migrations
-	if err := database.Migrate(db); err != nil {
-		panic("Failed to migrate database: " + err.Error())
 	}
 
 	// Initialize roles
@@ -259,6 +260,10 @@ func main() {
 
 	if err := models.InitializeFeatureGroups(db); err != nil {
 		panic("Failed to initialize feature groups: " + err.Error())
+	}
+
+	if err := model_default_values.InitializeDefaultFeatures(db); err != nil {
+		panic("Failed to initialize default features: " + err.Error())
 	}
 
 	gin.SetMode(gin.ReleaseMode)

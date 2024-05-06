@@ -75,7 +75,6 @@ func init() {
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
-	db.AutoMigrate(&models.User{})
 }
 
 // Logout handles user logout

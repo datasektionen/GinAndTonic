@@ -65,6 +65,21 @@ func (fpes *FreePlanEnrollmentService) Enroll(user *models.User, body types.Free
 		return &types.ErrorResponse{StatusCode: 400, Message: "Name is already taken"}
 	}
 
+	// Create the plan enrollment
+	plan = models.PlanEnrollment{
+		CreatorID:     user.UGKthID,
+		OneTimePrice:  0,
+		Plan:          models.NoPayment,
+		PackageTierID: tier.ID,
+		Features:      tier.DefaultFeatures,
+	}
+
+	// If there's an error creating the plan enrollment, roll back the transaction and return an error
+	if err := fpes.DB.Create(&plan).Error; err != nil {
+		tx.Rollback()
+		return &types.ErrorResponse{StatusCode: 500, Message: "Error creating plan enrollment"}
+	}
+
 	// Create the network
 	network := models.Network{
 		Name:             body.Name,
@@ -81,22 +96,6 @@ func (fpes *FreePlanEnrollmentService) Enroll(user *models.User, body types.Free
 	if err != nil {
 		tx.Rollback()
 		return &types.ErrorResponse{StatusCode: 500, Message: "Error adding user to network"}
-	}
-
-	// Create the plan enrollment
-	plan = models.PlanEnrollment{
-		CreatorID:     user.UGKthID,
-		OneTimePrice:  0,
-		NetworkID:     network.ID,
-		Plan:          models.NoPayment,
-		PackageTierID: tier.ID,
-		Features:      tier.DefaultFeatures,
-	}
-
-	// If there's an error creating the plan enrollment, roll back the transaction and return an error
-	if err := fpes.DB.Create(&plan).Error; err != nil {
-		tx.Rollback()
-		return &types.ErrorResponse{StatusCode: 500, Message: "Error creating plan enrollment"}
 	}
 
 	// Create the organization

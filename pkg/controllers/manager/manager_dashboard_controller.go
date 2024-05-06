@@ -5,6 +5,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	manager_service "github.com/DowLucas/gin-ticket-release/pkg/services/manager"
+	response_utils "github.com/DowLucas/gin-ticket-release/utils/response"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -33,6 +34,11 @@ func (mc *ManagerController) GetNetworkDetails(c *gin.Context) {
 	network, rerr := mc.network_service.GetNetworkDetails(&user)
 	if rerr != nil {
 		c.JSON(rerr.StatusCode, gin.H{"error": rerr.Message})
+		return
+	}
+
+	if network == nil {
+		response_utils.RespondWithError(c, http.StatusUnauthorized, "User does not belong to a network")
 		return
 	}
 

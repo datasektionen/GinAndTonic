@@ -20,15 +20,25 @@ func NewOrganizationUsersController(db *gorm.DB, os *services.OrganisationServic
 	return &OrganisationUsersController{DB: db, OrganisationService: os}
 }
 
+type AddUserToOrganizationRequest struct {
+	Email string `json:"email" binding:"required"`
+}
+
 // AddUserToOrganization handles adding a user to an organization
 func (ouc *OrganisationUsersController) AddUserToOrganization(c *gin.Context) {
-	username, organizationID, err := ouc.parseParams(c)
+	organizationID, err := ouc.parseParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = ouc.OrganisationService.AddUserToOrganization(username, organizationID, models.OrganizationMember)
+	var req AddUserToOrganizationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = ouc.OrganisationService.AddUserToOrganization(req.Email, organizationID, models.OrganizationMember)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -39,13 +49,19 @@ func (ouc *OrganisationUsersController) AddUserToOrganization(c *gin.Context) {
 
 // RemoveUserFromOrganization handles removing a user from an organization
 func (ouc *OrganisationUsersController) RemoveUserFromOrganization(c *gin.Context) {
-	username, organizationID, err := ouc.parseParams(c)
+	organizationID, err := ouc.parseParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = ouc.OrganisationService.RemoveUserFromOrganization(username, organizationID)
+	var req AddUserToOrganizationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = ouc.OrganisationService.RemoveUserFromOrganization(req.Email, organizationID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -73,35 +89,35 @@ func (ouc *OrganisationUsersController) GetOrganizationUsers(c *gin.Context) {
 }
 
 func (ouc *OrganisationUsersController) ChangeUserOrganizationRole(c *gin.Context) {
-	username, organizationID, err := ouc.parseParams(c)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Check that the user is not changing their own role
-	err = ouc.checkUserNotSelf(c, username)
+	organizationID, err := ouc.parseParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	var req struct {
-		Role string `json:"role" binding:"required"`
+		Email string `json:"email" binding:"required"`
+		Role  string `json:"role" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	role, err := models.StringToOrgRole(req.Role)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = ouc.OrganisationService.ChangeUserRoleInOrganization(username, organizationID, role)
+	// Check that the user is not changing their own role
+	err = ouc.checkUserNotSelf(c, req.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = ouc.OrganisationService.ChangeUserRoleInOrganization(req.Email, organizationID, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -112,23 +128,26 @@ func (ouc *OrganisationUsersController) ChangeUserOrganizationRole(c *gin.Contex
 
 // Helper methods
 
-func (ouc *OrganisationUsersController) parseParams(c *gin.Context) (string, uint, error) {
-	username := c.Param("username")
+func (ouc *OrganisationUsersController) parseParams(c *gin.Context) (uint, error) {
 	organizationIDStr := c.Param("organizationID")
+
+	if organizationIDStr == "" {
+		return 0, fmt.Errorf("organization ID not provided")
+	}
 
 	organizationID, err := strconv.Atoi(organizationIDStr)
 	if err != nil {
-		return "", 0, fmt.Errorf("Invalid organization ID")
+		return 0, fmt.Errorf("invalid organization ID")
 	}
 
-	return username, uint(organizationID), nil
+	return uint(organizationID), nil
 }
 
 // check that checking user is not the same as the user being checked
 func (ouc *OrganisationUsersController) checkUserNotSelf(c *gin.Context, email string) error {
 	ugkthid, exists := c.Get("user_id")
 	if !exists {
-		return fmt.Errorf("User not authenticated")
+		return fmt.Errorf("user not authenticated")
 	}
 
 	user, err := models.GetUserByUGKthIDIfExist(ouc.DB, ugkthid.(string))
@@ -137,7 +156,7 @@ func (ouc *OrganisationUsersController) checkUserNotSelf(c *gin.Context, email s
 	}
 
 	if user.Email == email {
-		return fmt.Errorf("Cannot change your own role")
+		return fmt.Errorf("cannot change your own role")
 	}
 
 	return nil

@@ -47,11 +47,11 @@ func (os *OrganisationService) AddUserToOrganization(email string, organizationI
 	return nil
 }
 
-func (os *OrganisationService) RemoveUserFromOrganization(username string, organizationID uint) error {
+func (os *OrganisationService) RemoveUserFromOrganization(email string, organizationID uint) error {
 	var user models.User
 	var organization models.Organization
 
-	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
+	if err := os.DB.First(&user, "email = ?", email).Error; err != nil {
 		return fmt.Errorf("user not found")
 	}
 
@@ -65,7 +65,7 @@ func (os *OrganisationService) RemoveUserFromOrganization(username string, organ
 	}
 
 	if isOwner && len(organization.Users) == 1 {
-		return fmt.Errorf("user %v is the owner of the organization %v", username, organizationID)
+		return fmt.Errorf("user %v is the owner of the organization %v", email, organizationID)
 	}
 
 	// Start transaction
@@ -119,12 +119,12 @@ func (os *OrganisationService) isUserOwnerOfOrganization(userUGKthID string, org
 	return false, nil
 }
 
-func (os *OrganisationService) ChangeUserRoleInOrganization(username string, organizationID uint, newRole models.OrgRole) error {
+func (os *OrganisationService) ChangeUserRoleInOrganization(email string, organizationID uint, newRole models.OrgRole) error {
 	var user models.User
 	var organization models.Organization
 
 	// Find the user
-	if err := os.DB.First(&user, "username = ?", username).Error; err != nil {
+	if err := os.DB.First(&user, "email = ?", email).Error; err != nil {
 		return fmt.Errorf("user not found")
 	}
 

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -113,8 +112,6 @@ func Login(c *gin.Context) {
 func CurrentUser(c *gin.Context) {
 	// Get the user from the context
 	user_id := c.MustGet("user_id").(string)
-
-	fmt.Println("User ID: ", user_id)
 
 	// Get the user from the database
 	user, err := models.GetUserByUGKthIDIfExist(db, user_id)

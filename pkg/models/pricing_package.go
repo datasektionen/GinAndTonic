@@ -54,14 +54,13 @@ type PlanEnrollment struct {
 	CreatorEmail   string          `gorm:"-" json:"creator_email"` // Not stored in the database
 	CreatorID      string          `json:"creator_id" gorm:"foreignKey:UGKthID"`
 	Creator        User            `json:"creator"`
-	NetworkID      uint            `json:"network_id"`
 	PackageTierID  uint            `json:"package_tier_id" gorm:"not null"`
 	Features       []Feature       `gorm:"many2many:package_features;" json:"features"`
 	MonthlyPrice   int             `json:"monthly_price"`  // Monthly amount billed monthly
 	YearlyPrice    int             `json:"yearly_price"`   // Monthly amount billed yearly
 	OneTimePrice   int             `json:"one_time_price"` // One time payment
 	Plan           PaymentPlanType `json:"plan" gorm:"not null"`
-	FeaturesUsages []FeatureUsage  `json:"features_usage" gorm:"foreignKey:PlanEnrollmentID"`
+	FeaturesUsages []FeatureUsage  `json:"features_usages" gorm:"foreignKey:PlanEnrollmentID"`
 }
 
 type FeatureUsage struct {
@@ -70,7 +69,6 @@ type FeatureUsage struct {
 	PlanEnrollmentID uint `json:"plan_enrollment_id"`
 	Usage            int  `json:"usage"`
 }
-
 type Feature struct {
 	gorm.Model
 	Name            string         `json:"name" gorm:"unique"`

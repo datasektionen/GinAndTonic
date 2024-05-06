@@ -20,7 +20,8 @@ type User struct {
 	PasswordHash            *string    `json:"-" gorm:"column:password_hash;default:NULL"`
 	RequestToken            *string    `json:"-" gorm:"column:request_token;default:NULL"` // Used by guest users to make requests
 
-	NetworkID *uint `json:"network_id"` // Can be null since a user doesnt need to be a manager
+	NetworkID *uint    `json:"network_id" gorm:"default:NULL"`
+	Network   *Network `json:"network"`
 
 	Tickets               []Ticket               `json:"tickets"`
 	TicketRequests        []TicketRequest        `gorm:"foreignKey:UserUGKthID" json:"ticket_requests"`
@@ -74,6 +75,7 @@ func GetUserByUGKthIDIfExist(db *gorm.DB, userId string) (User, error) {
 		Preload("Roles").
 		Preload("Organizations").
 		Preload("NetworkUserRoles").
+		Preload("OrganizationUserRoles").
 		Where("id = ?", userId).First(&user).Error
 	return user, err
 }
@@ -90,7 +92,7 @@ func (u *User) FullName() string {
 	return u.FirstName + " " + u.LastName
 }
 
-func (u *User) IsRole(role RoleType) bool {
+func (u *User) HasRole(role RoleType) bool {
 	for _, r := range u.Roles {
 		if r.Name == role {
 			return true

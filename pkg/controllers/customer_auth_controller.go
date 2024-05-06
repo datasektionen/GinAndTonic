@@ -94,7 +94,7 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 			// Basically if the role type is customer it means that the account has not bee saved
 			// And cannot be logged in to, so the email can be used again.
 
-			if !existingUser.IsRole(models.RoleCustomer) {
+			if !existingUser.HasRole(models.RoleCustomerGuest) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
 				return
 			}

@@ -7,9 +7,9 @@ import (
 type NetRole string
 
 const (
-	NetworkSuperAdmin NetRole = "super_admin"
-	NetworkAdmin      NetRole = "admin"
-	NetworkMember     NetRole = "member"
+	NetworkSuperAdmin NetRole = "network_super_admin"
+	NetworkAdmin      NetRole = "network_admin"
+	NetworkMember     NetRole = "network_member"
 )
 
 type NetworkRole struct {

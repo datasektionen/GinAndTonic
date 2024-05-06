@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -84,7 +83,6 @@ func (ec *OrganisationController) ListOrganizations(c *gin.Context) {
 
 func (ec *OrganisationController) ListMyOrganizations(c *gin.Context) {
 	ugkthid, exists := c.Get("user_id")
-	fmt.Println(ugkthid)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return

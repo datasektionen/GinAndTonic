@@ -2,6 +2,7 @@ package model_default_values
 
 import (
 	"log"
+	"os"
 
 	m "github.com/DowLucas/gin-ticket-release/pkg/models"
 	"gorm.io/gorm"
@@ -374,18 +375,54 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 				{PackageTierID: tierIDs[m.PackageTierNetwork]},
 			},
 		},
+		{
+			Name:            "max_ticket_releases",
+			Description:     "Maximum number of ticket releases per event",
+			FeatureGroupID:  groupIDs[m.FeatureGroupTicketManagement],
+			IsAvailable:     true,
+			PackageTiersIDs: allIds,
+			FeatureLimits: []m.FeatureLimit{
+				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(1)},
+				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(2)},
+				{PackageTierID: tierIDs[m.PackageTierProfessional], Limit: pID(10)},
+				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Unlimited"},
+			},
+		},
+		{
+			Name:            "reserved_ticket_releases",
+			Description:     "Reserved ticket releases for events",
+			FeatureGroupID:  groupIDs[m.FeatureGroupTicketManagement],
+			IsAvailable:     true,
+			PackageTiersIDs: allIdsExceptFree,
+			FeatureLimits: []m.FeatureLimit{
+				{PackageTierID: tierIDs[m.PackageTierSingleEvent]},
+				{PackageTierID: tierIDs[m.PackageTierProfessional]},
+				{PackageTierID: tierIDs[m.PackageTierNetwork]},
+			},
+		},
 	}
 
 	return features
 }
 
 // Function that initially creates the default features in the database if they dont exist
+// NOTE: This function is called in main.go and should not be called again in the application
+// After the initial creation, the features can be updated in the database
+// Use react-admin to update the features in the database
 func InitializeDefaultFeatures(db *gorm.DB) error {
 	features := DefaultFeatures(db)
 
 	for _, feature := range features {
 		var existingFeature m.Feature
 		db.Where("name = ?", feature.Name).First(&existingFeature)
+
+		if existingFeature.ID != 0 {
+			if os.Getenv("ENV") == "prod" {
+				// return since we dont want to update the features in production
+				return nil
+			}
+			continue
+		}
 
 		featureToBeCreated := m.Feature{
 			Name:            feature.Name,
@@ -401,26 +438,15 @@ func InitializeDefaultFeatures(db *gorm.DB) error {
 				log.Println(err)
 				return err
 			}
-		} else {
-			// Update it
-			featureToBeCreated.ID = existingFeature.ID
-			if err := db.Save(&featureToBeCreated).Error; err != nil {
-				log.Println(err)
-				return err
-			}
 		}
 
 		// Relate the feature to the package tiers using the PackageTiersIDs that isnt stored in the database
+
 		for _, tierID := range feature.PackageTiersIDs {
 			var packageTier m.PackageTier
 			if err := db.First(&packageTier, tierID).Error; err != nil {
 				log.Println(err)
 				return err
-			}
-
-			// Check if the feature is already related to the package tier
-			if err := db.Model(&featureToBeCreated).Association("PackageTiers").Find(&packageTier); err == nil {
-				continue
 			}
 
 			featureToBeCreated.PackageTiers = append(featureToBeCreated.PackageTiers, packageTier)

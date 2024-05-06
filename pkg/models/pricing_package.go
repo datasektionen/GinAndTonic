@@ -42,32 +42,7 @@ type FeatureGroup struct {
 	Description string           `json:"description"`
 }
 
-type PackageTier struct {
-	gorm.Model
-	Name                 string           `json:"name" gorm:"unique"`
-	Tier                 PackageTierType  `json:"tier" gorm:"unique"`
-	Description          string           `json:"description"`
-	StandardMonthlyPrice int              `json:"standard_monthly_price"` // Monthly amount billed monthly
-	StandardYearlyPrice  int              `json:"standard_yearly_price"`  // Monthly amount billed yearly
-	PlanEnrollments      []PlanEnrollment `gorm:"foreignKey:PackageTierID" json:"plan_enrollments"`
-	DefaultFeatureIDs    []uint           `gorm:"-" json:"default_features"` // Temporary field to hold IDs
-	DefaultFeatures      []Feature        `gorm:"many2many:package_tier_default_features;"`
-}
 
-type PlanEnrollment struct {
-	gorm.Model
-	ReferenceName  string          `json:"reference_name" gorm:"unique"`
-	CreatorEmail   string          `gorm:"-" json:"creator_email"` // Not stored in the database
-	CreatorID      string          `json:"creator_id"`
-	Creator        User            `json:"creator"`
-	PackageTierID  uint            `json:"package_tier_id" gorm:"not null"`
-	Features       []Feature       `gorm:"many2many:package_features;" json:"features"`
-	MonthlyPrice   int             `json:"monthly_price"`  // Monthly amount billed monthly
-	YearlyPrice    int             `json:"yearly_price"`   // Monthly amount billed yearly
-	OneTimePrice   int             `json:"one_time_price"` // One time payment
-	Plan           PaymentPlanType `json:"plan" gorm:"not null"`
-	FeaturesUsages []FeatureUsage  `json:"features_usages" gorm:"foreignKey:PlanEnrollmentID"`
-}
 
 type FeatureUsage struct {
 	CreatedAt        time.Time `gorm:"primaryKey"`
@@ -76,17 +51,7 @@ type FeatureUsage struct {
 	Usage            int       `json:"usage"`
 }
 
-type Feature struct {
-	gorm.Model
-	Name            string         `json:"name" gorm:"unique"`
-	Description     string         `json:"description"`
-	FeatureGroupID  uint           `json:"feature_group_id"`
-	FeatureGroup    FeatureGroup   `json:"feature_group"`
-	IsAvailable     bool           `json:"is_available" gorm:"default:true"` // Indicates if a feature is available in a tier, can be expanded into specifics per tier
-	PackageTiers    []PackageTier  `gorm:"many2many:package_tier_default_features;"`
-	PackageTiersIDs []uint         `gorm:"-" json:"package_tiers"` // Temporary field to hold IDs
-	FeatureLimits   []FeatureLimit `json:"feature_limits" gorm:"foreignKey:FeatureID"`
-}
+
 
 type FeatureLimit struct {
 	gorm.Model

@@ -11,12 +11,12 @@ import (
 func Migrate(db *gorm.DB) error {
 	fmt.Println("Migrating database...")
 
-	if err := db.AutoMigrate(&models.Network{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}); err != nil {
 		fmt.Println("error", err)
 		return err
 	}
 
-	if err := db.AutoMigrate(&models.User{}); err != nil {
+	if err := db.AutoMigrate(&models.Network{}); err != nil {
 		fmt.Println("error", err)
 		return err
 	}

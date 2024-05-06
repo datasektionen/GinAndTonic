@@ -65,6 +65,13 @@ func (fpes *FreePlanEnrollmentService) Enroll(user *models.User, body types.Free
 		return &types.ErrorResponse{StatusCode: 400, Message: "Name is already taken"}
 	}
 
+	// Get the default features that come with the free plan
+	defaultFeatures, err := tier.GetDefaultFeatures(fpes.DB)
+	if err != nil {
+		tx.Rollback()
+		return &types.ErrorResponse{StatusCode: 500, Message: "Error getting default features"}
+	}
+
 	// Create the plan enrollment
 	plan = models.PlanEnrollment{
 		ReferenceName: tier.Name + "-" + user.UGKthID,
@@ -72,7 +79,7 @@ func (fpes *FreePlanEnrollmentService) Enroll(user *models.User, body types.Free
 		OneTimePrice:  0,
 		Plan:          models.NoPayment,
 		PackageTierID: tier.ID,
-		Features:      tier.DefaultFeatures,
+		Features:      defaultFeatures,
 	}
 
 	// If there's an error creating the plan enrollment, roll back the transaction and return an error

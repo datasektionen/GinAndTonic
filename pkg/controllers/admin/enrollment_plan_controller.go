@@ -32,7 +32,7 @@ func (pc *PlanEnrollmentAdminController) GetAllEnrollments(c *gin.Context) {
 	}
 
 	var enrollments []models.PlanEnrollment
-	query := pc.DB.Preload("Creator").Model(&models.PlanEnrollment{})
+	query := pc.DB.Model(&models.PlanEnrollment{})
 
 	sortParam := c.DefaultQuery("sort", "id")
 	sortArray := strings.Split(strings.Trim(sortParam, "[]\""), "\",\"")
@@ -61,10 +61,11 @@ func (pc *PlanEnrollmentAdminController) GetAllEnrollments(c *gin.Context) {
 func (pc *PlanEnrollmentAdminController) GetEnrollment(c *gin.Context) {
 	id := c.Param("id")
 	var planEnrollment models.PlanEnrollment
-	if result := pc.DB.First(&planEnrollment, id); result.Error != nil {
+	if result := pc.DB.Preload("Features").First(&planEnrollment, id); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": result.Error.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, planEnrollment)
 }
 
@@ -91,19 +92,51 @@ func (pc *PlanEnrollmentAdminController) CreateEnrollment(c *gin.Context) {
 // UpdatePackage updates an existing pricing package
 func (pc *PlanEnrollmentAdminController) UpdateEnrollment(c *gin.Context) {
 	id := c.Param("id")
-	var planEnrollment models.PlanEnrollment
-	if result := pc.DB.First(&planEnrollment, id); result.Error != nil {
+	var existingPlanEnrollment models.PlanEnrollment
+	if result := pc.DB.First(&existingPlanEnrollment, id); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Package not found"})
 		return
 	}
 
-	if err := c.ShouldBindJSON(&planEnrollment); err != nil {
+	var body models.PlanEnrollment
+	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	pc.DB.Save(&planEnrollment)
 
-	c.JSON(http.StatusOK, planEnrollment)
+	if body.PackageTierID != existingPlanEnrollment.PackageTierID {
+		var newTier models.PackageTier
+		if result := pc.DB.First(&newTier, body.PackageTierID); result.Error != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Tier not found"})
+			return
+		}
+
+		if err := existingPlanEnrollment.ClearFeatures(pc.DB); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error clearing default features"})
+			return
+		}
+
+		// Get the default features that come with the new tier
+		defaultFeatures, err := newTier.GetDefaultFeatures(pc.DB)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting default features"})
+			return
+		}
+
+		// Update the features
+		existingPlanEnrollment.Features = defaultFeatures
+	}
+
+	existingPlanEnrollment.ReferenceName = body.ReferenceName
+	existingPlanEnrollment.PackageTierID = body.PackageTierID
+	existingPlanEnrollment.MonthlyPrice = body.MonthlyPrice
+	existingPlanEnrollment.YearlyPrice = body.YearlyPrice
+	existingPlanEnrollment.OneTimePrice = body.OneTimePrice
+	existingPlanEnrollment.Plan = body.Plan
+
+	pc.DB.Save(&existingPlanEnrollment)
+
+	c.JSON(http.StatusOK, existingPlanEnrollment)
 }
 
 // DeletePackage deletes a pricing package

@@ -76,6 +76,7 @@ func GetUserByUGKthIDIfExist(db *gorm.DB, userId string) (User, error) {
 		Preload("Organizations").
 		Preload("NetworkUserRoles").
 		Preload("OrganizationUserRoles").
+		Preload("Network.PlanEnrollment.FeaturesUsages").
 		Where("id = ?", userId).First(&user).Error
 	return user, err
 }
@@ -182,4 +183,14 @@ func GetUserPlanEnrollment(db *gorm.DB, user *User) (plan PlanEnrollment, err er
 	}
 
 	return plan, nil
+}
+
+func (u *User) AddRole(db *gorm.DB, role RoleType) error {
+	var r Role
+	if err := db.Where("name = ?", role).First(&r).Error; err != nil {
+		return err
+	}
+
+	err := db.Model(u).Association("Roles").Append(&r)
+	return err
 }

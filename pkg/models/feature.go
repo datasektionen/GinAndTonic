@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"fmt"
+
+	"gorm.io/gorm"
+)
 
 // List of features and the plan they belong
 // Not a table in the database
@@ -19,6 +23,7 @@ type Feature struct {
 	PackageTiers    []PackageTier  `gorm:"many2many:package_tier_default_features;"`
 	PackageTiersIDs []uint         `gorm:"-" json:"package_tiers"` // Temporary field to hold IDs
 	FeatureLimits   []FeatureLimit `json:"feature_limits" gorm:"foreignKey:FeatureID"`
+	HasLimitAccess  bool           `gorm:"-" json:"has_limit_access"`
 }
 
 // Function that returns type
@@ -28,6 +33,13 @@ type RequiredPlanFeatures struct {
 	Plans       []PackageTierType `json:"plans"`
 }
 */
+
+func GetFeature(db *gorm.DB, name string) (feature Feature, err error) {
+	if err := db.Preload("PackageTiers").Where("name = ?", name).First(&feature).Error; err != nil {
+		return feature, err
+	}
+	return feature, nil
+}
 
 func GetAllRequiredPlanFeatures(db *gorm.DB) (requiredPlanFeatures []RequiredPlanFeatures, err error) {
 	var features []Feature
@@ -53,4 +65,63 @@ func GetAllRequiredPlanFeatures(db *gorm.DB) (requiredPlanFeatures []RequiredPla
 	}
 
 	return requiredPlanFeatures, nil
+}
+
+func (f *Feature) CanUseLimitedFeature(db *gorm.DB, planEnrollment *PlanEnrollment, objectReference *string) (bool, error) {
+	var featureLimit FeatureLimit
+	if err := db.Where("feature_id = ? AND package_tier_id = ?", f.ID, planEnrollment.PackageTierID).First(&featureLimit).Error; err != nil {
+		return false, err
+	}
+
+	fmt.Println(f.Name)
+
+	currentUsageModel, err := GetLatestFeatureUsage(db, f.ID, planEnrollment.ID, objectReference)
+	if err != nil {
+		return false, err
+	}
+
+	monthlyUsagesList, err := GetMonthlyFeatureUsages(db, f.ID, planEnrollment.ID, objectReference)
+	if err != nil {
+		return false, err
+	}
+
+	yearlyUsagesList, err := GetYearlyFeatureUsages(db, f.ID, planEnrollment.ID, objectReference)
+	if err != nil {
+		return false, err
+	}
+
+	currentUsage := currentUsageModel.Usage
+	monthlyUsage := GetTotalFeatureUsage(monthlyUsagesList)
+	yearlyUsage := GetTotalFeatureUsage(yearlyUsagesList)
+
+	fmt.Println("Current usage: ", currentUsage)
+	fmt.Println("Monthly usage: ", monthlyUsage)
+	fmt.Println("Yearly usage: ", yearlyUsage)
+
+	/*
+		- We now want to check the feature limit against the usages.
+	*/
+
+	// Hard limit
+	if featureLimit.Limit != nil {
+		if currentUsage >= *featureLimit.Limit {
+			return false, nil
+		}
+	}
+
+	// Monthly limit
+	if featureLimit.MonthlyLimit != nil && planEnrollment.Plan == PaymentPlanMonthly {
+		if monthlyUsage >= *featureLimit.MonthlyLimit {
+			return false, nil
+		}
+	}
+
+	// Yearly limit
+	if featureLimit.YearlyLimit != nil && planEnrollment.Plan == PaymentPlanYearly {
+		if yearlyUsage >= *featureLimit.YearlyLimit {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

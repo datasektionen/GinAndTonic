@@ -8,6 +8,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	feature_services "github.com/DowLucas/gin-ticket-release/pkg/services/features"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,8 @@ type TicketReleaseRequest struct {
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 	var req TicketReleaseRequest
+
+	user := c.MustGet("user").(models.User)
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -138,6 +141,13 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
+	eventID := string(req.EventID)                                                                                    // Convert req.EventID to string
+	err = feature_services.IncrementFeatureUsage(tx, user.Network.PlanEnrollment.ID, "max_ticket_releases", &eventID) // Pass the address of eventID
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	// Commit transaction
 	tx.Commit()
 
@@ -146,15 +156,9 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 
 func (trmc *TicketReleaseController) ListEventTicketReleases(c *gin.Context) {
 	var ticketReleases []models.TicketRelease
-	var user models.User
 
 	eventID := c.Param("eventID")
-	ugkthid, _ := c.Get("user_id")
-
-	if err := trmc.DB.Where("id = ?", ugkthid).First(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user"})
-		return
-	}
+	user := c.MustGet("user").(models.User)
 
 	// Convert the event ID to an integer
 	eventIDInt, err := strconv.Atoi(eventID)

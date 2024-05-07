@@ -317,8 +317,8 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			},
 		},
 		{
-			Name:            "custom_domain",
-			Description:     "Custom domain for your organization",
+			Name:            "custom_domains",
+			Description:     "Custom domains for your events",
 			FeatureGroupID:  groupIDs[m.FeatureGroupOther],
 			IsAvailable:     true,
 			PackageTiersIDs: allIdsExceptFree,

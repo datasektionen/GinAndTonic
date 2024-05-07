@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ type CompleteEventWorkflowController struct {
 }
 
 // NewCompleteEventWorkflowcontroller creates a new controller with the given database client
-func NewCompleteEventWorkflowController(db *gorm.DB, service *services.CompleteEventWorkflowService) *CompleteEventWorkflowController {
+func NewCompleteEventWorkflowController(db *gorm.DB) *CompleteEventWorkflowController {
 	return &CompleteEventWorkflowController{
 		DB:      db,
 		service: services.NewCompleteEventWorkflowService(db),
@@ -28,26 +29,22 @@ func NewCompleteEventWorkflowController(db *gorm.DB, service *services.CompleteE
 func (cewc *CompleteEventWorkflowController) CreateEvent(c *gin.Context) {
 	var err error
 
+	user := c.MustGet("user").(models.User)
+
 	var req types.EventFullWorkflowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ugkthid, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
-	}
-
-	err = cewc.service.CreateEvent(req, ugkthid.(string))
+	event, err := cewc.service.CreateEvent(req, &user)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Event created"})
+	c.JSON(http.StatusCreated, gin.H{"event": event})
 }
 
 func (cewc *CompleteEventWorkflowController) CreateTicketRelease(c *gin.Context) {

@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -40,27 +38,6 @@ type FeatureGroup struct {
 	gorm.Model
 	Name        FeatureGroupType `json:"name" gorm:"unique"`
 	Description string           `json:"description"`
-}
-
-
-
-type FeatureUsage struct {
-	CreatedAt        time.Time `gorm:"primaryKey"`
-	FeatureID        uint      `gorm:"primaryKey;autoIncrement:false"`
-	PlanEnrollmentID uint      `gorm:"primaryKey;autoIncrement:false"`
-	Usage            int       `json:"usage"`
-}
-
-
-
-type FeatureLimit struct {
-	gorm.Model
-	FeatureID        uint   `json:"feature_id"`
-	PackageTierID    uint   `json:"package_tier_id"`
-	LimitDescription string `json:"limit_description"`
-	Limit            *int   `json:"limit"` // This is a hard limit
-	MonthlyLimit     *int   `json:"monthly_limit"`
-	YearlyLimit      *int   `json:"yearly_limit"`
 }
 
 func InitializePackageTiers(db *gorm.DB) error {

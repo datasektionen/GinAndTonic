@@ -2,9 +2,11 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	feature_services "github.com/DowLucas/gin-ticket-release/pkg/services/features"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
@@ -48,7 +50,7 @@ func GenerateReferenceID(tx *gorm.DB) (*string, error) {
 	return &refId, nil
 }
 
-func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflowRequest, createdBy string) error {
+func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflowRequest, user *models.User) (revent *models.Event, err error) {
 	// Start a transaction
 	tx := es.DB.Begin()
 	defer func() {
@@ -58,14 +60,14 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 	}()
 
 	if tx.Error != nil {
-		return tx.Error
+		return nil, tx.Error
 	}
 
 	// Check if reference ID is unique
 	refId, err := GenerateReferenceID(tx)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Create Event
@@ -77,7 +79,7 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		Location:       data.Event.Location,
 		OrganizationID: data.Event.OrganizationID,
 		IsPrivate:      data.Event.IsPrivate,
-		CreatedBy:      createdBy,
+		CreatedBy:      user.UGKthID,
 	}
 
 	if data.Event.EndDate != nil {
@@ -87,20 +89,20 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 	token, err := utils.GenerateSecretToken()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	event.SecretToken = token
 
 	if err := tx.Create(&event).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	var ticketReleaseMethod models.TicketReleaseMethod
 	if err := tx.First(&ticketReleaseMethod, "id = ?", data.TicketRelease.TicketReleaseMethodID).Error; err != nil {
 		tx.Rollback()
-		return errors.New("invalid ticket release method ID")
+		return nil, errors.New("invalid ticket release method ID")
 	}
 
 	ticketReleaseMethodDetails := models.TicketReleaseMethodDetail{
@@ -114,36 +116,36 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	if err := tx.Create(&ticketReleaseMethodDetails).Error; err != nil {
 		tx.Rollback()
-		return errors.New("could not create ticket release method details")
+		return nil, errors.New("could not create ticket release method details")
 	}
 
 	method, err := models.NewTicketReleaseConfig(ticketReleaseMethod.MethodName, &ticketReleaseMethodDetails)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	if err := method.Validate(); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	var promoCode string
 	if data.TicketRelease.IsReserved {
 		if data.TicketRelease.PromoCode == "" {
 			tx.Rollback()
-			return errors.New("promo code is required for reserved ticket releases")
+			return nil, errors.New("promo code is required for reserved ticket releases")
 		}
 
 		promoCode, err = utils.EncryptString(data.TicketRelease.PromoCode)
 		if err != nil {
 			tx.Rollback()
-			return errors.New("could not hash promo code")
+			return nil, errors.New("could not hash promo code")
 		}
 	}
 
@@ -164,7 +166,7 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Create TicketTypes
@@ -179,12 +181,23 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 		if err := tx.Create(&ticketType).Error; err != nil {
 			tx.Rollback()
-			return err
+			return nil, err
 		}
 	}
 
+	eventID := fmt.Sprint(event.ID)
+	err = feature_services.IncrementFeatureUsages(tx, user.Network.PlanEnrollment.ID, []string{"max_events", "max_ticket_releases"}, &eventID)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
 	// Commit the transaction
-	return tx.Commit().Error
+	return &event, nil
 }
 
 func (es *CompleteEventWorkflowService) CreateTicketRelease(data types.TicketReleaseFullWorkFlowRequest, eventID int, UGKthId string) error {

@@ -108,8 +108,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	eventController := controllers.NewEventController(db)
 
-	completeEventWorkflowService := services.NewCompleteEventWorkflowService(db)
-	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db, completeEventWorkflowService)
 	userController := controllers.NewUserController(db)
 	sendOutService := services.NewSendOutService(db)
 	organizationService := services.NewOrganizationService(db)
@@ -173,7 +171,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.Any("/admin/monitoring/*any", authentication.RequireRole(models.RoleSuperAdmin, db), gin.WrapH(synqMonHandler)) // Serve asynqmon on /monitoring path
 
 	//Event routes
-	r.POST("/events", eventController.CreateEvent)
+
 	r.GET("/events", eventController.ListEvents)
 	r.GET("/events/:eventID", middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/events/:eventID/manage",
@@ -197,16 +195,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventController.DeleteEvent)
 
-	r.POST("/complete-event-workflow",
-		eventWorkflowController.CreateEvent)
-
 	// Contact
 	r.POST("/contact", contactController.CreateContact)
 	r.POST("/plan-contact", contactController.CreatePlanContact)
 
 	// Ticket release routes
 	r.GET("/events/:eventID/ticket-release", ticketReleaseController.ListEventTicketReleases)
-	r.POST("/events/:eventID/ticket-release", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.CreateTicketRelease)
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.GetTicketRelease)
 	r.PUT("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.UpdateTicketRelease)
 	r.DELETE("/events/:eventID/ticket-release/:ticketReleaseID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketReleaseController.DeleteTicketRelease)

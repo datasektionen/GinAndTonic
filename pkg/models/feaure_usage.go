@@ -9,8 +9,8 @@ import (
 
 type FeatureUsage struct {
 	CreatedAt        time.Time `gorm:"primaryKey"`
-	FeatureID        uint      `gorm:"primaryKey;autoIncrement:false"`
-	PlanEnrollmentID uint      `gorm:"primaryKey;autoIncrement:false"`
+	FeatureID        uint      `gorm:"primaryKey;autoIncrement:false" json:"feature_id"`
+	PlanEnrollmentID uint      `gorm:"primaryKey;autoIncrement:false" json:"plan_enrollment_id"`
 	ObjectReference  *string   `gorm:"default:null" json:"object_reference"`
 	Usage            int       `json:"usage"`
 }
@@ -76,7 +76,7 @@ func GetTotalFeatureUsage(usage []FeatureUsage) (totalUsage int) {
 
 	// If there's only one entry, return 0
 	if len(usage) == 1 {
-		return 0
+		return usage[0].Usage
 	}
 
 	// Assert that the usage list is ordered by time

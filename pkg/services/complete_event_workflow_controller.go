@@ -186,7 +186,20 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 	}
 
 	eventID := fmt.Sprint(event.ID)
-	err = feature_services.IncrementFeatureUsages(tx, user.Network.PlanEnrollment.ID, []string{"max_events", "max_ticket_releases"}, &eventID)
+	ticketReleaseID := fmt.Sprint(ticketRelease.ID)
+	err = feature_services.IncrementFeatureUsage(tx, user.Network.PlanEnrollment.ID, "max_ticket_releases_per_event", &eventID)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	err = feature_services.IncrementFeatureUsage(tx, user.Network.PlanEnrollment.ID, "max_events", nil)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	err = feature_services.IncrementFeatureUsage(tx, user.Network.PlanEnrollment.ID, "max_ticket_types_per_ticket_release", &ticketReleaseID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err

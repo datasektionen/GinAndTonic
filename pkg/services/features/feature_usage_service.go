@@ -25,6 +25,20 @@ func UpdateFeatureUsage(tx *gorm.DB, planEnrollmentID uint, featureName string, 
 		return err
 	}
 
+	if latestUsage == nil {
+		// Insert initial usage with usage = 0
+		var featureUsage models.FeatureUsage = models.FeatureUsage{
+			FeatureID:        feature.ID,
+			PlanEnrollmentID: planEnrollmentID,
+			Usage:            0,
+			ObjectReference:  objectReference,
+		}
+
+		if err := tx.Create(&featureUsage).Error; err != nil {
+			return err
+		}
+	}
+
 	var planEnrollment models.PlanEnrollment
 	if err := tx.First(&planEnrollment, planEnrollmentID).Error; err != nil {
 		return err

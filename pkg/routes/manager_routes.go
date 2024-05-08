@@ -28,7 +28,7 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	managerGroup.POST("/events/:eventID/ticket-release",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		feature_middleware.SetParamObjectReference("eventID"),
-		feature_middleware.RequireFeatureLimit(db, "max_ticket_releases"),
+		feature_middleware.RequireFeatureLimit(db, "max_ticket_releases_per_event"),
 		ticketReleaseController.CreateTicketRelease)
 
 	managerGroup.GET("/network", managerController.GetNetworkDetails)

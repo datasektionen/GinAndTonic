@@ -52,18 +52,6 @@ func (pe *PlanEnrollment) AfterCreate(tx *gorm.DB) (err error) {
 		return err
 	}
 
-	for _, feature := range allFeatures {
-		var featureUsage FeatureUsage = FeatureUsage{
-			FeatureID:        feature.ID,
-			PlanEnrollmentID: pe.ID,
-			Usage:            0,
-		}
-
-		if err := tx.Create(&featureUsage).Error; err != nil {
-			return err
-		}
-	}
-
 	var creator User
 	if err := tx.Where("id = ?", pe.CreatorID).First(&creator).Error; err != nil {
 		return err

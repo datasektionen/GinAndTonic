@@ -141,8 +141,8 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	eventID := string(req.EventID)                                                                                    // Convert req.EventID to string
-	err = feature_services.IncrementFeatureUsage(tx, user.Network.PlanEnrollment.ID, "max_ticket_releases", &eventID) // Pass the address of eventID
+	eventID := string(req.EventID)                                                                                              // Convert req.EventID to string
+	err = feature_services.IncrementFeatureUsage(tx, user.Network.PlanEnrollment.ID, "max_ticket_releases_per_event", &eventID) // Pass the address of eventID
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

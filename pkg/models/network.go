@@ -30,7 +30,7 @@ func (n *Network) AfterFind(tx *gorm.DB) (err error) {
 func GetNetworkByID(db *gorm.DB, id uint) (*Network, error) {
 	var network Network
 	if err := db.
-		Preload("PlanEnrollment.Features").
+		Preload("PlanEnrollment.Features.FeatureLimits").
 		Preload("PlanEnrollment.FeaturesUsages").
 		Preload("NetworkUserRoles").
 		Preload("Organizations.Users").

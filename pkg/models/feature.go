@@ -90,9 +90,19 @@ func (f *Feature) CanUseLimitedFeature(db *gorm.DB, planEnrollment *PlanEnrollme
 		return false, err
 	}
 
-	currentUsage := currentUsageModel.Usage
-	monthlyUsage := GetTotalFeatureUsage(monthlyUsagesList)
-	yearlyUsage := GetTotalFeatureUsage(yearlyUsagesList)
+	var currentUsage, monthlyUsage, yearlyUsage int
+
+	if currentUsageModel != nil {
+		currentUsage = currentUsageModel.Usage
+	}
+
+	if len(monthlyUsagesList) > 0 {
+		monthlyUsage = GetTotalFeatureUsage(monthlyUsagesList)
+	}
+
+	if len(yearlyUsagesList) > 0 {
+		yearlyUsage = GetTotalFeatureUsage(yearlyUsagesList)
+	}
 
 	fmt.Println("Current usage: ", currentUsage)
 	fmt.Println("Monthly usage: ", monthlyUsage)

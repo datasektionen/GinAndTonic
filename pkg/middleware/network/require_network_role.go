@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func RequireNetworkRole(db *gorm.DB, requiredRole models.NetworkRole) gin.HandlerFunc {
+func RequireNetworkRole(db *gorm.DB, requiredRole models.NetRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := c.MustGet("user").(models.User)
 
@@ -16,13 +16,19 @@ func RequireNetworkRole(db *gorm.DB, requiredRole models.NetworkRole) gin.Handle
 			return
 		}
 
-		networkRole, err := checkUserRole(db, user, requiredRole)
+		var role models.NetworkRole
+		if err := db.Where("name = ?", requiredRole).First(&role).Error; err != nil {
+			response_utils.RespondWithError(c, 500, "Unable to get network role")
+			return
+		}
+
+		networkRole, err := checkUserRole(db, user, role)
 		if err != nil {
 			response_utils.RespondWithError(c, 500, err.Error())
 			return
 		}
 
-		requiredNetworkRole, err := models.GetNetworkRoleByName(db, requiredRole.Name)
+		requiredNetworkRole, err := models.GetNetworkRoleByName(db, role.Name)
 		if err != nil {
 			response_utils.RespondWithError(c, 500, "Unable to get network role")
 			return

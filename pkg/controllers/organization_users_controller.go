@@ -16,8 +16,8 @@ type OrganisationUsersController struct {
 	OrganisationService *services.OrganisationService
 }
 
-func NewOrganizationUsersController(db *gorm.DB, os *services.OrganisationService) *OrganisationUsersController {
-	return &OrganisationUsersController{DB: db, OrganisationService: os}
+func NewOrganizationUsersController(db *gorm.DB) *OrganisationUsersController {
+	return &OrganisationUsersController{DB: db, OrganisationService: services.NewOrganizationService(db)}
 }
 
 type AddUserToOrganizationRequest struct {

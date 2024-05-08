@@ -151,8 +151,8 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			},
 		},
 		{
-			Name:            "max_teams",
-			Description:     "Maximum number of teams",
+			Name:            "max_teams_per_network",
+			Description:     "Maximum number of teams per network",
 			FeatureGroupID:  groupIDs[m.FeatureGroupTeamManagement],
 			IsAvailable:     true,
 			PackageTiersIDs: []uint{tierIDs[m.PackageTierFree], tierIDs[m.PackageTierSingleEvent], tierIDs[m.PackageTierProfessional], tierIDs[m.PackageTierNetwork]},
@@ -177,14 +177,14 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			},
 		},
 		{
-			Name:            "max_ticket_addons",
-			Description:     "Maximum number of ticket addons",
+			Name:            "max_ticket_addons_per_ticket",
+			Description:     "Maximum number of ticket addons per ticket",
 			FeatureGroupID:  groupIDs[m.FeatureGroupTicketManagement],
 			IsAvailable:     true,
 			PackageTiersIDs: []uint{tierIDs[m.PackageTierFree], tierIDs[m.PackageTierSingleEvent], tierIDs[m.PackageTierProfessional], tierIDs[m.PackageTierNetwork]},
 			FeatureLimits: []m.FeatureLimit{
 				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(0)},
-				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(5)},
+				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(3)},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], LimitDescription: "Unlimited"},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Custom"},
 			},

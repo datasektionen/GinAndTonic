@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func RequireFeature(feature string) gin.HandlerFunc {
+func RequireFeature(db *gorm.DB, featureName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get the user's package tier
 		user := c.MustGet("user").(models.User)
@@ -24,6 +24,36 @@ func RequireFeature(feature string) gin.HandlerFunc {
 			return
 		}
 
+		planEnrollment := user.Network.PlanEnrollment
+		if planEnrollment.ID == 0 {
+			c.JSON(500, gin.H{"error": "User does not have a plan enrollment"})
+			c.Abort()
+			return
+		}
+
+		var feature models.Feature
+		err := db.Where("name = ?", featureName).First(&feature).Error
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Error getting feature"})
+			c.Abort()
+			return
+		}
+
+		canUseFeature, err := feature.CanUseFeature(&planEnrollment)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Error checking feature usage"})
+			c.Abort()
+			return
+		}
+
+		if !canUseFeature {
+			c.JSON(403, gin.H{"error": "Feature limit exceeded"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
 	}
 }
 

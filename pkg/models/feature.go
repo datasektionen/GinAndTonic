@@ -67,6 +67,16 @@ func GetAllRequiredPlanFeatures(db *gorm.DB) (requiredPlanFeatures []RequiredPla
 	return requiredPlanFeatures, nil
 }
 
+func (f *Feature) CanUseFeature(planEnrollment *PlanEnrollment) (bool, error) {
+	for _, feature := range planEnrollment.Features {
+		if feature.Name == f.Name {
+			return true, nil
+		}
+	}
+
+	return true, nil
+}
+
 func (f *Feature) CanUseLimitedFeature(db *gorm.DB, planEnrollment *PlanEnrollment, objectReference *string) (bool, error) {
 	var featureLimit FeatureLimit
 	if err := db.Where("feature_id = ? AND package_tier_id = ?", f.ID, planEnrollment.PackageTierID).First(&featureLimit).Error; err != nil {

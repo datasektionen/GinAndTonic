@@ -16,8 +16,8 @@ type SendOutController struct {
 	sos *services.SendOutService
 }
 
-func NewSendOutController(db *gorm.DB, s *services.SendOutService) *SendOutController {
-	return &SendOutController{DB: db, sos: s}
+func NewSendOutController(db *gorm.DB) *SendOutController {
+	return &SendOutController{DB: db, sos: services.NewSendOutService(db)}
 }
 
 func (sor *SendOutController) GetEventSendOuts(c *gin.Context) {

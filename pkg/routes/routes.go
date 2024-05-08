@@ -109,17 +109,15 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventController := controllers.NewEventController(db)
 
 	userController := controllers.NewUserController(db)
-	sendOutService := services.NewSendOutService(db)
-	organizationService := services.NewOrganizationService(db)
 	allocateTicketsService := services.NewAllocateTicketsService(db)
 	bankingService := banking_service.NewBankingService(db)
 
-	organizationController := controllers.NewOrganizationController(db, organizationService)
+	organizationController := controllers.NewOrganizationController(db)
 	ticketReleaseMethodsController := controllers.NewTicketReleaseMethodsController(db)
 	ticketReleaseController := controllers.NewTicketReleaseController(db)
 	ticketReleasePromoCodeController := controllers.NewTicketReleasePromoCodeController(db)
 	ticketTypeController := controllers.NewTicketTypeController(db)
-	organizationUsersController := controllers.NewOrganizationUsersController(db, organizationService)
+	organizationUsersController := controllers.NewOrganizationUsersController(db)
 	userFoodPreferenceController := controllers.NewUserFoodPreferenceController(db)
 	ticketRequestController := controllers.NewTicketRequestController(db)
 	allocateTicketsController := controllers.NewAllocateTicketsController(db, allocateTicketsService)
@@ -129,8 +127,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	notificationController := controllers.NewNotificationController(db)
 	contactController := controllers.NewContactController(db)
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
-	sendOutcontroller := controllers.NewSendOutController(db, sendOutService)
-	salesReportController := controllers.NewSalesReportController(db)
 	eventFormFieldController := controllers.NewEventFormFieldController(db)
 	eventFromFieldResponseController := controllers.NewEventFormFieldResponseController(db)
 	addOnController := controllers.NewAddOnController(db)
@@ -258,7 +254,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Ticket events routes
 	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventController.ListTickets)
-	r.POST("/events/:eventID/tickets/qr-check-in", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.QrCodeCheckIn)
 
 	// My tickets
 	r.GET("/my-ticket-requests", ticketRequestController.UsersList)
@@ -267,20 +262,11 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Ticket routes
 	r.DELETE("/my-tickets/:ticketID", ticketsController.CancelTicket)
 
-	// send outs
-	r.GET("/events/:eventID/send-outs", middleware.AuthorizeEventAccess(db, models.OrganizationMember), sendOutcontroller.GetEventSendOuts)
-	r.POST("/events/:eventID/send-out", middleware.AuthorizeEventAccess(db, models.OrganizationMember), sendOutcontroller.SendOut)
-
 	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
 
-	// Sales report
-	r.POST("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.GenerateSalesReport)
-	r.GET("/events/:eventID/sales-report", middleware.AuthorizeEventAccess(db, models.OrganizationMember), salesReportController.ListSalesReport)
-
-	r.POST("/organizations", authentication.RequireRole(models.RoleSuperAdmin, db), organizationController.CreateOrganization)
 	r.GET("/organizations", organizationController.ListOrganizations)
 	r.GET("my-organizations", organizationController.ListMyOrganizations)
 	r.GET("/organizations/:organizationID", middleware.AuthorizeOrganizationAccess(db, models.OrganizationMember), organizationController.GetOrganization)

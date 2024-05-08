@@ -6,6 +6,7 @@ import (
 	manager_controller "github.com/DowLucas/gin-ticket-release/pkg/controllers/manager"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	feature_middleware "github.com/DowLucas/gin-ticket-release/pkg/middleware/feature"
+	network_middlewares "github.com/DowLucas/gin-ticket-release/pkg/middleware/network"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -16,11 +17,17 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	eventController := controllers.NewEventController(db)
 	eventWorkflowController := controllers.NewCompleteEventWorkflowController(db)
 	ticketReleaseController := controllers.NewTicketReleaseController(db)
+	ticketsController := controllers.NewTicketController(db)
+	sendOutcontroller := controllers.NewSendOutController(db)
+	salesReportController := controllers.NewSalesReportController(db)
+	organizationController := controllers.NewOrganizationController(db)
 
 	managerGroup := r.Group("/manager")
 	managerGroup.Use(authentication.ValidateTokenMiddleware(true))
 	managerGroup.Use(middleware.UserLoader(db))
 	managerGroup.Use(middleware.RequireUserManager())
+
+	managerGroup.GET("/network", managerController.GetNetworkDetails)
 
 	managerGroup.GET("/events", managerController.GetNetworkEvents)
 	managerGroup.POST("/events", feature_middleware.RequireFeatureLimit(db, "max_events"), eventController.CreateEvent)
@@ -31,7 +38,35 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 		feature_middleware.RequireFeatureLimit(db, "max_ticket_releases_per_event"),
 		ticketReleaseController.CreateTicketRelease)
 
-	managerGroup.GET("/network", managerController.GetNetworkDetails)
+	managerGroup.POST("/events/:eventID/tickets/qr-check-in",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		feature_middleware.RequireFeature(db, "check_in"),
+		ticketsController.QrCodeCheckIn)
+
+	// Sales report
+	managerGroup.POST("/events/:eventID/sales-report",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		feature_middleware.RequireFeature(db, "sales_reports"),
+		salesReportController.GenerateSalesReport)
+	managerGroup.GET("/events/:eventID/sales-report",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		feature_middleware.RequireFeature(db, "sales_reports"),
+		salesReportController.ListSalesReport)
+
+	// Send outs
+	managerGroup.GET("/events/:eventID/send-outs",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		feature_middleware.RequireFeature(db, "send_outs"),
+		sendOutcontroller.GetEventSendOuts)
+	managerGroup.POST("/events/:eventID/send-outs",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		feature_middleware.RequireFeature(db, "send_outs"),
+		sendOutcontroller.SendOut)
+
+	// Organizations
+	managerGroup.POST("/organizations", network_middlewares.RequireNetworkRole(db, models.NetworkAdmin),
+		feature_middleware.RequireFeatureLimit(db, "max_teams_per_network"),
+		organizationController.CreateNetworkOrganization)
 
 	return r
 }

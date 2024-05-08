@@ -2,7 +2,6 @@ package feature_services
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"gorm.io/gorm"
@@ -12,8 +11,6 @@ func UpdateFeatureUsage(tx *gorm.DB, planEnrollmentID uint, featureName string, 
 	if planEnrollmentID == 0 {
 		return errors.New("plan enrollment ID is required when preloading features")
 	}
-
-	fmt.Println("Incrementing feature usage for feature", featureName)
 
 	var feature models.Feature
 	if err := tx.First(&feature, "name = ?", featureName).Error; err != nil {
@@ -71,6 +68,20 @@ func IncrementFeatureUsage(tx *gorm.DB, planEnrollmentID uint, featureName strin
 func IncrementFeatureUsages(tx *gorm.DB, planEnrollmentID uint, featureNames []string, objectReference *string) error {
 	for _, featureName := range featureNames {
 		if err := UpdateFeatureUsage(tx, planEnrollmentID, featureName, 1, objectReference); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func DecrementFeatureUsage(tx *gorm.DB, planEnrollmentID uint, featureName string, objectReference *string) error {
+	return UpdateFeatureUsage(tx, planEnrollmentID, featureName, -1, objectReference)
+}
+
+func DecrementFeatureUsages(tx *gorm.DB, planEnrollmentID uint, featureNames []string, objectReference *string) error {
+	for _, featureName := range featureNames {
+		if err := UpdateFeatureUsage(tx, planEnrollmentID, featureName, -1, objectReference); err != nil {
 			return err
 		}
 	}

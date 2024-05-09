@@ -95,7 +95,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/customer/verify-email", customerAuthController.VerifyEmail)
 	r.POST("/customer/resend-verification-email", customerAuthController.ResendVerificationEmail)
 
-	// Password reset
+		// Password reset
 	r.POST("/password-reset", passwordResetController.CreatePasswordReset)
 	r.POST("/password-reset/complete", passwordResetController.CompletePasswordReset)
 
@@ -187,9 +187,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/events/:eventID",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventController.UpdateEvent)
-	r.DELETE("/events/:eventID",
-		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
-		eventController.DeleteEvent)
+
 
 	// Contact
 	r.POST("/contact", contactController.CreateContact)

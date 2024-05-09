@@ -126,13 +126,8 @@ func (u *User) IsSuperAdmin() bool {
 }
 
 func (u *User) IsGuestCustomer(db *gorm.DB) bool {
-	var role Role
-	if err := db.Where("name = ?", RoleCustomerGuest).First(&role).Error; err != nil {
-		return false
-	}
-
 	for _, r := range u.Roles {
-		if r.ID == role.ID {
+		if r.Name == RoleCustomerGuest {
 			return true
 		}
 	}

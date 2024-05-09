@@ -8,6 +8,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
+	feature_services "github.com/DowLucas/gin-ticket-release/pkg/services/features"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/pkg/validation"
 	"github.com/DowLucas/gin-ticket-release/utils"
@@ -113,10 +114,6 @@ func (ec *EventController) ListEvents(c *gin.Context) {
 	query.Find(&events)
 
 	ugkthid := c.GetString("user_id")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get user"})
-		return
-	}
 
 	var authorizedEvents []models.Event
 	for _, event := range events {
@@ -154,8 +151,6 @@ func (ec *EventController) GetEvent(c *gin.Context) {
 	} else {
 		ec.CustomerGetEvent(c)
 	}
-
-	return
 }
 
 func (ec *EventController) UserGetEvent(c *gin.Context) {
@@ -390,9 +385,17 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 func (ec *EventController) DeleteEvent(c *gin.Context) {
 	var event models.Event
 	id := c.Param("eventID")
+	user := c.MustGet("user").(models.User)
 
 	if err := ec.DB.Delete(&event, id).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Decrement the max_events
+	err := feature_services.DecrementFeatureUsage(ec.DB, user.Network.PlanEnrollment.ID, "max_events", nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error decrementing the feature usage"})
 		return
 	}
 

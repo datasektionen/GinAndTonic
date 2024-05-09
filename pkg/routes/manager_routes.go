@@ -32,6 +32,9 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	managerGroup.GET("/events", managerController.GetNetworkEvents)
 	managerGroup.POST("/events", feature_middleware.RequireFeatureLimit(db, "max_events"), eventController.CreateEvent)
 	managerGroup.POST("/complete-event-workflow", feature_middleware.RequireFeatureLimit(db, "max_events"), eventWorkflowController.CreateEvent)
+	managerGroup.DELETE("/events/:eventID",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		eventController.DeleteEvent)
 	managerGroup.POST("/events/:eventID/ticket-release",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		feature_middleware.SetParamObjectReference("eventID"),

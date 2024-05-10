@@ -84,7 +84,7 @@ func (ctrl *UserFoodPreferenceController) GuestGet(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := ctrl.DB.Where("id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
+	if err := ctrl.DB.Preload("Roles").Where("id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
 		return
 	}
@@ -125,7 +125,7 @@ func (ctrl *UserFoodPreferenceController) GuestUpdate(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := ctrl.DB.Where("id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
+	if err := ctrl.DB.Preload("Roles").Where("id = ? AND request_token = ?", ugKTHId, requestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
 		return
 	}

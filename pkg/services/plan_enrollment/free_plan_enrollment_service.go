@@ -1,7 +1,11 @@
 package plan_enrollment_service
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	feature_services "github.com/DowLucas/gin-ticket-release/pkg/services/features"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"gorm.io/gorm"
 )
@@ -100,7 +104,7 @@ func (fpes *FreePlanEnrollmentService) Enroll(user *models.User, body types.Free
 		return &types.ErrorResponse{StatusCode: 500, Message: "Error creating network"}
 	}
 
-	err = network.AddUserToNetwork(tx, *user, models.NetworkSuperAdmin)
+	err = network.AddUserToNetwork(tx, user, models.NetworkSuperAdmin)
 	if err != nil {
 		tx.Rollback()
 		return &types.ErrorResponse{StatusCode: 500, Message: "Error adding user to network"}
@@ -120,9 +124,16 @@ func (fpes *FreePlanEnrollmentService) Enroll(user *models.User, body types.Free
 	}
 
 	// Assign the user to the organization
-	if org.AddUserWithRole(tx, *user, models.OrganizationOwner) != nil {
+	if org.AddUserWithRole(tx, user, models.OrganizationOwner) != nil {
 		tx.Rollback()
 		return &types.ErrorResponse{StatusCode: 500, Message: "Error adding user to organization"}
+	}
+
+	networkID := fmt.Sprintf("%d", network.ID)
+	err = feature_services.IncrementFeatureUsage(tx, plan.ID, "max_teams_per_network", &networkID) // Pass the address of eventID
+	if err != nil {
+		tx.Rollback()
+		return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: err.Error()}
 	}
 
 	// Create the referral source

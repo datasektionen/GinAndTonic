@@ -211,12 +211,22 @@ func (eac *CustomerAuthController) LoginUser(c *gin.Context) {
 	}
 
 	// Find the user
-	var user models.User
-	if err := eac.DB.Preload("Roles").Where("email = ?", strings.ToLower(loginRequest.Email)).
-		First(&user).Error; err != nil {
+	var users []models.User
+	if err := eac.DB.Where("email = ? AND password_hash IS NOT NULL AND request_token IS NULL", strings.ToLower(loginRequest.Email)).
+		Find(&users).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return
 	}
+
+	if len(users) > 1 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error has occured"})
+		return
+	} else if len(users) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+		return
+	}
+
+	user := users[0]
 
 	if !user.VerifiedEmail {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email not verified"})
@@ -224,8 +234,14 @@ func (eac *CustomerAuthController) LoginUser(c *gin.Context) {
 	}
 
 	// Check the password
-	if !utils.CheckPasswordHash(loginRequest.Password, *user.PasswordHash) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+	if user.PasswordHash != nil {
+		// Check the password
+		if !utils.CheckPasswordHash(loginRequest.Password, *user.PasswordHash) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+			return
+		}
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No password set for this user"})
 		return
 	}
 

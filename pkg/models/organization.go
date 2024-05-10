@@ -16,7 +16,7 @@ type Organization struct {
 	Users                 []User                 `gorm:"many2many:organization_users;" json:"users"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
 	BankingDetail         BankingDetail          `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
-	NetworkID             uint                   `json:"network_id"`
+	NetworkID             uint                   `json:"network_id" binding:"required"`
 }
 
 func CreateOrganizationUniqueIndex(db *gorm.DB) error {
@@ -108,9 +108,9 @@ func GetAllOrganizationEvents(db *gorm.DB, orgId uint) (events []Event, err erro
 	return
 }
 
-func (o *Organization) AddUserWithRole(tx *gorm.DB, user User, role OrgRole) error {
+func (o *Organization) AddUserWithRole(tx *gorm.DB, user *User, role OrgRole) error {
 	// 1. Associate user with organization
-	if err := tx.Model(o).Association("Users").Append(&user); err != nil {
+	if err := tx.Model(o).Association("Users").Append(user); err != nil {
 		return err
 	}
 

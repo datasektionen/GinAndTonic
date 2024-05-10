@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -30,7 +31,7 @@ func (n *Network) AfterFind(tx *gorm.DB) (err error) {
 func GetNetworkByID(db *gorm.DB, id uint) (*Network, error) {
 	var network Network
 	if err := db.
-		Preload("PlanEnrollment.Features").
+		Preload("PlanEnrollment.Features.FeatureLimits").
 		Preload("PlanEnrollment.FeaturesUsages").
 		Preload("NetworkUserRoles").
 		Preload("Organizations.Users").
@@ -41,7 +42,7 @@ func GetNetworkByID(db *gorm.DB, id uint) (*Network, error) {
 	return &network, nil
 }
 
-func (n Network) AddUserToNetwork(db *gorm.DB, user User, role NetRole) error {
+func (n Network) AddUserToNetwork(db *gorm.DB, user *User, role NetRole) error {
 	// check if user already has a NetworkID
 	if user.NetworkID != nil {
 		return errors.New("user already belongs to a network")
@@ -63,8 +64,10 @@ func (n Network) AddUserToNetwork(db *gorm.DB, user User, role NetRole) error {
 		return err
 	}
 
-	user.NetworkID = &n.ID
-	if err := db.Save(&user).Error; err != nil {
+	netID := n.ID
+	fmt.Println(netID)
+	user.NetworkID = &netID
+	if err := db.Save(user).Error; err != nil {
 		return err
 	}
 
@@ -84,4 +87,13 @@ func (n Network) UserBelongsToNetwork(db *gorm.DB, user User) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (n Network) CreateNetworkOrganization(db *gorm.DB, organization *Organization, user *User) error {
+	organization.NetworkID = n.ID
+	if err := db.Create(organization).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

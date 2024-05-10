@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type PlanEnrollment struct {
 	gorm.Model
@@ -10,7 +12,7 @@ type PlanEnrollment struct {
 	Creator              User                   `json:"creator" gorm:"-"`
 	RequiredPlanFeatures []RequiredPlanFeatures `json:"required_plan_features" gorm:"-"`
 	PackageTierID        uint                   `json:"package_tier_id" gorm:"not null"`
-	Features             []Feature              `gorm:"many2many:package_features;" json:"features"`
+	Features             []*Feature             `gorm:"many2many:package_features;" json:"features"`
 	MonthlyPrice         int                    `json:"monthly_price"`  // Monthly amount billed monthly
 	YearlyPrice          int                    `json:"yearly_price"`   // Monthly amount billed yearly
 	OneTimePrice         int                    `json:"one_time_price"` // One time payment
@@ -33,6 +35,33 @@ func (pe *PlanEnrollment) AfterFind(tx *gorm.DB) (err error) {
 	}
 
 	pe.RequiredPlanFeatures = rpf
+
+	for idx := range pe.Features {
+		// Assuming 'feature' is now a *Feature (pointer to Feature)
+		f := pe.Features[idx]
+		f.HasLimitAccess = true
+	}
+
+	return nil
+}
+
+// After created
+func (pe *PlanEnrollment) AfterCreate(tx *gorm.DB) (err error) {
+	var allFeatures []Feature
+	if err := tx.Find(&allFeatures).Error; err != nil {
+		return err
+	}
+
+	var creator User
+	if err := tx.Where("id = ?", pe.CreatorID).First(&creator).Error; err != nil {
+		return err
+	}
+
+	// Add the role of Manager to the creator to signify that they are manager aswell
+	err = creator.AddRole(tx, RoleManager)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

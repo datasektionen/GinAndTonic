@@ -36,7 +36,7 @@ func (os *OrganisationService) AddUserToOrganization(email string, organizationI
 	}()
 
 	// Assign user to organization and set its role
-	if err := organization.AddUserWithRole(tx, user, organizationRole); err != nil {
+	if err := organization.AddUserWithRole(tx, &user, organizationRole); err != nil {
 		tx.Rollback()
 		return err
 	}

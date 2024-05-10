@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
-	"github.com/DowLucas/gin-ticket-release/utils"
+	feature_services "github.com/DowLucas/gin-ticket-release/pkg/services/features"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -17,12 +18,21 @@ type OrganisationController struct {
 	OrganisationService *services.OrganisationService
 }
 
-func NewOrganizationController(db *gorm.DB, os *services.OrganisationService) *OrganisationController {
-	return &OrganisationController{DB: db, OrganisationService: os}
+func NewOrganizationController(db *gorm.DB) *OrganisationController {
+	return &OrganisationController{DB: db, OrganisationService: services.NewOrganizationService(db)}
 }
 
-func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
+func (ec *OrganisationController) CreateNetworkOrganization(c *gin.Context) {
 	var organization models.Organization
+
+	user := c.MustGet("user").(models.User)
+
+	network := user.Network
+
+	if network == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User does not belong to a network"})
+		return
+	}
 
 	if err := c.ShouldBindJSON(&organization); err != nil {
 		log.Println(err)
@@ -47,25 +57,20 @@ func (ec *OrganisationController) CreateOrganization(c *gin.Context) {
 		return
 	}
 
-	if err := ec.DB.Create(&organization).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetDBError(err)})
-		return
-	}
-
-	createdByUserUGKthID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-		return
-	}
-
-	// Get username
-	var user models.User
-	if err := ec.DB.Where("id = ?", createdByUserUGKthID).First(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": utils.GetDBError(err)})
+	if err := network.CreateNetworkOrganization(ec.DB, &organization, &user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	ec.OrganisationService.AddUserToOrganization(user.Email, organization.ID, models.OrganizationOwner)
+
+	// Increment the max_teams_per_network
+	networkID := fmt.Sprintf("%d", *user.NetworkID)                                                                           // Convert req.EventID to string
+	err := feature_services.IncrementFeatureUsage(ec.DB, user.Network.PlanEnrollment.ID, "max_teams_per_network", &networkID) // Pass the address of eventID
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"organization": organization})
 }
@@ -170,6 +175,7 @@ func (ec *OrganisationController) UpdateOrganization(c *gin.Context) {
 func (ec *OrganisationController) DeleteOrganization(c *gin.Context) {
 	var organization models.Organization
 	id := c.Param("organizationID")
+	user := c.MustGet("user").(models.User)
 
 	if err := ec.DB.First(&organization, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Organization not found"})
@@ -178,6 +184,13 @@ func (ec *OrganisationController) DeleteOrganization(c *gin.Context) {
 
 	if err := ec.DB.Delete(&organization).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	networkID := fmt.Sprintf("%d", *user.NetworkID)                                                                           // Convert req.EventID to string
+	err := feature_services.DecrementFeatureUsage(ec.DB, user.Network.PlanEnrollment.ID, "max_teams_per_network", &networkID) // Pass the address of eventID
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

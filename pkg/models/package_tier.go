@@ -14,12 +14,10 @@ type PackageTier struct {
 	DefaultFeatures      []Feature        `gorm:"many2many:package_tier_default_features;"`
 }
 
-func (pt *PackageTier) GetDefaultFeatures(tx *gorm.DB) (defaultFeatures []Feature, err error) {
-	var features []Feature
-	if err := tx.Model(pt).Association("DefaultFeatures").Find(&features); err != nil {
+func (pt *PackageTier) GetDefaultFeatures(tx *gorm.DB) (defaultFeatures []*Feature, err error) {
+	if err := tx.Model(pt).Association("DefaultFeatures").Find(&defaultFeatures); err != nil {
 		return nil, err
 	}
 
-	return features, nil
+	return defaultFeatures, nil
 }
-

@@ -402,6 +402,19 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			},
 		},
 		{
+			Name:            "max_ticket_types_per_ticket_release",
+			Description:     "Maximum number of ticket types per event",
+			FeatureGroupID:  groupIDs[m.FeatureGroupTicketManagement],
+			IsAvailable:     true,
+			PackageTiersIDs: allIds,
+			FeatureLimits: []m.FeatureLimit{
+				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(1)},
+				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(5)},
+				{PackageTierID: tierIDs[m.PackageTierProfessional], Limit: pID(10)},
+				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Unlimited"},
+			},
+		},
+		{
 			Name:            "reserved_ticket_releases",
 			Description:     "Reserved ticket releases for events",
 			FeatureGroupID:  groupIDs[m.FeatureGroupTicketManagement],

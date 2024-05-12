@@ -21,6 +21,7 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	sendOutcontroller := controllers.NewSendOutController(db)
 	salesReportController := controllers.NewSalesReportController(db)
 	organizationController := controllers.NewOrganizationController(db)
+	eventLandingPageController := controllers.NewEventLandingPageController(db)
 
 	managerGroup := r.Group("/manager")
 	managerGroup.Use(authentication.ValidateTokenMiddleware(true))
@@ -29,6 +30,7 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 
 	managerGroup.GET("/network", managerController.GetNetworkDetails)
 
+	// Events
 	managerGroup.GET("/events", managerController.GetNetworkEvents)
 	managerGroup.POST("/events", feature_middleware.RequireFeatureLimit(db, "max_events"), eventController.CreateEvent)
 	managerGroup.POST("/complete-event-workflow", feature_middleware.RequireFeatureLimit(db, "max_events"), eventWorkflowController.CreateEvent)
@@ -40,11 +42,24 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 		feature_middleware.SetParamObjectReference("eventID"),
 		feature_middleware.RequireFeatureLimit(db, "max_ticket_releases_per_event"),
 		ticketReleaseController.CreateTicketRelease)
-
 	managerGroup.POST("/events/:eventID/tickets/qr-check-in",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		feature_middleware.RequireFeature(db, "check_in"),
 		ticketsController.QrCodeCheckIn)
+
+	// Event landing page
+	managerGroup.GET("/events/:eventID/landing-page",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		eventLandingPageController.GetEventLandingPage)
+	managerGroup.PUT("/events/:eventID/landing-page",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		eventLandingPageController.SaveEventLandingPage)
+	managerGroup.GET("/events/:eventID/landing-page/editor",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		eventLandingPageController.GetEventLandingPageEditorState)
+	managerGroup.PUT("/events/:eventID/landing-page/editor",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		eventLandingPageController.SaveEventLandingPageEditorState)
 
 	// Sales report
 	managerGroup.POST("/events/:eventID/sales-report",

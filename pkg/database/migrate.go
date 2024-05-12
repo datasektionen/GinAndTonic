@@ -38,6 +38,7 @@ func Migrate(db *gorm.DB) error {
 		&models.NetworkRole{},
 		&models.EventFormFieldResponse{},
 		&models.Event{},
+		&models.EventLandingPage{},
 		&models.TicketType{},
 		&models.Ticket{},
 		&models.TicketRequest{},

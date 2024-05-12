@@ -60,7 +60,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	config := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Headers", "Content-Range"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Accept", "Authorization", "Range"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Accept", "Authorization", "Range", "X-Requested-With"},
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
 	}
@@ -95,7 +95,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/customer/verify-email", customerAuthController.VerifyEmail)
 	r.POST("/customer/resend-verification-email", customerAuthController.ResendVerificationEmail)
 
-		// Password reset
+	// Password reset
 	r.POST("/password-reset", passwordResetController.CreatePasswordReset)
 	r.POST("/password-reset/complete", passwordResetController.CompletePasswordReset)
 
@@ -149,7 +149,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
 	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
-
+	r.GET("/view/events/:refID/landing-page", eventController.GetUsersView)
 	r.GET("/guest-customer/:ugkthid/activate-promo-code/:eventID", ticketReleasePromoCodeController.GuestCreate)
 	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
 	r.GET("/guest-customer/:ugkthid", guestController.Get)
@@ -187,7 +187,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/events/:eventID",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventController.UpdateEvent)
-
 
 	// Contact
 	r.POST("/contact", contactController.CreateContact)

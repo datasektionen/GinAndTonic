@@ -176,6 +176,7 @@ func (ec *EventController) UserGetEvent(c *gin.Context) {
 		Preload("TicketReleases.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Preload("TicketReleases.PaymentDeadline").
 		Preload("FormFields").
+		Preload("LandingPage").
 		Preload("TicketReleases.AddOns").
 		Find(&event, eventID).Error
 
@@ -267,6 +268,7 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 		Preload("TicketReleases.PaymentDeadline").
 		Preload("FormFields").
 		Preload("TicketReleases.AddOns").
+		Preload("LandingPage").
 		Where("reference_id = ?", refID).
 		First(&event).Error
 	if err != nil {
@@ -462,4 +464,37 @@ func (ec *EventController) GetEventSecretToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"secret_token": event.SecretToken})
+}
+
+func (ec *EventController) GetUsersView(c *gin.Context) {
+	// A user should be able to view the event landing page, so get the html and css
+
+	eventIDstring := c.Param("refID")
+	eventID, err := strconv.Atoi(eventIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	var event models.Event
+	result := ec.DB.Preload("LandingPage").First(&event, eventID)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Event landing page not found"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	if event.LandingPage.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event landing page not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"html": event.LandingPage.HTML,
+		"css":  event.LandingPage.CSS,
+	})
 }

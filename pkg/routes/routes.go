@@ -168,7 +168,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	//Event routes
 
-	r.GET("/events", eventController.ListEvents)
+	r.GET("/events", authentication.RequireRole(models.RoleSuperAdmin, db), eventController.ListEvents)
 	r.GET("/events/:eventID", middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/events/:eventID/manage",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember), gin.HandlerFunc(func(c *gin.Context) {

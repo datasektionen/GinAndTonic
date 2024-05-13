@@ -119,3 +119,29 @@ func (elpc *EventLandingPageController) GetEventLandingPageEditorState(c *gin.Co
 	c.JSON(http.StatusOK, landingPage.EditorState)
 }
 
+type EventLandingPageEnabledBody struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (elpc *EventLandingPageController) ToggleLandingPageEnabled(c *gin.Context) {
+	eventIDstring := c.Param("eventID")
+	eventID, err := strconv.Atoi(eventIDstring)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+
+	var body EventLandingPageEnabledBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	rerr := elpc.service.ToggleLandingPageEnabled(uint(eventID), body.Enabled)
+	if rerr != nil {
+		c.JSON(rerr.StatusCode, gin.H{"error": rerr.Message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Event landing page enabled status updated successfully"})
+}

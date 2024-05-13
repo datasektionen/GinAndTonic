@@ -212,7 +212,7 @@ func (eac *CustomerAuthController) LoginUser(c *gin.Context) {
 
 	// Find the user
 	var users []models.User
-	if err := eac.DB.Where("email = ? AND password_hash IS NOT NULL AND request_token IS NULL", strings.ToLower(loginRequest.Email)).
+	if err := eac.DB.Preload("Roles").Where("email = ? AND password_hash IS NOT NULL AND request_token IS NULL", strings.ToLower(loginRequest.Email)).
 		Find(&users).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return

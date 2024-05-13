@@ -60,6 +60,9 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	managerGroup.PUT("/events/:eventID/landing-page/editor",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventLandingPageController.SaveEventLandingPageEditorState)
+	managerGroup.PUT("/events/:eventID/landing-page/set-enabled",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		eventLandingPageController.ToggleLandingPageEnabled)
 
 	// Sales report
 	managerGroup.POST("/events/:eventID/sales-report",

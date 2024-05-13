@@ -72,3 +72,32 @@ func (elp *EventLandingPageService) SaveEventLandingPageEditorState(stateBytes [
 
 	return nil
 }
+
+func (elp *EventLandingPageService) ToggleLandingPageEnabled(eventID uint, enabled bool) *types.ErrorResponse {
+	// Find existing landing page
+	var existing models.EventLandingPage
+	result := elp.db.Where("event_id = ?", eventID).First(&existing)
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		return &types.ErrorResponse{StatusCode: 500, Message: result.Error.Error()}
+	}
+
+	// If landing page exists, update it
+	if existing.ID != 0 {
+		result = elp.db.Model(&existing).Update("enabled", enabled)
+		if result.Error != nil {
+			return &types.ErrorResponse{StatusCode: 500, Message: result.Error.Error()}
+		}
+	} else {
+		// If landing page does not exist, create it
+		landingPage := models.EventLandingPage{
+			EventID: eventID,
+			Enabled: enabled,
+		}
+		result = elp.db.Create(&landingPage)
+		if result.Error != nil {
+			return &types.ErrorResponse{StatusCode: 500, Message: result.Error.Error()}
+		}
+	}
+
+	return nil
+}

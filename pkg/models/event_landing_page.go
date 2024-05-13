@@ -12,6 +12,8 @@ type EventLandingPage struct {
 	EventID     uint            `json:"event_id"`
 	HTML        string          `gorm:"type:text" json:"html"`
 	CSS         string          `gorm:"type:text" json:"css"`
+	JS          string          `gorm:"type:text" json:"js"`
+	Enabled     bool            `json:"enabled" default:"false"` // Defines if the landing page is enabled, show default landing page if not enabled
 	EditorState json.RawMessage `gorm:"type:json" json:"editor_state"`
 }
 

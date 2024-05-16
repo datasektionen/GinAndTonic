@@ -6,6 +6,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type CommonEventLocation struct {
+	Name string `json:"name"`
+}
+
 // Event is a struct that represents an event in the database
 type Event struct {
 	gorm.Model

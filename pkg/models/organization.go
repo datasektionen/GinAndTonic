@@ -12,11 +12,34 @@ type Organization struct {
 	gorm.Model
 	Name                  string                 `json:"name"`
 	Email                 string                 `json:"email" gorm:"unique"`
+	CommonEventLocations  []CommonEventLocation  `gorm:"-" json:"common_event_locations"`
 	Events                []Event                `gorm:"foreignKey:OrganizationID" json:"events"`
 	Users                 []User                 `gorm:"many2many:organization_users;" json:"users"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
 	BankingDetail         BankingDetail          `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
 	NetworkID             uint                   `json:"network_id" binding:"required"`
+}
+
+func (o *Organization) AfterFind(tx *gorm.DB) (err error) {
+	// Get 25 latest events
+	var events []Event
+	var locations []CommonEventLocation
+
+	fmt.Println("AfterFind")
+
+	if err := tx.Limit(25).Order("date desc").Where("organization_id = ?", o.ID).Find(&events).Error; err != nil {
+		return err
+	}
+
+	// Get all common event locations
+	for _, event := range events {
+		location := CommonEventLocation{Name: event.Location}
+		locations = append(locations, location)
+	}
+
+	o.CommonEventLocations = locations
+
+	return nil
 }
 
 func CreateOrganizationUniqueIndex(db *gorm.DB) error {

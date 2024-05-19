@@ -17,7 +17,7 @@ type Organization struct {
 	Users                 []User                 `gorm:"many2many:organization_users;" json:"users"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
 	BankingDetail         BankingDetail          `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
-	NetworkID             uint                   `json:"network_id" binding:"required"`
+	NetworkID             uint                   `json:"network_id"`
 }
 
 func (o *Organization) AfterFind(tx *gorm.DB) (err error) {
@@ -25,9 +25,7 @@ func (o *Organization) AfterFind(tx *gorm.DB) (err error) {
 	var events []Event
 	var locations []CommonEventLocation
 
-	fmt.Println("AfterFind")
-
-	if err := tx.Limit(25).Order("date desc").Where("organization_id = ?", o.ID).Find(&events).Error; err != nil {
+	if err := tx.Unscoped().Limit(25).Order("date desc").Where("organization_id = ?", o.ID).Find(&events).Error; err != nil {
 		return err
 	}
 

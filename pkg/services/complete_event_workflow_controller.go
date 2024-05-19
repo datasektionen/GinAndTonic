@@ -70,6 +70,8 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		return nil, err
 	}
 
+	fmt.Println(data.Event.OrganizationID)
+
 	// Create Event
 	event := models.Event{
 		ReferenceID:    *refId,

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -438,6 +439,8 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested ticket requests"})
 		return
 	}
+
+	fmt.Println(len(tickets), len(ticketRequests))
 
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets, "ticket_requests": ticketRequests})
 }

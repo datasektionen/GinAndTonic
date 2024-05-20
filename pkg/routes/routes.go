@@ -138,7 +138,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	var rlmURLParam *RateLimiterMiddleware
 	if os.Getenv("ENV") == "dev" {
 		// For development, we dont really care about the rate limit
-		rlm = NewRateLimiterMiddleware(2, 5)
+		rlm = NewRateLimiterMiddleware(rate.Limit(0.1), 1)
 		rlmURLParam = NewRateLimiterMiddleware(2, 5)
 	} else {
 		rlm = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)

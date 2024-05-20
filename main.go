@@ -262,7 +262,7 @@ func main() {
 		panic("Failed to initialize feature groups: " + err.Error())
 	}
 
-	if err := model_default_values.InitializeDefaultFeatures(db); err != nil {
+	if err := model_default_values.InitializeBETADefaultFeatures(db); err != nil {
 		panic("Failed to initialize default features: " + err.Error())
 	}
 

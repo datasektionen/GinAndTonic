@@ -8,66 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-/*
-Defines the default values for the feature model in the application.
-
-type Feature struct {
-	gorm.Model
-	Name            string         `json:"name" gorm:"unique"`
-	Description     string         `json:"description"`
-	FeatureGroupID  uint           `json:"feature_group_id"`
-	FeatureGroup    FeatureGroup   `json:"feature_group"`
-	IsAvailable     bool           `json:"is_available" gorm:"default:true"` // Indicates if a feature is available in a tier, can be expanded into specifics per tier
-	PackageTiers    []PackageTier  `gorm:"many2many:package_tier_default_features;"`
-	PackageTiersIDs []uint         `gorm:"-" json:"package_tiers"` // Temporary field to hold IDs
-	FeatureLimits   []FeatureLimit `json:"feature_limits" gorm:"foreignKey:FeatureID"`
-}
-
-const (
-	FeatureGroupEventManagement     FeatureGroupType = "event_management"
-	FeatureGroupTicketManagement    FeatureGroupType = "ticket_management"
-	FeatureGroupAPIIntegration      FeatureGroupType = "api_integration"
-	FeatureGroupSupport             FeatureGroupType = "support"
-	FeatureGroupLandingPage         FeatureGroupType = "landing_page"
-	FeatureGroupFinancialManagement FeatureGroupType = "financial_management"
-	FeatureGroupEmailManagement     FeatureGroupType = "email_management"
-	FeatureGroupOther               FeatureGroupType = "other"
-)
-
-type FeatureUsage struct {
-	CreatedAt        time.Time `gorm:"primaryKey"`
-	FeatureID        uint      `gorm:"primaryKey;autoIncrement:false"`
-	PlanEnrollmentID uint      `gorm:"primaryKey;autoIncrement:false"`
-	Usage            int       `json:"usage"`
-}
-
-const (
-	PackageTierFree         PackageTierType = "free"
-	PackageTierSingleEvent  PackageTierType = "single_event"
-	PackageTierProfessional PackageTierType = "professional"
-	PackageTierNetwork      PackageTierType = "network"
-)
-
-type PackageTier struct {
-	gorm.Model
-	Name                 string           `json:"name" gorm:"unique"`
-	Tier                 PackageTierType  `json:"tier" gorm:"unique"`
-	Description          string           `json:"description"`
-	StandardMonthlyPrice int              `json:"standard_monthly_price"` // Monthly amount billed monthly
-	StandardYearlyPrice  int              `json:"standard_yearly_price"`  // Monthly amount billed yearly
-	PlanEnrollments      []PlanEnrollment `gorm:"foreignKey:PackageTierID" json:"plan_enrollments"`
-	DefaultFeatureIDs    []uint           `gorm:"-" json:"default_features"` // Temporary field to hold IDs
-	DefaultFeatures      []Feature        `gorm:"many2many:package_tier_default_features;"`
-}
-
-
-type FeatureGroup struct {
-	gorm.Model
-	Name        FeatureGroupType `json:"name" gorm:"unique"`
-	Description string           `json:"description"`
-}
-*/
-
 func GetFeatureGroupID(db *gorm.DB, name m.FeatureGroupType) uint {
 	var featureGroup m.FeatureGroup
 	db.Where("name = ?", name).First(&featureGroup)
@@ -431,6 +371,52 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 	return features
 }
 
+func addFreeTierToFeature(feature m.Feature, freeTierID uint) m.Feature {
+	// Check if the Free tier is already included in the PackageTiersIDs
+	included := false
+	for _, id := range feature.PackageTiersIDs {
+		if id == freeTierID {
+			included = true
+			break
+		}
+	}
+	// If not included, add the Free tier to PackageTiersIDs
+	if !included {
+		feature.PackageTiersIDs = append(feature.PackageTiersIDs, freeTierID)
+	}
+	// Ensure the Free tier has a corresponding FeatureLimit if applicable
+	freeTierLimitIncluded := false
+	for _, limit := range feature.FeatureLimits {
+		if limit.PackageTierID == freeTierID {
+			freeTierLimitIncluded = true
+			break
+		}
+	}
+	// Add a default FeatureLimit for the Free tier if not already included
+	if !freeTierLimitIncluded {
+		feature.FeatureLimits = append(feature.FeatureLimits, m.FeatureLimit{
+			PackageTierID: freeTierID,
+		})
+	}
+	return feature
+}
+
+func FreeBetaFeatures(db *gorm.DB) []m.Feature {
+	_, tierIDs := fetchIDsForGroupsAndTiers(db)
+	freeTierID := tierIDs[m.PackageTierFree]
+
+	// Get the default features
+	defaultFeatures := DefaultFeatures(db)
+
+	// Create FreeBetaFeatures by adding Free tier to each feature
+	freeBetaFeatures := make([]m.Feature, len(defaultFeatures))
+	for i, feature := range defaultFeatures {
+		freeBetaFeatures[i] = addFreeTierToFeature(feature, freeTierID)
+	}
+
+	return freeBetaFeatures
+}
+
 // Function that initially creates the default features in the database if they dont exist
 // NOTE: This function is called in main.go and should not be called again in the application
 // After the initial creation, the features can be updated in the database
@@ -468,6 +454,71 @@ func InitializeDefaultFeatures(db *gorm.DB) error {
 
 		// Relate the feature to the package tiers using the PackageTiersIDs that isnt stored in the database
 
+		for _, tierID := range feature.PackageTiersIDs {
+			var packageTier m.PackageTier
+			if err := db.First(&packageTier, tierID).Error; err != nil {
+				log.Println(err)
+				return err
+			}
+
+			featureToBeCreated.PackageTiers = append(featureToBeCreated.PackageTiers, packageTier)
+		}
+
+		var featureLimits []m.FeatureLimit
+
+		for _, featureLimit := range feature.FeatureLimits {
+			featureLimit.FeatureID = featureToBeCreated.ID
+			featureLimits = append(featureLimits, featureLimit)
+		}
+
+		featureToBeCreated.FeatureLimits = featureLimits
+
+		// Save it
+		if err := db.Save(&featureToBeCreated).Error; err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Function that initially creates the default features in the database if they don't exist
+// NOTE: This function is called in main.go and should not be called again in the application
+// After the initial creation, the features can be updated in the database
+// Use react-admin to update the features in the database
+func InitializeBETADefaultFeatures(db *gorm.DB) error {
+	features := FreeBetaFeatures(db) // Use FreeBetaFeatures instead of DefaultFeatures
+
+	for _, feature := range features {
+		var existingFeature m.Feature
+		db.Where("name = ?", feature.Name).First(&existingFeature)
+
+		if existingFeature.ID != 0 {
+			if os.Getenv("ENV") == "prod" {
+				// return since we don't want to update the features in production
+				return nil
+			}
+			continue
+		}
+
+		featureToBeCreated := m.Feature{
+			Name:            feature.Name,
+			Description:     feature.Description,
+			FeatureGroupID:  feature.FeatureGroupID,
+			IsAvailable:     feature.IsAvailable,
+			PackageTiersIDs: feature.PackageTiersIDs,
+		}
+
+		if existingFeature.ID == 0 {
+			// Create it
+			if err := db.Create(&featureToBeCreated).Error; err != nil {
+				log.Println(err)
+				return err
+			}
+		}
+
+		// Relate the feature to the package tiers using the PackageTiersIDs that isn't stored in the database
 		for _, tierID := range feature.PackageTiersIDs {
 			var packageTier m.PackageTier
 			if err := db.First(&packageTier, tierID).Error; err != nil {

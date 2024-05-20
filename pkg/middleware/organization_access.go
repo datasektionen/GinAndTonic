@@ -36,7 +36,7 @@ func AuthorizeOrganizationAccess(db *gorm.DB, requiredRole models.OrgRole) gin.H
 		}
 
 		if !authorized {
-			c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Event not found"})
 			c.Abort()
 			return
 		}

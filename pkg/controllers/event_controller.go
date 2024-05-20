@@ -217,7 +217,7 @@ func (ec *EventController) UserGetEvent(c *gin.Context) {
 	}
 
 	if !authorized {
-		c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Event not found"})
 		return
 	}
 
@@ -283,7 +283,7 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 	if event.IsPrivate {
 		secretToken := c.Query("secret_token")
 		if secretToken == "" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Event not found"})
 			return
 		}
 
@@ -296,7 +296,7 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 	}
 
 	if !authorized {
-		c.JSON(http.StatusForbidden, gin.H{"error": "User not authorized for this event"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Event not found"})
 		return
 	}
 

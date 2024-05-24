@@ -84,7 +84,7 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			IsAvailable:     true,
 			PackageTiersIDs: []uint{tierIDs[m.PackageTierFree], tierIDs[m.PackageTierSingleEvent], tierIDs[m.PackageTierProfessional], tierIDs[m.PackageTierNetwork]},
 			FeatureLimits: []m.FeatureLimit{
-				{PackageTierID: tierIDs[m.PackageTierFree], MonthlyLimit: pID(200), YearlyLimit: pID(200)},
+				{PackageTierID: tierIDs[m.PackageTierFree]},
 				{PackageTierID: tierIDs[m.PackageTierSingleEvent], MonthlyLimit: pID(500), YearlyLimit: pID(500)},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], MonthlyLimit: pID(2500), YearlyLimit: pID(30000)},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Custom"},
@@ -97,7 +97,7 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			IsAvailable:     true,
 			PackageTiersIDs: []uint{tierIDs[m.PackageTierFree], tierIDs[m.PackageTierSingleEvent], tierIDs[m.PackageTierProfessional], tierIDs[m.PackageTierNetwork]},
 			FeatureLimits: []m.FeatureLimit{
-				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(1), LimitDescription: "1"},
+				{PackageTierID: tierIDs[m.PackageTierFree]},
 				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(1), LimitDescription: "1"},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], Limit: pID(5), LimitDescription: "5"},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Custom"},
@@ -110,7 +110,7 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			IsAvailable:     true,
 			PackageTiersIDs: []uint{tierIDs[m.PackageTierFree], tierIDs[m.PackageTierSingleEvent], tierIDs[m.PackageTierProfessional], tierIDs[m.PackageTierNetwork]},
 			FeatureLimits: []m.FeatureLimit{
-				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(1), LimitDescription: "1"},
+				{PackageTierID: tierIDs[m.PackageTierFree]},
 				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(1), LimitDescription: "1"},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], LimitDescription: "Unlimited"},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Unlimited"},
@@ -123,7 +123,7 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			IsAvailable:     true,
 			PackageTiersIDs: []uint{tierIDs[m.PackageTierFree], tierIDs[m.PackageTierSingleEvent], tierIDs[m.PackageTierProfessional], tierIDs[m.PackageTierNetwork]},
 			FeatureLimits: []m.FeatureLimit{
-				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(0), LimitDescription: "0"},
+				{PackageTierID: tierIDs[m.PackageTierFree]},
 				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(3), LimitDescription: "3"},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], LimitDescription: "Unlimited"},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Custom"},
@@ -322,7 +322,7 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			IsAvailable:     true,
 			PackageTiersIDs: allIds,
 			FeatureLimits: []m.FeatureLimit{
-				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(1), LimitDescription: "1"},
+				{PackageTierID: tierIDs[m.PackageTierFree]},
 				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(2), LimitDescription: "2"},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], Limit: pID(10), LimitDescription: "10"},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Unlimited"},
@@ -335,7 +335,7 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			IsAvailable:     true,
 			PackageTiersIDs: allIds,
 			FeatureLimits: []m.FeatureLimit{
-				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(1), LimitDescription: "1"},
+				{PackageTierID: tierIDs[m.PackageTierFree]},
 				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(5), LimitDescription: "5"},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], Limit: pID(10), LimitDescription: "10"},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Unlimited"},
@@ -348,7 +348,7 @@ func DefaultFeatures(db *gorm.DB) []m.Feature {
 			IsAvailable:     true,
 			PackageTiersIDs: allIds,
 			FeatureLimits: []m.FeatureLimit{
-				{PackageTierID: tierIDs[m.PackageTierFree], Limit: pID(1)},
+				{PackageTierID: tierIDs[m.PackageTierFree]},
 				{PackageTierID: tierIDs[m.PackageTierSingleEvent], Limit: pID(5)},
 				{PackageTierID: tierIDs[m.PackageTierProfessional], Limit: pID(10)},
 				{PackageTierID: tierIDs[m.PackageTierNetwork], LimitDescription: "Unlimited"},

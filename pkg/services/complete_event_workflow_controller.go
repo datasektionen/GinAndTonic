@@ -164,6 +164,7 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		IsReserved:                  data.TicketRelease.IsReserved,
 		PromoCode:                   &promoCode,
 		AllowExternal:               data.TicketRelease.AllowExternal,
+		SaveTemplate:                data.TicketRelease.SaveTemplate,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {

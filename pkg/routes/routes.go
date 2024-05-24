@@ -211,6 +211,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
 
+	r.GET("/templates/ticket-releases/", ticketReleaseController.GetTemplateTicketReleases)
+	r.PUT("/templates/ticket-releases/:ticketReleaseID/unsave", ticketReleaseController.UnsaveTemplate)
+
 	// Site vists
 	r.GET("/events/:eventID/overview", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventSiteVistsController.Get)
 

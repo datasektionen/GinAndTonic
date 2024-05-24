@@ -60,6 +60,7 @@ type TicketReleasePostReq struct {
 	IsReserved            bool   `json:"is_reserved"`
 	PromoCode             string `json:"promo_code"`
 	TicketsAvailable      int    `json:"tickets_available"`
+	SaveTemplate          bool   `json:"save_template"`
 }
 
 type TicketTypePostReq struct {

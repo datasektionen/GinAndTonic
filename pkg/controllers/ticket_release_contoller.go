@@ -40,6 +40,7 @@ type TicketReleaseRequest struct {
 	PromoCode             string `json:"promo_code"`
 	TicketsAvailable      int    `json:"tickets_available"`
 	MethodDescription     string `json:"method_description"`
+	SaveTemplate          bool   `json:"save_template"`
 }
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
@@ -133,6 +134,7 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		PromoCode:                   promoCode,
 		TicketsAvailable:            req.TicketsAvailable,
 		AllowExternal:               req.AllowExternal,
+		SaveTemplate:                req.SaveTemplate,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
@@ -374,6 +376,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketRelease.IsReserved = req.IsReserved
 	ticketRelease.PromoCode = promoCode
 	ticketRelease.AllowExternal = req.AllowExternal
+	ticketRelease.SaveTemplate = req.SaveTemplate
 
 	// Update ticket release method details
 	var ticketReleaseMethodDetails models.TicketReleaseMethodDetail
@@ -480,4 +483,86 @@ func (trmc *TicketReleaseController) UpdatePaymentDeadline(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully updated payment deadline"})
+}
+
+// Get template ticket releases
+func (trmc *TicketReleaseController) GetTemplateTicketReleases(c *gin.Context) {
+	var ticketReleases []models.TicketRelease
+
+	user := c.MustGet("user").(models.User)
+
+	var organizations []models.Organization = user.Organizations
+	// Get organizations latests events
+
+	eventIds := []int{}
+	for _, organization := range organizations {
+		var events []models.Event
+		if err := trmc.DB.Where("organization_id = ?", organization.ID).Find(&events).Error; err != nil {
+			utils.HandleDBError(c, err, "listing the events")
+			return
+		}
+
+		for _, event := range events {
+			eventIds = append(eventIds, int(event.ID))
+		}
+	}
+
+	if err := trmc.DB.
+		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketTypes").
+		Where("event_id IN (?) AND save_template = ?", eventIds, true).
+		Find(&ticketReleases).Error; err != nil {
+		utils.HandleDBError(c, err, "listing the ticket releases")
+		return
+	}
+
+	// Remove ticket releases that have the property IsReserved set to true
+	var ticketReleasesFiltered []models.TicketRelease = []models.TicketRelease{}
+
+	for _, ticketRelease := range ticketReleases {
+		if !ticketRelease.IsReserved {
+			ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+		} else {
+			if ticketRelease.UserHasAccessToTicketRelease(trmc.DB, user.UGKthID) {
+				ticketReleasesFiltered = append(ticketReleasesFiltered, ticketRelease)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ticket_releases": ticketReleasesFiltered})
+}
+
+// Unsave template
+func (trmc *TicketReleaseController) UnsaveTemplate(c *gin.Context) {
+	ticketReleaseID := c.Param("ticketReleaseID")
+
+	// Convert the ticketRelease ID to an integer
+	ticketReleaseIDInt, err := strconv.Atoi(ticketReleaseID)
+
+	user := c.MustGet("user").(models.User)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release ID"})
+		return
+	}
+
+	var ticketRelease models.TicketRelease
+	if err := trmc.DB.First(&ticketRelease, "id = ?", ticketReleaseIDInt).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket release not found"})
+		return
+	}
+
+	if !ticketRelease.UserHasAccessToTicketRelease(trmc.DB, user.UGKthID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "User does not have access to ticket release"})
+		return
+	}
+
+	ticketRelease.SaveTemplate = false
+
+	if err := trmc.DB.Save(&ticketRelease).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error updating the ticket release"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ticket_release": ticketRelease})
 }

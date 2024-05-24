@@ -359,6 +359,7 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 	}
 	event.OrganizationID = eventRequest.OrganizationID
 	event.IsPrivate = eventRequest.IsPrivate
+	event.CollectFoodPreferences = eventRequest.CollectFoodPreferences
 
 	if eventRequest.IsPrivate && event.SecretToken == "" {
 		token, err := utils.GenerateSecretToken()

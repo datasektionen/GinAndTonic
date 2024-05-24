@@ -74,14 +74,15 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 	// Create Event
 	event := models.Event{
-		ReferenceID:    *refId,
-		Name:           data.Event.Name,
-		Description:    data.Event.Description,
-		Date:           time.Unix(data.Event.Date, 0),
-		Location:       data.Event.Location,
-		OrganizationID: data.Event.OrganizationID,
-		IsPrivate:      data.Event.IsPrivate,
-		CreatedBy:      user.UGKthID,
+		ReferenceID:            *refId,
+		Name:                   data.Event.Name,
+		Description:            data.Event.Description,
+		Date:                   time.Unix(data.Event.Date, 0),
+		Location:               data.Event.Location,
+		OrganizationID:         data.Event.OrganizationID,
+		IsPrivate:              data.Event.IsPrivate,
+		CreatedBy:              user.UGKthID,
+		CollectFoodPreferences: data.Event.CollectFoodPreferences,
 	}
 
 	if data.Event.EndDate != nil {

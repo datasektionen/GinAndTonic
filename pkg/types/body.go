@@ -25,13 +25,14 @@ type TicketReleaseRequest struct {
 }
 
 type EventRequest struct {
-	Name           string `json:"name"`
-	Description    string `json:"description"`
-	Date           int64  `json:"date"`
-	EndDate        *int64 `json:"end_date"`
-	Location       string `json:"location"`
-	OrganizationID int    `json:"organization_id"`
-	IsPrivate      bool   `json:"is_private"`
+	Name                   string `json:"name"`
+	Description            string `json:"description"`
+	Date                   int64  `json:"date"`
+	EndDate                *int64 `json:"end_date"`
+	Location               string `json:"location"`
+	OrganizationID         int    `json:"organization_id"`
+	IsPrivate              bool   `json:"is_private"`
+	CollectFoodPreferences bool   `json:"collect_food_preferences"`
 }
 
 type EventFullWorkflowRequest struct {

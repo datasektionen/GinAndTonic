@@ -16,7 +16,11 @@ func Migrate(db *gorm.DB) error {
 		return err
 	}
 
-	if err := db.AutoMigrate(&models.Network{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.Network{},
+		&models.NetworkDetails{},
+		&models.NetworkMerchant{},
+	); err != nil {
 		fmt.Println("error", err)
 		return err
 	}
@@ -61,6 +65,7 @@ func Migrate(db *gorm.DB) error {
 		&models.ReferralSource{},
 		&tr_methods.LotteryConfig{},
 	)
+	
 	if err != nil {
 		fmt.Println("error", err)
 		return err

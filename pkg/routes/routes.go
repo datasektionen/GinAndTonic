@@ -9,11 +9,11 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
-	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	banking_service "github.com/DowLucas/gin-ticket-release/pkg/services/banking"
+	surfboard_service_merchant "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard/merchant"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -176,8 +176,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		}))
 
 	r.GET("/test", authentication.RequireRole(models.RoleSuperAdmin, db), func(c *gin.Context) {
-		jobs.StartEventSiteVisitsJob(db)
-		c.JSON(http.StatusOK, gin.H{"message": "Job started"})
+		var network models.Network
+		db.Find(&network, 1).Scan(&network)
+
+		user := c.MustGet("user").(models.User)
+
+		surfboard_service_merchant.CreateMerchant(db, &user, &network)
 	})
 
 	r.GET("/events/:eventID/manage/secret-token",

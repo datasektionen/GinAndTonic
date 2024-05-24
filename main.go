@@ -21,6 +21,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/database"
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
+	merchant_job "github.com/DowLucas/gin-ticket-release/pkg/jobs/merchant"
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	model_default_values "github.com/DowLucas/gin-ticket-release/pkg/models/default_values"
@@ -120,6 +121,10 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 	// Run 1 month before the end of year
 	_, err = c.AddFunc("0 0 1 12 *", func() {
 		jobs.GDPRRenewalNotifyJob(db)
+	})
+
+	_, err = c.AddFunc("@every 1h", func() {
+		merchant_job.UpdateMerchantStatuses(db)
 	})
 
 	if err != nil {

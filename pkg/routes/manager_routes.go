@@ -22,6 +22,7 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	salesReportController := controllers.NewSalesReportController(db)
 	organizationController := controllers.NewOrganizationController(db)
 	eventLandingPageController := controllers.NewEventLandingPageController(db)
+	networkMerchantController := manager_controller.NewManagerMerchantController(db)
 
 	managerGroup := r.Group("/manager")
 	managerGroup.Use(authentication.ValidateTokenMiddleware(true))
@@ -29,6 +30,9 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	managerGroup.Use(middleware.RequireUserManager())
 
 	managerGroup.GET("/network", managerController.GetNetworkDetails)
+	managerGroup.POST("/network/merchant",
+		network_middlewares.RequireNetworkRole(db, models.NetworkSuperAdmin),
+		networkMerchantController.CreateNetworkMerchant)
 
 	// Events
 	managerGroup.GET("/events", managerController.GetNetworkEvents)

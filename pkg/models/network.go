@@ -15,6 +15,8 @@ type Network struct {
 	Users            []User            `gorm:"-" json:"users"`
 	NetworkUserRoles []NetworkUserRole `gorm:"foreignKey:NetworkID" json:"network_user_roles"`
 	Organizations    []Organization    `gorm:"foreignKey:NetworkID" json:"organizations"`
+	Details          NetworkDetails    `json:"details"`
+	Merchant         NetworkMerchant   `json:"merchant"`
 }
 
 // Get users when the network is loaded
@@ -36,6 +38,8 @@ func GetNetworkByID(db *gorm.DB, id uint) (*Network, error) {
 		Preload("NetworkUserRoles").
 		Preload("Organizations.Users").
 		Preload("Organizations.OrganizationUserRoles").
+		Preload("Merchant").
+		Preload("Details").
 		First(&network, id).Error; err != nil {
 		return &network, err
 	}

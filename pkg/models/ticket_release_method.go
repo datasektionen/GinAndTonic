@@ -8,6 +8,7 @@ type TRM string
 
 const (
 	FCFS_LOTTERY            TRM = "First Come First Serve Lottery"
+	PAY_DIRECT              TRM = "Pay Direct"
 	RESERVED_TICKET_RELEASE TRM = "Reserved Ticket Release"
 	FCFS                    TRM = "First Come First Serve"
 	SELECTIVE               TRM = "Selective"
@@ -25,6 +26,7 @@ func InitializeTicketReleaseMethods(db *gorm.DB) error {
 		{MethodName: string(RESERVED_TICKET_RELEASE), Description: "Gives everyone in the ticket release a ticket"},
 		{MethodName: string(FCFS), Description: "First Come First Serve will allocate tickets to the first people who requests a ticket. If the ticket release is full, the rest will be put on the waitlist."},
 		{MethodName: string(SELECTIVE), Description: "Selective will allocate tickets to the people the manager selects"},
+		{MethodName: string(PAY_DIRECT), Description: "Pay Direct requires users to pay for the ticket instead of requesting a ticket."},
 	}
 
 	for _, method := range methods {

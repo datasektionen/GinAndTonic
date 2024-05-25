@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"github.com/DowLucas/gin-ticket-release/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -235,4 +236,75 @@ func parseIntParam(param string, paramName string) (int, error) {
 	}
 
 	return value, nil
+}
+
+func (ttc *TicketTypeController) GetTemplateTicketTypes(c *gin.Context) {
+	var ticketTypes []models.TicketType
+
+	user := c.MustGet("user").(models.User)
+
+	var organizations []models.Organization = user.Organizations
+	// Get organizations latests events
+
+	for _, organization := range organizations {
+		var events []models.Event
+		if err := ttc.DB.
+			Preload("TicketReleases.TicketTypes").
+			Where("organization_id = ?", organization.ID).Find(&events).Error; err != nil {
+			utils.HandleDBError(c, err, "listing the events")
+			return
+		}
+
+		for _, event := range events {
+			for _, ticketRelease := range event.TicketReleases {
+				ticketTypes = append(ticketTypes, ticketRelease.TicketTypes...)
+			}
+		}
+	}
+
+	var ticketTypesFiltered []models.TicketType
+	for _, ticketType := range ticketTypes {
+		if ticketType.SaveTemplate {
+			ticketTypesFiltered = append(ticketTypesFiltered, ticketType)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ticket_types": ticketTypesFiltered})
+}
+
+// Unsave template
+func (ttc *TicketTypeController) UnsaveTemplate(c *gin.Context) {
+	ticketTypeID := c.Param("ticketTypeID")
+
+	// Convert the ticketType ID to an integer
+	ticketTypeIDInt, err := strconv.Atoi(ticketTypeID)
+
+	user := c.MustGet("user").(models.User)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket type ID"})
+		return
+	}
+
+	var ticketType models.TicketType
+	if err := ttc.DB.First(&ticketType, "id = ?", ticketTypeIDInt).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket type not found"})
+		return
+	}
+
+	// Check if the user has access to the ticket type
+	if !ticketType.UserHasAccessToTicketType(ttc.DB, user) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "User does not have access to ticket type"})
+		return
+	}
+
+	if ticketType.SaveTemplate {
+		ticketType.SaveTemplate = false
+		if err := ttc.DB.Save(&ticketType).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error unsaving template"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ticket_type": ticketType})
 }

@@ -215,6 +215,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.PUT("/templates/ticket-release/:ticketReleaseID/unsave", ticketReleaseController.UnsaveTemplate)
 	r.GET("/templates/ticket-release", ticketReleaseController.GetTemplateTicketReleases)
 
+	r.PUT("/templates/ticket-types/:ticketTypeID/unsave", ticketTypeController.UnsaveTemplate)
+	r.GET("/templates/ticket-types", ticketTypeController.GetTemplateTicketTypes)
+
 	// Site vists
 	r.GET("/events/:eventID/overview", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventSiteVistsController.Get)
 

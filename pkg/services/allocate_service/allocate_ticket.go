@@ -2,7 +2,6 @@ package allocate_service
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"

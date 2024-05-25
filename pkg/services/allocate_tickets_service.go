@@ -62,7 +62,13 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			ReservePaymentDuration: &allocateTicketsRequest.CalculatedDuration,
 		}
 
-		if !paymentDeadline.Validate(ticketRelease) {
+		var event models.Event
+		if err := tx.Where("id = ?", ticketRelease.EventID).First(&event).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if !paymentDeadline.Validate(ticketRelease, &event) {
 			tx.Rollback()
 			return errors.New("invalid payment deadline")
 		}
@@ -307,6 +313,7 @@ func SelectivelyAllocateTicketRequest(db *gorm.DB, ticketRequestID int) error {
 	var ticketRequest models.TicketRequest
 	err := tx.Preload("User").
 		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketRelease.PaymentDeadline").
 		Where("id = ?", ticketRequestID).First(&ticketRequest).Error
 
 	if err != nil {

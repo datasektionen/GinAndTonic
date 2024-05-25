@@ -151,6 +151,12 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		}
 	}
 
+	allocationCutOff, err := time.Parse("2006-01-02", data.TicketRelease.AllocationCutOff)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	// Create TicketRelease
 	ticketRelease := models.TicketRelease{
 		EventID:                     int(event.ID),
@@ -165,11 +171,41 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		PromoCode:                   &promoCode,
 		AllowExternal:               data.TicketRelease.AllowExternal,
 		SaveTemplate:                data.TicketRelease.SaveTemplate,
+		AllocationCutOff:            allocationCutOff,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
 		tx.Rollback()
 		return nil, err
+	}
+
+	if data.TicketRelease.PaymentDeadline != "" {
+		// format YYYY-MM-DD
+		paymentDeadline, _ := time.Parse("2006-01-02", data.TicketRelease.PaymentDeadline)
+
+		duration, err := time.ParseDuration(data.TicketRelease.ReservePaymentDuration)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		deadline := models.TicketReleasePaymentDeadline{
+			TicketReleaseID:        ticketRelease.ID,
+			OriginalDeadline:       paymentDeadline,
+			ReservePaymentDuration: &duration,
+		}
+
+		if !deadline.Validate(&ticketRelease, &event) {
+			tx.Rollback()
+			return nil, errors.New("invalid payment deadline")
+		}
+
+		fmt.Println("Creating payment deadline")
+
+		if err := tx.Create(&deadline).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	// Create TicketTypes

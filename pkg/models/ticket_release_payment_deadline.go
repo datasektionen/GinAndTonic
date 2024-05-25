@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,12 +15,17 @@ type TicketReleasePaymentDeadline struct {
 }
 
 // ValidatePayWithin validates the pay within duration
-func (trpd *TicketReleasePaymentDeadline) Validate(ticketRelease *TicketRelease) bool {
+func (trpd *TicketReleasePaymentDeadline) Validate(ticketRelease *TicketRelease, event *Event) bool {
+	if (event.ID == 0) || (event.Date.IsZero()) {
+		fmt.Println("event not found, not preloaded")
+		return false
+	}
+
 	if *trpd.ReservePaymentDuration < 0 {
 		return false
 	}
 
-	if ticketRelease.Event.Date.Unix() < time.Now().Add(*trpd.ReservePaymentDuration).Unix() {
+	if event.Date.Unix() < time.Now().Add(*trpd.ReservePaymentDuration).Unix() {
 		return false
 	}
 

@@ -30,7 +30,8 @@ type TicketRelease struct {
 	UserReminders               []TicketReleaseReminder       `gorm:"foreignKey:TicketReleaseID" json:"user_reminders"`
 	AddOns                      []AddOn                       `gorm:"foreignKey:TicketReleaseID" json:"add_ons"`
 	PaymentDeadline             *TicketReleasePaymentDeadline `gorm:"foreignKey:TicketReleaseID" json:"payment_deadline"`
-	SaveTemplate				bool                          `json:"save_template" gorm:"default:false"`
+	SaveTemplate                bool                          `json:"save_template" gorm:"default:false"`
+	AllocationCutOff            time.Time                     `json:"allocation_cut_off" gorm:"default:null"`
 }
 
 func DeleteTicketRelease(db *gorm.DB, ticketReleaseID uint) error {

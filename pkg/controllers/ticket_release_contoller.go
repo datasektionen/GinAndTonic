@@ -25,22 +25,25 @@ func NewTicketReleaseController(db *gorm.DB) *TicketReleaseController {
 }
 
 type TicketReleaseRequest struct {
-	EventID               int    `json:"event_id"`
-	Name                  string `json:"name"`
-	Description           string `json:"description"`
-	Open                  int    `json:"open"`
-	Close                 int    `json:"close"`
-	AllowExternal         bool   `json:"allow_external"`
-	TicketReleaseMethodID int    `json:"ticket_release_method_id"`
-	OpenWindowDuration    int    `json:"open_window_duration"`
-	MaxTicketsPerUser     int    `json:"max_tickets_per_user"`
-	NotificationMethod    string `json:"notification_method"`
-	CancellationPolicy    string `json:"cancellation_policy"`
-	IsReserved            bool   `json:"is_reserved"`
-	PromoCode             string `json:"promo_code"`
-	TicketsAvailable      int    `json:"tickets_available"`
-	MethodDescription     string `json:"method_description"`
-	SaveTemplate          bool   `json:"save_template"`
+	EventID                int    `json:"event_id"`
+	Name                   string `json:"name"`
+	Description            string `json:"description"`
+	Open                   int    `json:"open"`
+	Close                  int    `json:"close"`
+	AllowExternal          bool   `json:"allow_external"`
+	TicketReleaseMethodID  int    `json:"ticket_release_method_id"`
+	OpenWindowDuration     int    `json:"open_window_duration"`
+	MaxTicketsPerUser      int    `json:"max_tickets_per_user"`
+	NotificationMethod     string `json:"notification_method"`
+	CancellationPolicy     string `json:"cancellation_policy"`
+	IsReserved             bool   `json:"is_reserved"`
+	PromoCode              string `json:"promo_code"`
+	TicketsAvailable       int    `json:"tickets_available"`
+	MethodDescription      string `json:"method_description"`
+	SaveTemplate           bool   `json:"save_template"`
+	PaymentDeadline        string `json:"payment_deadline"`
+	ReservePaymentDuration string `json:"reserve_payment_duration"`
+	AllocationCutOff       string `json:"allocation_cut_off"`
 }
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
@@ -57,6 +60,12 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 	var checkTicketRelease models.TicketRelease
 	if err := trmc.DB.Where("name = ? AND event_id = ?", req.Name, req.EventID).First(&checkTicketRelease).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release with the same name already exists"})
+		return
+	}
+
+	var event models.Event
+	if err := trmc.DB.First(&event, "id = ?", req.EventID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
 
@@ -122,6 +131,13 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		}
 	}
 
+	allocationCutOff, err := time.Parse("2006-01-02", req.AllocationCutOff)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid allocation cut off"})
+		return
+	}
+
 	ticketRelease := models.TicketRelease{
 		EventID:                     req.EventID,
 		Name:                        req.Name,
@@ -135,12 +151,47 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		TicketsAvailable:            req.TicketsAvailable,
 		AllowExternal:               req.AllowExternal,
 		SaveTemplate:                req.SaveTemplate,
+		AllocationCutOff:            allocationCutOff,
 	}
 
 	if err := tx.Create(&ticketRelease).Error; err != nil {
 		tx.Rollback()
 		utils.HandleDBError(c, err, "creating the ticket release")
 		return
+	}
+
+	if req.PaymentDeadline != "" {
+		// format YYYY-MM-DD
+		paymentDeadline, err := time.Parse("2006-01-02", req.PaymentDeadline)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+			return
+		}
+
+		duration, err := time.ParseDuration(req.ReservePaymentDuration)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration"})
+			return
+		}
+
+		deadline := models.TicketReleasePaymentDeadline{
+			TicketReleaseID:        ticketRelease.ID,
+			OriginalDeadline:       paymentDeadline,
+			ReservePaymentDuration: &duration,
+		}
+
+		if !deadline.Validate(&ticketRelease, &event) {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+			return
+		}
+
+		if err := tx.Create(&deadline).Error; err != nil {
+			tx.Rollback()
+			utils.HandleDBError(c, err, "creating the ticket release payment deadline")
+			return
+		}
 	}
 
 	eventID := string(req.EventID)                                                                                              // Convert req.EventID to string
@@ -344,7 +395,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketReleaseIDInt, err := strconv.Atoi(ticketReleaseID)
 	var ticketRelease models.TicketRelease
 
-	if err := tx.First(&ticketRelease, "event_id = ? AND id = ?", eventIDInt, ticketReleaseIDInt).Error; err != nil {
+	if err := tx.Preload("PaymentDeadline").Preload("Event").First(&ticketRelease, "event_id = ? AND id = ?", eventIDInt, ticketReleaseIDInt).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket release not found"})
 		return
 	}
@@ -367,6 +418,13 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 		}
 	}
 
+	allocationCutOff, err := time.Parse("2006-01-02", req.AllocationCutOff)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid allocation cut off"})
+		return
+	}
+
 	// update
 	ticketRelease.Open = int64(req.Open)
 	ticketRelease.Close = int64(req.Close)
@@ -377,6 +435,7 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	ticketRelease.PromoCode = promoCode
 	ticketRelease.AllowExternal = req.AllowExternal
 	ticketRelease.SaveTemplate = req.SaveTemplate
+	ticketRelease.AllocationCutOff = allocationCutOff
 
 	// Update ticket release method details
 	var ticketReleaseMethodDetails models.TicketReleaseMethodDetail
@@ -395,6 +454,37 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	if err := ticketReleaseMethodDetails.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	if req.PaymentDeadline != "" {
+		// format YYYY-MM-DD
+		paymentDeadline, err := time.Parse("2006-01-02", req.PaymentDeadline)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+			return
+		}
+
+		duration, err := time.ParseDuration(req.ReservePaymentDuration)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration"})
+			return
+		}
+
+		ticketRelease.PaymentDeadline.OriginalDeadline = paymentDeadline
+		ticketRelease.PaymentDeadline.ReservePaymentDuration = &duration
+
+		if !ticketRelease.PaymentDeadline.Validate(&ticketRelease, &ticketRelease.Event) {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+			return
+		}
+
+		if err := tx.Save(&ticketRelease.PaymentDeadline).Error; err != nil {
+			tx.Rollback()
+			utils.HandleDBError(c, err, "updating the ticket release payment deadline")
+			return
+		}
 	}
 
 	if err := tx.Save(&ticketReleaseMethodDetails).Error; err != nil {
@@ -510,6 +600,7 @@ func (trmc *TicketReleaseController) GetTemplateTicketReleases(c *gin.Context) {
 	if err := trmc.DB.
 		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
 		Preload("TicketTypes").
+		Preload("PaymentDeadline").
 		Where("event_id IN (?) AND save_template = ?", eventIds, true).
 		Find(&ticketReleases).Error; err != nil {
 		utils.HandleDBError(c, err, "listing the ticket releases")

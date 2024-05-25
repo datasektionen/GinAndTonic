@@ -123,8 +123,10 @@ func (atc *AllocateTicketsController) SelectivelyAllocateTicketRequest(c *gin.Co
 	}
 
 	// Use your database or service layer to find the ticket request by ID and cancel it
-	err = atc.AllocateTicketsService.SelectivelyAllocateTicketRequest(
-		uint(ticketRequestID))
+	err = services.SelectivelyAllocateTicketRequest(
+		atc.DB,
+		ticketRequestID,
+	)
 	if err != nil {
 		// Handle error, for example send a 404 Not Found response
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

@@ -2,13 +2,11 @@ package surfboard_service
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 )
-
 
 type SurfboardClient interface {
 	MakeRequest(endpoint string, method string, jsonStr []byte) (*http.Response, error)
@@ -24,17 +22,13 @@ func NewSurfboardClient() SurfboardClient {
 	}
 }
 func (s *surfboardClientImpl) MakeRequest(endpoint string, method string, jsonStr []byte) (*http.Response, error) {
-	SURFBOARD_API_URL     := os.Getenv("SURFBOARD_API_URL")
-	SURFBOARD_API_KEY     := os.Getenv("SURFBOARD_API_KEY")
-	SURFBOARD_API_SECRET  := os.Getenv("SURFBOARD_API_SECRET")
+	SURFBOARD_API_URL := os.Getenv("SURFBOARD_API_URL")
+	SURFBOARD_API_KEY := os.Getenv("SURFBOARD_API_KEY")
+	SURFBOARD_API_SECRET := os.Getenv("SURFBOARD_API_SECRET")
 	// SURFBOARD_MERCHANT_ID := os.Getenv("SURFBOARD_MERCHANT_ID")
 	// SURFBOARD_STORE_ID    := os.Getenv("SURFBOARD_STORE_ID")
 	// SURFBOARD_PARTNER_ID  := os.Getenv("SURFBOARD_PARTNER_ID")
 
-	fmt.Println(SURFBOARD_API_URL)
-	
-	fmt.Println("Making request to:", SURFBOARD_API_URL+endpoint, method)
-	
 	req, err := http.NewRequest(
 		method,
 		SURFBOARD_API_URL+endpoint,

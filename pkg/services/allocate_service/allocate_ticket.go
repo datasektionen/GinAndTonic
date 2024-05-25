@@ -26,7 +26,6 @@ func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ti
 
 	if ticketRequest.TicketType.ID == 0 {
 		// Fatal error
-		fmt.Println("No ticket type specified")
 		return nil, errors.New("no ticket type specified")
 	}
 

@@ -122,8 +122,6 @@ func CreateMerchant(tx *gorm.DB, user *models.User, network *models.Network) err
 		},
 	}
 
-	fmt.Println("Merchant:", merchant)
-
 	merchantBytes, err := json.Marshal(merchant)
 	if err != nil {
 		fmt.Println(err)
@@ -132,7 +130,6 @@ func CreateMerchant(tx *gorm.DB, user *models.User, network *models.Network) err
 
 	response, err := service.CreateMerchant(merchantBytes)
 	if err != nil {
-		fmt.Println("Error creating merchant:", err)
 		return err
 	}
 
@@ -141,12 +138,10 @@ func CreateMerchant(tx *gorm.DB, user *models.User, network *models.Network) err
 	var resp CreateMerchantResponse
 	err = json.Unmarshal(body, &resp)
 	if err != nil {
-		fmt.Println("Error decoding response body:", err)
 		return err
 	}
 
 	if resp.Status != "SUCCESS" {
-		fmt.Println("Error creating merchant:", resp.Message)
 		return errors.New(resp.Message)
 	}
 

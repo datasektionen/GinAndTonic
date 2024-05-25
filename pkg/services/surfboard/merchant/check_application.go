@@ -27,12 +27,10 @@ func CheckApplicationStatus(tx *gorm.DB, networkMerchant *models.NetworkMerchant
 	var resp CreateMerchantResponse
 	err = json.Unmarshal(body, &resp)
 	if err != nil {
-		fmt.Println("Error decoding response body:", err)
 		return err
 	}
 
 	if resp.Status != "SUCCESS" {
-		fmt.Println("Error creating merchant:", resp.Message)
 		return fmt.Errorf(resp.Message)
 	}
 
@@ -60,12 +58,9 @@ func postCreateApplicationStatus(tx *gorm.DB, networkMerchant models.NetworkMerc
 
 	body, _ := io.ReadAll(response.Body)
 
-	fmt.Println("response Body:", string(body))
-
 	var resp CreateMerchantResponse
 	err = json.Unmarshal(body, &resp)
 	if err != nil {
-		fmt.Println("Error decoding response body:", err)
 		return err
 	}
 

@@ -23,6 +23,8 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	organizationController := controllers.NewOrganizationController(db)
 	eventLandingPageController := controllers.NewEventLandingPageController(db)
 	networkMerchantController := manager_controller.NewManagerMerchantController(db)
+	managerTicketRequestsController := manager_controller.NewManagerTicketRequestController(db)
+	managerTicketsController := manager_controller.NewManagerTicketController(db)
 
 	managerGroup := r.Group("/manager")
 	managerGroup.Use(authentication.ValidateTokenMiddleware(true))
@@ -92,6 +94,16 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	managerGroup.POST("/organizations", network_middlewares.RequireNetworkRole(db, models.NetworkAdmin),
 		feature_middleware.RequireFeatureLimit(db, "max_teams_per_network"),
 		organizationController.CreateNetworkOrganization)
+
+	// Ticket requests
+	managerGroup.PUT("/events/:eventID/ticket-requests/action",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		managerTicketRequestsController.TicketRequestAction)
+
+	// Tickets
+	managerGroup.PUT("/events/:eventID/tickets/action",
+		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
+		managerTicketsController.TicketAction)
 
 	return r
 }

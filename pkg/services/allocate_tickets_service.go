@@ -294,10 +294,10 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	return tickets, nil
 }
 
-func (ats *AllocateTicketsService) SelectivelyAllocateTicketRequest(ticketRequestID uint) error {
+func SelectivelyAllocateTicketRequest(db *gorm.DB, ticketRequestID int) error {
 	// Use your database layer to find the ticket request by ID and allocate it
 	// This is just a placeholder implementation, replace it with your actual code
-	tx := ats.DB.Begin()
+	tx := db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -310,34 +310,48 @@ func (ats *AllocateTicketsService) SelectivelyAllocateTicketRequest(ticketReques
 		Where("id = ?", ticketRequestID).First(&ticketRequest).Error
 
 	if err != nil {
+		tx.Rollback()
 		return err
-	}
-
-	if ticketRequest.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod.MethodName != string(models.SELECTIVE) {
-		return errors.New("ticket release method is not selective")
 	}
 
 	// Check if ticket request is already handled
 	// If the ticket request is already handled, it cannot be allocated
 	if ticketRequest.IsHandled {
+		tx.Rollback()
 		return errors.New("ticket request is already handled")
 	}
 
 	// Alocate the ticket
 	ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	err = Notify_TicketAllocationCreated(tx, int(ticket.ID), nil)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	err = tx.Commit().Error
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func SelectivelyAllocateTicketRequests(db *gorm.DB, ticketRequestIDs []int) *types.ErrorResponse {
+	// Use your database layer to find the ticket requests by ID and allocate them
+	// This is just a placeholder implementation, replace it with your actual code
+
+	for _, ticketRequestID := range ticketRequestIDs {
+		err := SelectivelyAllocateTicketRequest(db, ticketRequestID)
+		if err != nil {
+			return &types.ErrorResponse{StatusCode: 400, Message: err.Error()}
+		}
 	}
 
 	return nil

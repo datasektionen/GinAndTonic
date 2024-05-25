@@ -120,8 +120,6 @@ func (ctrl *FeatureController) UpdateFeature(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(len(feature.FeatureLimits))
-
 	// Delete Unscoped all current feature limits
 	if err := tx.Unscoped().Where("feature_id = ?", feature.ID).Delete(&models.FeatureLimit{}).Error; err != nil {
 		tx.Rollback()
@@ -153,7 +151,6 @@ func (ctrl *FeatureController) UpdateFeature(c *gin.Context) {
 
 	tx.Commit()
 	if tx.Error != nil {
-		fmt.Println(tx.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error})
 		return
 	}

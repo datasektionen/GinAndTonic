@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -69,7 +68,6 @@ func (n Network) AddUserToNetwork(db *gorm.DB, user *User, role NetRole) error {
 	}
 
 	netID := n.ID
-	fmt.Println(netID)
 	user.NetworkID = &netID
 	if err := db.Save(user).Error; err != nil {
 		return err

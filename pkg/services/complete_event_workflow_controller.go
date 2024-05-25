@@ -70,8 +70,6 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		return nil, err
 	}
 
-	fmt.Println(data.Event.OrganizationID)
-
 	// Create Event
 	event := models.Event{
 		ReferenceID:    *refId,
@@ -199,8 +197,6 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 			tx.Rollback()
 			return nil, errors.New("invalid payment deadline")
 		}
-
-		fmt.Println("Creating payment deadline")
 
 		if err := tx.Create(&deadline).Error; err != nil {
 			tx.Rollback()

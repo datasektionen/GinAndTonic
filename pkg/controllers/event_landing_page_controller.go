@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -37,7 +36,6 @@ func (elpc *EventLandingPageController) SaveEventLandingPageEditorState(c *gin.C
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error reading request body"})
 		return
 	}
-	fmt.Println("Request Body:", string(bodyBytes))
 
 	rerr := elpc.service.SaveEventLandingPageEditorState(bodyBytes, uint(eventID))
 	if rerr != nil {

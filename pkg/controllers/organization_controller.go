@@ -101,10 +101,6 @@ func (ec *OrganisationController) ListMyOrganizations(c *gin.Context) {
 
 	organizations := user.Organizations
 
-	for _, organization := range organizations {
-		fmt.Println(organization.CommonEventLocations)
-	}
-
 	c.JSON(http.StatusOK, gin.H{"organizations": organizations})
 }
 

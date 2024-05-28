@@ -13,7 +13,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	banking_service "github.com/DowLucas/gin-ticket-release/pkg/services/banking"
-	surfboard_service_merchant "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard/merchant"
+	surfboard_service_terminal "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard/terminal"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -178,11 +178,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.GET("/test", authentication.RequireRole(models.RoleSuperAdmin, db), func(c *gin.Context) {
 		var network models.Network
-		db.Find(&network, 1).Scan(&network)
+		if err := db.First(&network).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
-		user := c.MustGet("user").(models.User)
-
-		surfboard_service_merchant.CreateMerchant(db, &user, &network)
+		surfboard_service_terminal.CreateInitialTerminalsForNetwork(db, int(network.ID))
 	})
 
 	r.GET("/events/:eventID/manage/secret-token",

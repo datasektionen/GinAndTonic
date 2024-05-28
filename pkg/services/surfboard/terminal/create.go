@@ -1,37 +1,90 @@
 package surfboard_service_terminal
 
 import (
-    "bytes"
-    "fmt"
-    "net/http"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+
+	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"gorm.io/gorm"
 )
 
+type SurfboardTerminal struct {
+	OnlineTerminalMode models.OnlineTerminalModeType `json:"onlineTerminalMode"`
+}
 
-func main() {
-    var jsonStr = [] byte(`
-      {
-          "onlineTemrinalMode":"PaymentPage"
-      }`)
+type CreateOnlineTerminalResponse struct {
+	Status string `json:"status"`
+	Data   struct {
+		TerminalID string `json:"terminalId"`
+	} `json:"data"`
+	Message string `json:"message"`
+}
 
-	req, err := http.NewRequest(
-		http.MethodPost,
-		"YOUR_API_URL/merchants/:merchantId/stores/:storeId/online-terminals",
-		bytes.NewBuffer(jsonStr),
-	)
+func CreateOnlineTerminal(tx *gorm.DB, networkMerchant *models.NetworkMerchant, organization *models.Organization) error {
+	service := NewTerminalService()
+	if !networkMerchant.IsApplicationCompleted() {
+		return fmt.Errorf("merchant application is not completed")
+	}
 
-    req.Header.Add("Content-Type", "application/json")
-    req.Header.Add("API-KEY", "YOUR_API_KEY")
-    req.Header.Add("API-SECRET", "YOUR_API_SECRET")
-    req.Header.Add("MERCHANT-ID", "YOUR_MERCHANT_ID")
+	var data SurfboardTerminal = SurfboardTerminal{
+		OnlineTerminalMode: "PaymentPage",
+	}
 
-    client: = & http.Client {}
-    resp, err: = client.Do(req)
-    if err != nil {
-        panic(err)
-    }
+	jsonStr, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 
-    fmt.Println("response Status:", resp.Status)
-    fmt.Println("response Headers:", resp.Header)
-    body, _: = io.ReadAll(resp.Body)
-    fmt.Println("response Body:", string(body))
+	fmt.Println(string(jsonStr))
+
+	response, err := service.CreateOnlineTerminal(networkMerchant.MerchantID, networkMerchant.StoreID, jsonStr)
+	if err != nil {
+		return err
+	}
+
+	body, _ := io.ReadAll(response.Body)
+
+	var resp CreateOnlineTerminalResponse
+	err = json.Unmarshal(body, &resp)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("response Body:", string(body))
+	if resp.Status != "SUCCESS" {
+		return errors.New(resp.Message)
+	}
+
+	newTerminal := models.NetworkMerchantTerminals{
+		MerchantID:     networkMerchant.MerchantID,
+		TerminalID:     resp.Data.TerminalID,
+		OrganizationID: organization.ID,
+		Type:           models.OnlineTerminalPaymentPage,
+	}
+
+	if err := tx.Create(&newTerminal).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Function CreateInitialTerminalsForNetwork takes the networkID
+// and creates initial online terminals for all the organizations in the network.
+func CreateInitialTerminalsForNetwork(tx *gorm.DB, networkID int) error {
+	var network models.Network
+	if err := tx.Preload("Merchant").Preload("Organizations").First(&network, networkID).Error; err != nil {
+		return err
+	}
+
+	for _, org := range network.Organizations {
+		if err := CreateOnlineTerminal(tx, &network.Merchant, &org); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

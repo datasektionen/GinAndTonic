@@ -41,6 +41,12 @@ type NetworkMerchant struct {
 	// the unique identifier for the merchant's store
 	// required: true
 	StoreID string `json:"storeId"`
+
+	Terminals []NetworkMerchantTerminals `json:"terminals" gorm:"foreignKey:MerchantID"`
+}
+
+func (nm NetworkMerchant) IsApplicationCompleted() bool {
+	return nm.ApplicationStatus == MERCHANT_CREATED
 }
 
 func (nm NetworkMerchant) HasOngoingApplication() bool {

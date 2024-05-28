@@ -22,7 +22,6 @@ func UpdateMerchantStatuses(db *gorm.DB) {
 		return
 	}
 
-
 	// Update statuses
 	for _, merchant := range merchants {
 		err := surfboard_service_merchant.CheckApplicationStatus(tx, &merchant)
@@ -34,4 +33,3 @@ func UpdateMerchantStatuses(db *gorm.DB) {
 
 	tx.Commit()
 }
-	

@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
-
 func CreateOrder(tx *gorm.DB, user *models.User) {
 	var jsonStr = []byte(`{
         "terminal$id": "813bee989f08500405",

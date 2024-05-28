@@ -20,6 +20,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Network{},
 		&models.NetworkDetails{},
 		&models.NetworkMerchant{},
+		&models.NetworkMerchantTerminals{},
 	); err != nil {
 		fmt.Println("error", err)
 		return err
@@ -65,7 +66,7 @@ func Migrate(db *gorm.DB) error {
 		&models.ReferralSource{},
 		&tr_methods.LotteryConfig{},
 	)
-	
+
 	if err != nil {
 		fmt.Println("error", err)
 		return err

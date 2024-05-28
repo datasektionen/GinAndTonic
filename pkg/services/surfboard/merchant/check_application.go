@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	surfboard_service_terminal "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard/terminal"
 	"gorm.io/gorm"
 )
 
@@ -36,7 +38,17 @@ func CheckApplicationStatus(tx *gorm.DB, networkMerchant *models.NetworkMerchant
 		return fmt.Errorf(resp.Message)
 	}
 
-	networkMerchant.ApplicationStatus = resp.Data.ApplicationStatus
+	// Check if the application is merchant_created and the current application status is not the same
+	if networkMerchant.ApplicationStatus == models.MERCHANT_CREATED && resp.Data.ApplicationStatus != models.MERCHANT_CREATED {
+		err := surfboard_service_terminal.CreateInitialTerminalsForNetwork(tx, int(networkMerchant.NetworkID))
+		if err != nil {
+			return err
+		}
+	}
+
+	var appStatus models.SurfApplicationStatus = models.SurfApplicationStatus(strings.ToLower(string(resp.Data.ApplicationStatus)))
+
+	networkMerchant.ApplicationStatus = appStatus
 	networkMerchant.MerchantID = resp.Data.MerchantID
 	networkMerchant.WebKybURL = resp.Data.WebKybURL
 	networkMerchant.StoreID = resp.Data.StoreID

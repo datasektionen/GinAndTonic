@@ -2,6 +2,7 @@ package surfboard_service
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -25,9 +26,8 @@ func (s *surfboardClientImpl) MakeRequest(endpoint string, method string, jsonSt
 	SURFBOARD_API_URL := os.Getenv("SURFBOARD_API_URL")
 	SURFBOARD_API_KEY := os.Getenv("SURFBOARD_API_KEY")
 	SURFBOARD_API_SECRET := os.Getenv("SURFBOARD_API_SECRET")
-	// SURFBOARD_MERCHANT_ID := os.Getenv("SURFBOARD_MERCHANT_ID")
-	// SURFBOARD_STORE_ID    := os.Getenv("SURFBOARD_STORE_ID")
-	// SURFBOARD_PARTNER_ID  := os.Getenv("SURFBOARD_PARTNER_ID")
+	SURFBOARD_MERCHANT_ID := os.Getenv("SURFBOARD_MERCHANT_ID")
+	// SURFBOARD_STORE_ID := os.Getenv("SURFBOARD_STORE_ID")
 
 	req, err := http.NewRequest(
 		method,
@@ -39,9 +39,16 @@ func (s *surfboardClientImpl) MakeRequest(endpoint string, method string, jsonSt
 		return nil, err
 	}
 
+	fmt.Println("Request URL: ", SURFBOARD_API_URL+endpoint)
+	fmt.Println("API KEY: ", SURFBOARD_API_KEY)
+	fmt.Println("API SECRET: ", SURFBOARD_API_SECRET)
+	fmt.Println("MERCHANT ID: ", SURFBOARD_MERCHANT_ID)
+
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("API-KEY", SURFBOARD_API_KEY)
 	req.Header.Add("API-SECRET", SURFBOARD_API_SECRET)
+	req.Header.Add("MERCHANT-ID", SURFBOARD_MERCHANT_ID)
+	// req.Header.Add("STORE-ID", SURFBOARD_STORE_ID)
 
 	resp, err := s.client.Do(req)
 	if err != nil {

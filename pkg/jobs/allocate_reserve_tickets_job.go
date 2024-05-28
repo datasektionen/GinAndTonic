@@ -192,6 +192,16 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			continue
 		}
 
+		// Update tickets DeletedReason
+		err = tx.Model(&models.Ticket{}).Where("id = ?", ticket.ID).Update("deleted_reason", "Not paid in time").Error
+		if err != nil {
+			allocator_logger.WithFields(logrus.Fields{
+				"id": ticketRelease.ID,
+			}).Errorf("Error updating ticket with ID %v: %s", ticketRelease.ID, err.Error())
+
+			continue
+		}
+
 		// If we reach this point then the ticket has not been paid within the time limit
 		// We can say that the user looses the ticket, we set the ticket to deleted and
 		// increment the number of new tickets to be allocated from the reserve list

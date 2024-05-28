@@ -36,6 +36,7 @@ type Ticket struct {
 	PurchasableAt   *time.Time    `json:"purchasable_at" gorm:"default:null"`
 	PaymentDeadline *time.Time    `json:"payment_deadline" gorm:"default:null"`
 	TicketAddOns    []TicketAddOn `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
+	DeletedReason   string        `json:"deleted_reason" gorm:"default:null"`
 }
 
 func (t *Ticket) BeforeSave(tx *gorm.DB) (err error) {
@@ -55,8 +56,6 @@ func (t *Ticket) Delete(db *gorm.DB) error {
 		}
 	}()
 
-	println("Deleting ticket request with ID: ", t.TicketRequestID)
-
 	if err := tx.Delete(&t.TicketRequest).Error; err != nil {
 		return err
 	}
@@ -69,6 +68,18 @@ func (t *Ticket) Delete(db *gorm.DB) error {
 	}
 
 	return tx.Commit().Error
+}
+
+func (t *Ticket) SetDeletedReason(tx *gorm.DB, reason string) error {
+	t.DeletedReason = reason
+
+	// save
+	err := tx.Save(t).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetTicketRequestsToEvent(db *gorm.DB, eventID uint) (ticketRequests []TicketRequest, err error) {

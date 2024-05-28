@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	"gorm.io/gorm"
 )
 
-func CreateOrder() {
+
+
+func CreateOrder(tx *gorm.DB, user *models.User) {
 	var jsonStr = []byte(`{
         "terminal$id": "813bee989f08500405",
         "type": "purchase",

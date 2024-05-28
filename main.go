@@ -118,12 +118,12 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 		}).Fatal("Failed to add AllocateReservedTicketsDirectlyJob to cron")
 	}
 
-		// Run 1 month before the end of year
+	// Run 1 month before the end of year
 	_, err = c.AddFunc("0 0 1 12 *", func() {
 		jobs.GDPRRenewalNotifyJob(db)
 	})
 
-	_, err = c.AddFunc("@every 1h", func() {
+	_, err = c.AddFunc("@every 10s", func() {
 		merchant_job.UpdateMerchantStatuses(db)
 	})
 

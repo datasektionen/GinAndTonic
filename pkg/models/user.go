@@ -189,3 +189,9 @@ func (u *User) AddRole(db *gorm.DB, role RoleType) error {
 	err := db.Model(u).Association("Roles").Append(&r)
 	return err
 }
+
+func (u *User) GetNetwork(db *gorm.DB) (Network, error) {
+	var network Network
+	err := db.Where("id = ?", u.NetworkID).First(&network).Error
+	return network, err
+}

@@ -57,7 +57,8 @@ func (nm NetworkMerchant) HasOngoingApplication() bool {
 
 func GetAllOngoingApplications(db *gorm.DB) ([]NetworkMerchant, error) {
 	var merchants []NetworkMerchant
-	if err := db.Where("application_status != ? AND application_status != ? AND application_status != ?", APPLICATION_REJECTED, APPLICATION_EXPIRED, APPLICATION_COMPLETED).Find(&merchants).Error; err != nil {
+	// Should return all NetworkMerchants where ApplicationStatus is not MERCHANT_CREATED or APPLICATION_EXPIRED or APPLICATION_REJECTED
+	if err := db.Where("application_status != ? AND application_status != ? AND application_status != ?", MERCHANT_CREATED, APPLICATION_EXPIRED, APPLICATION_REJECTED).Find(&merchants).Error; err != nil {
 		return merchants, err
 	}
 	return merchants, nil

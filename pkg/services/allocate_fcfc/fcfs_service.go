@@ -1,8 +1,6 @@
 package allocate_fcfs
 
 import (
-	"errors"
-
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services/allocate_service"
 	"gorm.io/gorm"
@@ -21,7 +19,8 @@ func AllocateFCFSTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) ([]*m
 	}
 
 	if len(allTicketRequests) == 0 {
-		return nil, errors.New("no ticket requests to allocate")
+		// return empty list of tickets
+		return []*models.Ticket{}, nil
 	}
 
 	var numberOfTicketsAllocated int = 0

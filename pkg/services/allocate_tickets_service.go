@@ -55,7 +55,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 		}
 	}()
 
-	if allocateTicketsRequest != nil {
+	if allocateTicketsRequest != nil && ticketRelease.PaymentDeadline == nil {
 		var paymentDeadline models.TicketReleasePaymentDeadline = models.TicketReleasePaymentDeadline{
 			TicketReleaseID:        ticketRelease.ID,
 			OriginalDeadline:       allocateTicketsRequest.OriginalDeadline,
@@ -73,7 +73,7 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 			return errors.New("invalid payment deadline")
 		}
 
-		if err := ats.DB.Create(&paymentDeadline).Error; err != nil {
+		if err := ats.DB.FirstOrCreate(&paymentDeadline, paymentDeadline).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -193,7 +193,8 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 	}
 
 	if len(allTicketRequests) == 0 {
-		return allTickets, errors.New("no ticket requests to allocate")
+		// return empty array if there are no ticket requests
+		return allTickets, nil
 	}
 
 	eligibleTicketRequestsForLottery := make([]models.TicketRequest, 0)

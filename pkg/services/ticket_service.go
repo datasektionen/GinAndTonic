@@ -75,13 +75,8 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 		return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket is already paid"}
 	}
 
-	// Update DeletedReason and DeletedAt
-	if err := ticket.SetDeletedReason(ts.DB, "User cancelled ticket"); err != nil {
-		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error setting deleted reason"}
-	}
-
 	// Delete ticket
-	err := ticket.Delete(ts.DB)
+	err := ticket.Delete(ts.DB, "User cancelled ticket")
 	if err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting ticket"}
 	}

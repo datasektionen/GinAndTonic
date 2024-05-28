@@ -47,6 +47,7 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 		Preload("TicketReleaseMethodDetail.TicketReleaseMethod").
 		Preload("TicketTypes").
 		Preload("Event").
+		Preload("PaymentDeadline").
 		Where("event_id = ? AND id = ?", eventID, ticketReleaseID).First(&ticketRelease).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID or ticket release ID"})
 		return

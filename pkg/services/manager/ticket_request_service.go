@@ -37,7 +37,8 @@ func (trc *ManagerTicketRequestService) DeleteTicketRequests(ticketRequestIDs []
 			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Ticket request %d has been handled", ticketRequest.ID)}
 		}
 
-		err = tx.Delete(&ticketRequest).Error
+		err := ticketRequest.Delete(tx, "Deleted by manager")
+
 		if err != nil {
 			tx.Rollback()
 			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to delete ticket request %d", ticketRequest.ID)}
@@ -74,6 +75,12 @@ func (trc *ManagerTicketRequestService) UndeleteTicketRequests(ticketRequestIDs 
 		}
 
 		err = tx.Unscoped().Model(&ticketRequest).Update("deleted_at", nil).Error
+		if err != nil {
+			tx.Rollback()
+			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to undelete ticket request %d", ticketRequest.ID)}
+		}
+
+		err = tx.Model(&ticketRequest).Unscoped().UpdateColumn("deleted_reason", "").Error
 		if err != nil {
 			tx.Rollback()
 			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to undelete ticket request %d", ticketRequest.ID)}

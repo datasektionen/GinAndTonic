@@ -22,6 +22,7 @@ type TicketRequest struct {
 	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
 	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketRequestID" json:"ticket_add_ons"`
 	HandledAt         *time.Time               `json:"handled_at" gorm:"default:null"`
+	DeletedReason     string                   `json:"deleted_reason" gorm:"default:null"`
 }
 
 func intToHex(n int) string {
@@ -36,12 +37,28 @@ func (tr *TicketRequest) beforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+func (tr *TicketRequest) BeforeUpdate(tx *gorm.DB) (err error) {
+	if !tr.DeletedAt.Valid {
+		tr.DeletedReason = ""
+	}
+	return
+}
+
 func (tr *TicketRequest) BeforeSave(tx *gorm.DB) (err error) {
 	if tr.IsHandled && tr.HandledAt == nil {
 		now := time.Now()
 		tr.HandledAt = &now
 	}
+
 	return
+}
+
+func (tr *TicketRequest) Delete(tx *gorm.DB, reason string) error {
+	if err := tx.Model(tr).Update("deleted_reason", reason).Error; err != nil {
+		return err
+	}
+
+	return tx.Delete(tr).Error
 }
 
 func GetAllValidTicketRequestsToTicketRelease(db *gorm.DB, ticketReleaseID uint) ([]TicketRequest, error) {

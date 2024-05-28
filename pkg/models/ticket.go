@@ -47,39 +47,20 @@ func (t *Ticket) BeforeSave(tx *gorm.DB) (err error) {
 	return
 }
 
-func (t *Ticket) Delete(db *gorm.DB) error {
-	// Delete the associated TicketRequest
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Delete(&t.TicketRequest).Error; err != nil {
-		return err
+func (t *Ticket) BeforeUpdate(tx *gorm.DB) (err error) {
+	if !t.DeletedAt.Valid {
+		t.DeletedReason = ""
 	}
-
-	// Delete the Ticket
-	err := tx.Delete(&t).Error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit().Error
+	return
 }
 
-func (t *Ticket) SetDeletedReason(tx *gorm.DB, reason string) error {
-	t.DeletedReason = reason
-
-	// save
-	err := tx.Save(t).Error
-	if err != nil {
+func (t *Ticket) Delete(db *gorm.DB, reason string) error {
+	// Delete the associated TicketRequest
+	if err := db.Model(&t.TicketRequest).Update("deleted_reason", reason).Error; err != nil {
 		return err
 	}
 
-	return nil
+	return db.Delete(t).Error
 }
 
 func GetTicketRequestsToEvent(db *gorm.DB, eventID uint) (ticketRequests []TicketRequest, err error) {
@@ -195,17 +176,17 @@ func (t *Ticket) ValidatePaymentDeadline() (err error) {
 	// Validate that t.TicketRequest.TicketRelease.Event.Date is loaded
 	if t.TicketRequest.TicketRelease.Event.ID == 0 {
 		// Throw error
-		return fmt.Errorf("Event not loaded")
+		return fmt.Errorf("event not loaded")
 	}
 
 	if t.PaymentDeadline != nil {
 		if time.Now().After(*t.PaymentDeadline) {
-			return fmt.Errorf("Payment deadline has passed")
+			return fmt.Errorf("payment deadline has passed")
 		}
 	} else {
 		// Check if time is after event start
 		if time.Now().After(t.TicketRequest.TicketRelease.Event.Date) {
-			return fmt.Errorf("Event has already started")
+			return fmt.Errorf("event has already started")
 		}
 	}
 

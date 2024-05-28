@@ -90,10 +90,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	customerAuthController := controllers.NewCustomerAuthController(db, customerAuthService)
 	passwordResetController := controllers.NewUserPasswordResetController(db)
 
-	r.POST("/customer/signup", customerAuthController.SignupCustomerUser)
-	r.POST("/customer/login", customerAuthController.LoginUser)
-	r.POST("/customer/verify-email", customerAuthController.VerifyEmail)
-	r.POST("/customer/resend-verification-email", customerAuthController.ResendVerificationEmail)
+	r.POST("/signup", customerAuthController.SignupCustomerUser)
+	r.POST("/login", customerAuthController.LoginUser)
+	r.POST("/verify-email", customerAuthController.VerifyEmail)
+	r.POST("/resend-verification-email", customerAuthController.ResendVerificationEmail)
 
 	// Password reset
 	r.POST("/password-reset", passwordResetController.CreatePasswordReset)

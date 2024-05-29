@@ -22,7 +22,7 @@ type CreateOnlineTerminalResponse struct {
 	Message string `json:"message"`
 }
 
-func CreateOnlineTerminal(tx *gorm.DB, networkMerchant *models.NetworkMerchant, organization *models.Organization) error {
+func CreateOnlineTerminal(networkMerchant *models.NetworkMerchant, storeId string, eventId uint, tx *gorm.DB) error {
 	service := NewTerminalService()
 	if !networkMerchant.IsApplicationCompleted() {
 		return fmt.Errorf("merchant application is not completed")
@@ -38,9 +38,7 @@ func CreateOnlineTerminal(tx *gorm.DB, networkMerchant *models.NetworkMerchant, 
 		return err
 	}
 
-	fmt.Println(string(jsonStr))
-
-	response, err := service.CreateOnlineTerminal(networkMerchant.MerchantID, networkMerchant.StoreID, jsonStr)
+	response, err := service.CreateOnlineTerminal(networkMerchant.MerchantID, storeId, jsonStr)
 	if err != nil {
 		return err
 	}
@@ -53,26 +51,19 @@ func CreateOnlineTerminal(tx *gorm.DB, networkMerchant *models.NetworkMerchant, 
 		return err
 	}
 
-	fmt.Println("response Body:", string(body))
 	if resp.Status != "SUCCESS" {
 		return errors.New(resp.Message)
 	}
 
-	return nil
-}
-
-// Function CreateInitialTerminalsForNetwork takes the networkID
-// and creates initial online terminals for all the organizations in the network.
-func CreateInitialTerminalsForNetwork(tx *gorm.DB, networkID int) error {
-	var network models.Network
-	if err := tx.Preload("Merchant").Preload("Organizations").First(&network, networkID).Error; err != nil {
-		return err
+	var terminal models.StoreTerminal = models.StoreTerminal{
+		TerminalID: resp.Data.TerminalID,
+		EventID:    eventId,
+		StoreID:    storeId,
 	}
 
-	for _, org := range network.Organizations {
-		if err := CreateOnlineTerminal(tx, &network.Merchant, &org); err != nil {
-			return err
-		}
+	if err := tx.Create(&terminal).Error; err != nil {
+		fmt.Println(err)
+		return err
 	}
 
 	return nil

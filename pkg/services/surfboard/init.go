@@ -43,6 +43,7 @@ func (s *surfboardClientImpl) MakeRequest(args surfboard_types.SurfboardRequestA
 		}
 
 		json := *args.JSONStr
+		fmt.Println("JSON: ", string(json))
 		req, err = http.NewRequest(args.Method, fullURL, bytes.NewBuffer(json))
 	} else {
 		req, err = http.NewRequest(args.Method, fullURL, nil)
@@ -60,6 +61,9 @@ func (s *surfboardClientImpl) MakeRequest(args surfboard_types.SurfboardRequestA
 	}
 	if args.StoreId != nil {
 		req.Header.Add("STORE-ID", *args.StoreId)
+	}
+	if args.PartnerId != nil {
+		req.Header.Add("PARTNER-ID", *args.PartnerId)
 	}
 
 	resp, err := s.client.Do(req)

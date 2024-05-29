@@ -6,6 +6,7 @@ import (
 	manager_controller "github.com/DowLucas/gin-ticket-release/pkg/controllers/manager"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	feature_middleware "github.com/DowLucas/gin-ticket-release/pkg/middleware/feature"
+	merchant_middleware "github.com/DowLucas/gin-ticket-release/pkg/middleware/merchant"
 	network_middlewares "github.com/DowLucas/gin-ticket-release/pkg/middleware/network"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/gin-gonic/gin"
@@ -38,8 +39,14 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 
 	// Events
 	managerGroup.GET("/events", managerController.GetNetworkEvents)
-	managerGroup.POST("/events", feature_middleware.RequireFeatureLimit(db, "max_events"), eventController.CreateEvent)
-	managerGroup.POST("/complete-event-workflow", feature_middleware.RequireFeatureLimit(db, "max_events"), eventWorkflowController.CreateEvent)
+	managerGroup.POST("/events",
+		merchant_middleware.RequireMerchant(db),
+		feature_middleware.RequireFeatureLimit(db, "max_events"),
+		eventController.CreateEvent)
+	managerGroup.POST("/complete-event-workflow",
+		merchant_middleware.RequireMerchant(db),
+		feature_middleware.RequireFeatureLimit(db, "max_events"),
+		eventWorkflowController.CreateEvent)
 	managerGroup.DELETE("/events/:eventID",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		eventController.DeleteEvent)

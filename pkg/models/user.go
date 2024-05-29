@@ -77,6 +77,7 @@ func GetUserByUGKthIDIfExist(db *gorm.DB, userId string) (User, error) {
 		Preload("NetworkUserRoles").
 		Preload("OrganizationUserRoles").
 		Preload("Network.PlanEnrollment.FeaturesUsages").
+		Preload("Network.Merchant").
 		Where("id = ?", userId).First(&user).Error
 	return user, err
 }

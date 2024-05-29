@@ -7,6 +7,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	feature_services "github.com/DowLucas/gin-ticket-release/pkg/services/features"
+	surfboard_service_terminal "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard/terminal"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/utils"
 	"gorm.io/gorm"
@@ -151,6 +152,7 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 	var allocationCutOff *time.Time = nil
 	if data.TicketRelease.AllocationCutOff != "" {
+		fmt.Println("AllocationCutOff", data.TicketRelease.AllocationCutOff)
 		t, err := time.Parse("2006-01-02", data.TicketRelease.AllocationCutOff)
 		if err != nil {
 			tx.Rollback()
@@ -257,6 +259,20 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 	if err != nil {
 		tx.Rollback()
 		return nil, err
+	}
+
+	networkMerchant := user.Network.Merchant
+	var store models.OrganizationStore
+	if err := tx.First(&store, "organization_id = ?", data.Event.OrganizationID).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("could not find store for organization")
+	}
+
+	// Create the terminal for the store
+	err = createEventTerminal(tx, &networkMerchant, store.StoreID, event.ID)
+	if err != nil {
+		tx.Rollback()
+		return nil, errors.New("could not create terminal")
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -375,4 +391,14 @@ func (es *CompleteEventWorkflowService) CreateTicketRelease(data types.TicketRel
 
 	// Commit the transaction
 	return tx.Commit().Error
+}
+
+func createEventTerminal(tx *gorm.DB, networkMerchant *models.NetworkMerchant, storeId string, eventId uint) error {
+	err := surfboard_service_terminal.CreateOnlineTerminal(networkMerchant, storeId, eventId, tx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -36,7 +37,7 @@ func (cewc *CompleteEventWorkflowController) CreateEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	fmt.Println("EventFullWorkflowRequest", req)
 	event, err := cewc.service.CreateEvent(req, &user)
 
 	if err != nil {

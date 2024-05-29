@@ -20,14 +20,14 @@ type UpdateStoreRequest struct {
 }
 
 type StoreOnlineInfo struct {
-	MerchantWebshopURL    string `json:"merchantWebshopUrl,omitempty"`
-	PaymentPageHostURL    string `json:"paymentPageHostUrl,omitempty"`
-	TermsAndConditionsURL string `json:"termsAndConditionsUrl,omitempty"`
-	PrivacyPolicyURL      string `json:"privacyPolicyUrl,omitempty"`
+	MerchantWebshopURL    string `json:"merchantWebshopURL,omitempty"`
+	PaymentPageHostURL    string `json:"paymentPageHostURL,omitempty"`
+	TermsAndConditionsURL string `json:"termsAndConditionsURL,omitempty"`
+	PrivacyPolicyURL      string `json:"privacyPolicyURL,omitempty"`
 }
 
 type Phone struct {
-	Code   string `json:"code"`
+	Code   int    `json:"code"`
 	Number string `json:"number"`
 }
 

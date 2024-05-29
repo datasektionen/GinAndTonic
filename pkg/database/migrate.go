@@ -20,8 +20,8 @@ func Migrate(db *gorm.DB) error {
 		&models.Network{},
 		&models.NetworkDetails{},
 		&models.NetworkMerchant{},
-		&models.NetworkStore{},
-		&models.NetworkTerminal{},
+		&models.OrganizationStore{},
+		&models.StoreTerminal{},
 	); err != nil {
 		fmt.Println("error", err)
 		return err

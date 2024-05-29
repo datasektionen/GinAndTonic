@@ -30,6 +30,7 @@ type Event struct {
 	SiteVisits           []EventSiteVisit        `gorm:"foreignKey:EventID" json:"-"`
 	SiteVisitSummaries   []EventSiteVisitSummary `gorm:"foreignKey:EventID" json:"-"`
 	LandingPage          EventLandingPage        `gorm:"foreignKey:EventID" json:"landing_page"`
+	Terminal             StoreTerminal           `gorm:"foreignKey:EventID" json:"terminal"`
 }
 
 // GetEvent returns an event from the database

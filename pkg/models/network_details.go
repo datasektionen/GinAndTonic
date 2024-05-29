@@ -10,6 +10,7 @@ type NetworkDetails struct {
 	Descrition   string `json:"description"`  // Description of the network
 	StoreName    string `json:"store_name"`   // Store name of the network
 	Language     string `json:"language"`
+	CareOf       string `json:"care_of"`
 	AddressLine1 string `json:"address_line1"`
 	AddressLine2 string `json:"address_line2"`
 	PostalCode   string `json:"postal_code"`

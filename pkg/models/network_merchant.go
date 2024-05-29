@@ -67,3 +67,11 @@ func GetAllOngoingApplications(db *gorm.DB) ([]NetworkMerchant, error) {
 	}
 	return merchants, nil
 }
+
+func GetAllMerchants(db *gorm.DB) ([]NetworkMerchant, error) {
+	var merchants []NetworkMerchant
+	if err := db.Find(&merchants).Error; err != nil {
+		return merchants, err
+	}
+	return merchants, nil
+}

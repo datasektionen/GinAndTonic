@@ -18,7 +18,7 @@ type Organization struct {
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
 	BankingDetail         BankingDetail          `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
 	NetworkID             uint                   `json:"network_id"`
-	Store                 NetworkStore           `json:"store" gorm:"foreignKey:OrganizationID"`
+	Store                 OrganizationStore      `json:"store" gorm:"foreignKey:OrganizationID"`
 }
 
 func (o *Organization) AfterFind(tx *gorm.DB) (err error) {

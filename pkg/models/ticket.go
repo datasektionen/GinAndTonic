@@ -37,6 +37,8 @@ type Ticket struct {
 	PaymentDeadline *time.Time    `json:"payment_deadline" gorm:"default:null"`
 	TicketAddOns    []TicketAddOn `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
 	DeletedReason   string        `json:"deleted_reason" gorm:"default:null"`
+
+	OrderID *string `json:"order_id" gorm:"default:null"`
 }
 
 func (t *Ticket) BeforeSave(tx *gorm.DB) (err error) {
@@ -72,6 +74,18 @@ func GetTicketByID(db *gorm.DB, ticketID uint) (ticket Ticket, err error) {
 	}
 
 	return ticket, nil
+}
+
+func GetTicketsByIDs(db *gorm.DB, ticketIDs []uint) (tickets []Ticket, err error) {
+	err = db.
+		Preload("TicketRequest.TicketType").
+		Preload("TicketRequest.TicketRelease").
+		Find(&tickets, ticketIDs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }
 
 func GetTicketRequestsToEvent(db *gorm.DB, eventID uint) (ticketRequests []TicketRequest, err error) {

@@ -1,59 +1,184 @@
 package surfboard_service_order
 
 import (
-	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	surfboard_service "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard"
 	"gorm.io/gorm"
 )
 
-func CreateOrder(tx *gorm.DB, user *models.User) {
-	var jsonStr = []byte(`{
-        "terminal$id": "813bee989f08500405",
-        "type": "purchase",
-        "orderLines": [
-            {
-                "id": "1234",
-                "name": "Bucket hat",
-                "quantity": 1,
-                "itemAmount": {
-                    "regular": 2000,
-                    "total": 2000,
-                    "currency": "SEK",
-                    "tax": [
-                        {
-                            "amount": 200,
-                            "percentage": 10,
-                            "type": "vat"
-                        }
-                    ]
-                }
-            }
-        ]
-    }`)
+type SurfboardCreateOrderService struct {
+	db           *gorm.DB
+	client       surfboard_service.SurfboardClient
+	orderService *OrderService
+}
 
-	req, err := http.NewRequest(
-		http.MethodPost,
-		"YOUR_API_URL/orders",
-		bytes.NewBuffer(jsonStr),
-	)
+func NewSurfboardCreateOrderService(db *gorm.DB) *SurfboardCreateOrderService {
+	return &SurfboardCreateOrderService{db: db,
+		client:       surfboard_service.NewSurfboardClient(),
+		orderService: NewOrderService()}
+}
 
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("API-KEY", "YOUR_API_KEY")
-	req.Header.Add("API-SECRET", "YOUR_API_SECRET")
-	req.Header.Add("MERCHANT-ID", "YOUR_MERCHANT_ID")
+func (sos *SurfboardCreateOrderService) CreateOrder(ticketIDs []uint,
+	network *models.Network,
+	event *models.Event,
+	user *models.User) (*models.Order, error) {
+	// Recieves a list of ticket IDs and creates an order for them
+	// The order will be created in the database and should return a link to the user to pay for the order
+	tx := sos.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	tickets, err := models.GetTicketsByIDs(tx, ticketIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ticket := range tickets {
+		if ticket.TicketRequest.TicketRelease.EventID != int(event.ID) {
+			tx.Rollback()
+			return nil, errors.New("ticket does not belong to event")
+		}
+	}
+
+	// After we have the tickets we send them to the surfboard order service CreateNewOrder method
+	order, err := sos.createOrder(tx, &event.Terminal, network, user, tickets)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	for _, ticket := range tickets {
+		// Update order_id on ticket
+		if err := tx.Model(&ticket).Update("order_id", order.ID).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	return order, nil
+}
+
+type OrderResponse struct {
+	Status string `json:"status"`
+	Data   struct {
+		OrderID         string `json:"orderId"`
+		PaymentPageLink string `json:"paymentPageLink"`
+	} `json:"data"`
+	Message string `json:"message"`
+}
+
+type Data struct {
+}
+
+func (sos *SurfboardCreateOrderService) createOrder(
+	tx *gorm.DB,
+	terminal *models.StoreTerminal,
+	network *models.Network,
+	user *models.User,
+	tickets []models.Ticket) (*models.Order, error) {
+
+	// Checks to see so that everything is preloaded
+	if terminal.TerminalID == "" {
+		return nil, errors.New("terminal not found")
+	}
+
+	if network.Merchant.MerchantID == "" {
+		return nil, errors.New("merchant not found")
+	}
+
+	merchant := network.Merchant
+
+	orderLines := sos.generateOrderLines(tickets)
+
+	orderData := OrderRequest{
+		TerminalID: terminal.TerminalID,
+		Type:       "purchase",
+		OrderLines: orderLines,
+		ControlFunctions: ControlFunctions{
+			CancelPreviousPendingOrder: true,
+		},
+	}
+
+	orderBytes, err := json.Marshal(orderData)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
-	body, _ := io.ReadAll(resp.Body)
+	response, err := sos.orderService.createOrder(merchant.MerchantID, orderBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	body, _ := io.ReadAll(response.Body)
+
 	fmt.Println("response Body:", string(body))
+
+	var resp OrderResponse
+	err = json.Unmarshal(body, &resp)
+	fmt.Println("Hello")
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("Hello")
+
+	if resp.Status != "SUCCESS" {
+		return nil, errors.New(resp.Message)
+	}
+
+	var order models.Order = models.Order{
+		OrderID:         resp.Data.OrderID,
+		MerchantID:      merchant.MerchantID,
+		EventID:         uint(terminal.EventID),
+		UserUGKthID:     user.UGKthID,
+		PaymentPageLink: resp.Data.PaymentPageLink,
+	}
+
+	err = tx.Create(&order).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func (sos *SurfboardCreateOrderService) generateOrderLines(tickets []models.Ticket) []OrderLine {
+	orderLines := []OrderLine{}
+
+	for _, ticket := range tickets {
+		ticketType := ticket.TicketRequest.TicketType
+		orderLine := OrderLine{
+			ID:       fmt.Sprintf("ticket-%d", ticket.ID),
+			Name:     ticketType.Name,
+			Quantity: 1,
+			ItemAmount: ItemAmount{
+				Regular:  int(ticketType.Price * 100),
+				Total:    int(ticketType.Price * 100),
+				Currency: "SEK",
+				Tax: []Tax{
+					{
+						Amount:     0, // TODO calculate tax
+						Percentage: 0, // TODO calculate tax
+						Type:       "vat",
+					},
+				},
+			},
+		}
+		orderLines = append(orderLines, orderLine)
+	}
+	return orderLines
 }

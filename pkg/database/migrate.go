@@ -22,6 +22,7 @@ func Migrate(db *gorm.DB) error {
 		&models.NetworkMerchant{},
 		&models.OrganizationStore{},
 		&models.StoreTerminal{},
+		&models.Order{},
 	); err != nil {
 		fmt.Println("error", err)
 		return err

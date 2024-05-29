@@ -9,6 +9,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
+	surfboard_controllers "github.com/DowLucas/gin-ticket-release/pkg/controllers/surfboard"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
@@ -132,6 +133,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventSiteVistsController := controllers.NewSitVisitsController(db)
 	bankingController := controllers.NewBankingController(bankingService)
 	guestController := controllers.NewGuestController(db)
+	surfboardPaymentController := surfboard_controllers.NewPaymentSurfboardController(db)
 
 	var rlm *RateLimiterMiddleware
 	var rlmURLParam *RateLimiterMiddleware
@@ -274,6 +276,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
+
+	// All routes that have with payments
+
+	// Route for creating an order for a list of tickets
+	r.POST("/payments/events/:referenceID/order/create", surfboardPaymentController.CreateOrder)
+	r.POST("/payments/events/:referenceID/order/:orderID/status", surfboardPaymentController.GetOrderStatus)
 
 	r.GET("/organizations", organizationController.ListOrganizations)
 	r.GET("my-organizations", organizationController.ListMyOrganizations)

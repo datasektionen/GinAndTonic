@@ -66,3 +66,17 @@ func GetEventSiteVisits(db *gorm.DB, eventID uint) (eventSiteVisits []EventSiteV
 
 	return eventSiteVisits, nil
 }
+
+func (e *Event) GetNetwork(db *gorm.DB) (network *Network, err error) {
+	// First get the organization of the event
+	var organization Organization
+	if err := db.Where("id = ?", e.OrganizationID).First(&organization).Error; err != nil {
+		return nil, err
+	}
+
+	if err := db.Preload("Merchant").Preload("Details").Where("id = ?", organization.NetworkID).First(&network).Error; err != nil {
+		return nil, err
+	}
+
+	return network, nil
+}

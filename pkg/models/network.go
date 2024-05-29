@@ -16,6 +16,8 @@ type Network struct {
 	Organizations    []Organization    `gorm:"foreignKey:NetworkID" json:"organizations"`
 	Details          NetworkDetails    `json:"details"`
 	Merchant         NetworkMerchant   `json:"merchant"`
+
+	NonProfit bool `json:"non_profit"` // If the network is a non-profit organization
 }
 
 // Get users when the network is loaded
@@ -98,4 +100,12 @@ func (n Network) CreateNetworkOrganization(db *gorm.DB, organization *Organizati
 	}
 
 	return nil
+}
+
+func (n Network) VATPercentage() float64 {
+	if n.NonProfit {
+		return 0
+	}
+
+	return 0.25
 }

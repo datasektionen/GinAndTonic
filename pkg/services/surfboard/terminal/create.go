@@ -58,17 +58,6 @@ func CreateOnlineTerminal(tx *gorm.DB, networkMerchant *models.NetworkMerchant, 
 		return errors.New(resp.Message)
 	}
 
-	newTerminal := models.NetworkMerchantTerminals{
-		MerchantID:     networkMerchant.MerchantID,
-		TerminalID:     resp.Data.TerminalID,
-		OrganizationID: organization.ID,
-		Type:           models.OnlineTerminalPaymentPage,
-	}
-
-	if err := tx.Create(&newTerminal).Error; err != nil {
-		return err
-	}
-
 	return nil
 }
 

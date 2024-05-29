@@ -10,15 +10,15 @@ import (
 
 type Organization struct {
 	gorm.Model
-	Name                  string                   `json:"name"`
-	Email                 string                   `json:"email" gorm:"unique"`
-	CommonEventLocations  []CommonEventLocation    `gorm:"-" json:"common_event_locations"`
-	Events                []Event                  `gorm:"foreignKey:OrganizationID" json:"events"`
-	Users                 []User                   `gorm:"many2many:organization_users;" json:"users"`
-	OrganizationUserRoles []OrganizationUserRole   `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
-	BankingDetail         BankingDetail            `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
-	NetworkID             uint                     `json:"network_id"`
-	Terminal              NetworkMerchantTerminals `json:"terminal" gorm:"foreignKey:OrganizationID"`
+	Name                  string                 `json:"name"`
+	Email                 string                 `json:"email" gorm:"unique"`
+	CommonEventLocations  []CommonEventLocation  `gorm:"-" json:"common_event_locations"`
+	Events                []Event                `gorm:"foreignKey:OrganizationID" json:"events"`
+	Users                 []User                 `gorm:"many2many:organization_users;" json:"users"`
+	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:OrganizationID" json:"organization_user_roles"`
+	BankingDetail         BankingDetail          `json:"banking_detail" gorm:"foreignKey:OrganizationID"`
+	NetworkID             uint                   `json:"network_id"`
+	Store                 NetworkStore           `json:"store" gorm:"foreignKey:OrganizationID"`
 }
 
 func (o *Organization) AfterFind(tx *gorm.DB) (err error) {

@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -131,11 +134,15 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		}
 	}
 
-	allocationCutOff, err := time.Parse("2006-01-02", req.AllocationCutOff)
-	if err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid allocation cut off"})
-		return
+	var allocationCutOff *time.Time = nil
+	if req.AllocationCutOff != "" {
+		t, err := time.Parse("2006-01-02", req.AllocationCutOff)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid allocation cut off: %s", req.AllocationCutOff)})
+			return
+		}
+		allocationCutOff = &t
 	}
 
 	ticketRelease := models.TicketRelease{
@@ -160,36 +167,29 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	if req.PaymentDeadline != "" {
-		// format YYYY-MM-DD
-		paymentDeadline, err := time.Parse("2006-01-02", req.PaymentDeadline)
-		if err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
-			return
-		}
+	if err := trmc.handlePaymentDeadline(req, &ticketRelease, tx); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
+	if req.ReservePaymentDuration != "" {
 		duration, err := time.ParseDuration(req.ReservePaymentDuration)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration"})
 			return
 		}
 
-		deadline := models.TicketReleasePaymentDeadline{
-			TicketReleaseID:        ticketRelease.ID,
-			OriginalDeadline:       paymentDeadline,
-			ReservePaymentDuration: &duration,
-		}
+		ticketRelease.PaymentDeadline.ReservePaymentDuration = &duration
 
-		if !deadline.Validate(&ticketRelease, &event) {
+		if !ticketRelease.PaymentDeadline.Validate(&ticketRelease, &ticketRelease.Event) {
 			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
 			return
 		}
 
-		if err := tx.Create(&deadline).Error; err != nil {
+		if err := tx.Save(&ticketRelease.PaymentDeadline).Error; err != nil {
 			tx.Rollback()
-			utils.HandleDBError(c, err, "creating the ticket release payment deadline")
+			utils.HandleDBError(c, err, "updating the ticket release payment deadline")
 			return
 		}
 	}
@@ -402,27 +402,27 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 
 	var promoCode *string
 	var ok bool
-	if !ticketRelease.IsReserved && req.IsReserved {
-		// This means that the ticket release is not reserved and the request is to reserve it
+
+	if (ticketRelease.IsReserved && req.IsReserved) || (!ticketRelease.IsReserved && req.IsReserved) {
+		// This means that the ticket release is either reserved and the request is to update the promo code
+		// or the ticket release is not reserved and the request is to reserve it
 		promoCode, ok = handlePromoCode(&req, c)
 		if !ok {
 			return
 		}
 	} else if ticketRelease.IsReserved && !req.IsReserved {
 		promoCode = nil
-	} else if ticketRelease.IsReserved && req.IsReserved {
-		// This means that the ticket release is reserved and the request is to update the promo code
-		promoCode, ok = handlePromoCode(&req, c)
-		if !ok {
-			return
-		}
 	}
 
-	allocationCutOff, err := time.Parse("2006-01-02", req.AllocationCutOff)
-	if err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid allocation cut off"})
-		return
+	var allocationCutOff *time.Time = nil
+	if req.AllocationCutOff != "" {
+		t, err := time.Parse("2006-01-02", req.AllocationCutOff)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid allocation cut off: %s", req.AllocationCutOff)})
+			return
+		}
+		allocationCutOff = &t
 	}
 
 	// update
@@ -456,35 +456,26 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	if req.PaymentDeadline != "" {
-		// format YYYY-MM-DD
-		paymentDeadline, err := time.Parse("2006-01-02", req.PaymentDeadline)
-		if err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
-			return
-		}
+	fmt.Println("Hello")
 
-		duration, err := time.ParseDuration(req.ReservePaymentDuration)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration"})
-			return
-		}
+	err = trmc.handlePaymentDeadline(req, &ticketRelease, tx)
+	fmt.Println("Hello1")
+	if err != nil {
+		log.Println(err) // This won't terminate the program
+	}
 
-		ticketRelease.PaymentDeadline.OriginalDeadline = paymentDeadline
-		ticketRelease.PaymentDeadline.ReservePaymentDuration = &duration
+	fmt.Println("This is a test")
 
-		if !ticketRelease.PaymentDeadline.Validate(&ticketRelease, &ticketRelease.Event) {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
-			return
-		}
+	fmt.Println("Hello2")
 
-		if err := tx.Save(&ticketRelease.PaymentDeadline).Error; err != nil {
-			tx.Rollback()
-			utils.HandleDBError(c, err, "updating the ticket release payment deadline")
-			return
-		}
+	if err := trmc.handleReservePaymentDuration(req, &ticketRelease, tx); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := trmc.handleReservePaymentDuration(req, &ticketRelease, tx); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	if err := tx.Save(&ticketReleaseMethodDetails).Error; err != nil {
@@ -656,4 +647,95 @@ func (trmc *TicketReleaseController) UnsaveTemplate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ticket_release": ticketRelease})
+}
+
+func (trmc *TicketReleaseController) handlePaymentDeadline(req TicketReleaseRequest, ticketRelease *models.TicketRelease, tx *gorm.DB) error {
+	fmt.Println("PaymentDeadline: ")
+	if req.PaymentDeadline == "" {
+		return nil
+	}
+
+	fmt.Println("PaymentDeadline: ", req.PaymentDeadline)
+
+	paymentDeadline, err := time.Parse("2006-01-02", req.PaymentDeadline)
+	if err != nil {
+		return fmt.Errorf("Invalid payment deadline")
+	}
+
+	var existingPaymentDeadline models.TicketReleasePaymentDeadline
+	err = tx.First(&existingPaymentDeadline, "ticket_release_id = ?", ticketRelease.ID).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Create the PaymentDeadline if it doesn't exist
+		newPaymentDeadline := models.TicketReleasePaymentDeadline{
+			TicketReleaseID:        ticketRelease.ID,
+			OriginalDeadline:       paymentDeadline,
+			ReservePaymentDuration: nil,
+		}
+		if err := tx.Create(&newPaymentDeadline).Error; err != nil {
+			return err
+		}
+	} else {
+		// Update the PaymentDeadline if it exists
+		existingPaymentDeadline.OriginalDeadline = paymentDeadline
+
+		if !existingPaymentDeadline.Validate(ticketRelease, &ticketRelease.Event) {
+			return fmt.Errorf("Invalid payment deadline")
+		}
+
+		if err := tx.Save(&existingPaymentDeadline).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (trmc *TicketReleaseController) handleReservePaymentDuration(req TicketReleaseRequest, ticketRelease *models.TicketRelease, tx *gorm.DB) error {
+	fmt.Println("ReservePaymentDuration: ", req.ReservePaymentDuration)
+
+	if req.ReservePaymentDuration == "" {
+		return nil
+	}
+
+	duration, err := time.ParseDuration(req.ReservePaymentDuration)
+	if err != nil {
+		return fmt.Errorf("Invalid duration")
+	}
+
+	var existingPaymentDeadline models.TicketReleasePaymentDeadline
+	err = tx.First(&existingPaymentDeadline, "ticket_release_id = ?", ticketRelease.ID).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Create the PaymentDeadline if it doesn't exist
+		newPaymentDeadline := models.TicketReleasePaymentDeadline{
+			TicketReleaseID:        ticketRelease.ID,
+			OriginalDeadline:       ticketRelease.PaymentDeadline.OriginalDeadline,
+			ReservePaymentDuration: &duration,
+		}
+		if err := tx.Create(&newPaymentDeadline).Error; err != nil {
+			return err
+		}
+	} else {
+		// Update the PaymentDeadline if it exists
+		existingPaymentDeadline.ReservePaymentDuration = &duration
+
+		if !existingPaymentDeadline.Validate(ticketRelease, &ticketRelease.Event) {
+			return fmt.Errorf("Invalid payment deadline")
+		}
+
+		if err := tx.Save(&existingPaymentDeadline).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

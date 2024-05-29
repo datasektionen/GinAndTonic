@@ -1,11 +1,7 @@
 package surfboard_controllers
 
 import (
-	"net/http"
-
-	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	surfboard_service_order "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard/order"
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -22,19 +18,19 @@ type CreateOrderRequest struct {
 	TicketIDs []uint `json:"ticket_ids"`
 }
 
-func (psc *PaymentSurfboardController) CreateOrder(c *gin.Context) {
-	// This is the initial entry point when a user want to pay for a ticket or multiple tickets.
-	// The user will send a list of ticket IDs that they want to pay for.
+// func (psc *PaymentSurfboardController) CreateOrder(c *gin.Context) {
+// 	// This is the initial entry point when a user want to pay for a ticket or multiple tickets.
+// 	// The user will send a list of ticket IDs that they want to pay for.
 
-	user := c.MustGet("user").(models.User)
+// 	user := c.MustGet("user").(models.User)
 
-	var req CreateOrderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// 	var req CreateOrderRequest
+// 	if err := c.ShouldBindJSON(&req); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	// Create the order
-	order, err := psc.orderService.CreateOrder(req.TicketIDs, &user)
+// 	// Create the order
+// 	order, err := psc.orderService.CreateOrder(req.TicketIDs, &user)
 
-}
+// }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	surfboard_service "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard"
+	surfboard_types "github.com/DowLucas/gin-ticket-release/pkg/types/surfboard"
 )
 
 type TerminalEndpoints string
@@ -23,5 +24,11 @@ func NewTerminalService() *TerminalService {
 
 func (s *TerminalService) CreateOnlineTerminal(merchantId string, storeId string, data []byte) (*http.Response, error) {
 	endpoint := fmt.Sprintf(string(CreateOnlineTerminalEndpoint), merchantId, storeId)
-	return s.client.MakeRequest(endpoint, http.MethodPost, data)
+	return s.client.MakeRequest(surfboard_types.SurfboardRequestArgs{
+		Method:     http.MethodPost,
+		Endpoint:   endpoint,
+		JSONStr:    &data,
+		StoreId:    &storeId,
+		MerchantId: &merchantId,
+	})
 }

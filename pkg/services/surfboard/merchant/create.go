@@ -124,7 +124,6 @@ func CreateMerchant(tx *gorm.DB, user *models.User, network *models.Network) err
 
 	merchantBytes, err := json.Marshal(merchant)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -134,6 +133,7 @@ func CreateMerchant(tx *gorm.DB, user *models.User, network *models.Network) err
 	}
 
 	body, _ := io.ReadAll(response.Body)
+	fmt.Println("response Body:", string(body))
 
 	var resp CreateMerchantResponse
 	err = json.Unmarshal(body, &resp)

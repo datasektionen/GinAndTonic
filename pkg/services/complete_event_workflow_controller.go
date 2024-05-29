@@ -149,10 +149,14 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		}
 	}
 
-	allocationCutOff, err := time.Parse("2006-01-02", data.TicketRelease.AllocationCutOff)
-	if err != nil {
-		tx.Rollback()
-		return nil, err
+	var allocationCutOff *time.Time = nil
+	if data.TicketRelease.AllocationCutOff != "" {
+		t, err := time.Parse("2006-01-02", data.TicketRelease.AllocationCutOff)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("could not parse allocation cut off date: %w", err)
+		}
+		allocationCutOff = &t
 	}
 
 	// Create TicketRelease
@@ -181,16 +185,9 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		// format YYYY-MM-DD
 		paymentDeadline, _ := time.Parse("2006-01-02", data.TicketRelease.PaymentDeadline)
 
-		duration, err := time.ParseDuration(data.TicketRelease.ReservePaymentDuration)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
 		deadline := models.TicketReleasePaymentDeadline{
-			TicketReleaseID:        ticketRelease.ID,
-			OriginalDeadline:       paymentDeadline,
-			ReservePaymentDuration: &duration,
+			TicketReleaseID:  ticketRelease.ID,
+			OriginalDeadline: paymentDeadline,
 		}
 
 		if !deadline.Validate(&ticketRelease, &event) {
@@ -204,6 +201,28 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		}
 	}
 
+	if data.TicketRelease.ReservePaymentDuration != "" {
+		duration, err := time.ParseDuration(data.TicketRelease.ReservePaymentDuration)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		deadline := models.TicketReleasePaymentDeadline{
+			TicketReleaseID:        ticketRelease.ID,
+			ReservePaymentDuration: &duration,
+		}
+
+		if !deadline.Validate(&ticketRelease, &event) {
+			tx.Rollback()
+			return nil, errors.New("invalid payment deadline")
+		}
+
+		if err := tx.Create(&deadline).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
 	// Create TicketTypes
 	for _, tt := range data.TicketTypes {
 		ticketType := models.TicketType{

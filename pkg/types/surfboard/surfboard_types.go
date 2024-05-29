@@ -1,5 +1,14 @@
 package surfboard_types
 
+type SurfboardRequestArgs struct {
+	Endpoint   string
+	Method     string
+	MerchantId *string
+	PartnerId  *string
+	StoreId    *string
+	JSONStr    *[]byte
+}
+
 type SurfboardOrder struct {
 	TerminalID string               `json:"terminal$id"`
 	Type       string               `json:"type"`

@@ -63,6 +63,11 @@ func (t *Ticket) Delete(db *gorm.DB, reason string) error {
 		return err
 	}
 
+	// Delete the ticket request as well
+	if err := db.Delete(&t.TicketRequest).Error; err != nil {
+		return err
+	}
+
 	return db.Delete(t).Error
 }
 

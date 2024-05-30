@@ -4,19 +4,25 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
+	"github.com/vanng822/go-premailer/premailer"
 )
 
-func ParseTemplate(templateFile string, data interface{}) (string, error) {
-	tmpl, err := template.ParseFiles(templateFile)
+func ParseTemplate(templateFileName string, data interface{}) (string, error) {
+	tmpl, err := template.ParseGlob("templates/emails/*.html")
 	if err != nil {
 		return "", err
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
+	// Use the file name without the directory path
+	templateName := filepath.Base(templateFileName)
+	if err := tmpl.ExecuteTemplate(&buf, templateName, data); err != nil {
+		fmt.Println("Error executing template", err)
 		return "", err
 	}
 
@@ -24,7 +30,19 @@ func ParseTemplate(templateFile string, data interface{}) (string, error) {
 	// The replacement of "\x00" might not be necessary with "html/template"
 	// htmlContent = strings.ReplaceAll(htmlContent, "\x00", "")
 
-	return htmlContent, nil
+	prem, err := premailer.NewPremailerFromString(htmlContent, premailer.NewOptions())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	html, err := prem.Transform()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("HTML Content", html)
+
+	return html, nil
 }
 
 func GenerateEmailTable(tickets []types.EmailTicket) (string, error) {

@@ -11,6 +11,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	"github.com/DowLucas/gin-ticket-release/utils"
+	calender_utils "github.com/DowLucas/gin-ticket-release/utils/calender"
 	"gorm.io/gorm"
 )
 
@@ -200,12 +201,42 @@ func Notify_TicketRequestCreated(db *gorm.DB, ticketRequestIds []int) error {
 	emailTicketString, _ := utils.GenerateEmailTable(tickets)
 	// emailTicketString := "<h1>Test</h1>"
 
+	var endDateString string
+	if event.EndDate != nil {
+		d := *event.EndDate
+		endDateString = d.Format("2006-01-02 15:04:05")
+	} else {
+		endDateString = event.Date.Add(time.Hour * 1).Format("2006-01-02 15:04:05")
+	}
+
+	icsLink := calender_utils.CreateICSLink(
+		event.Name,
+		event.Description,
+		event.Location,
+		event.Date.Format("2006-01-02 15:04:05"),
+		endDateString,
+	)
+
+	googleCalenderLink := calender_utils.CreateGoogleCalendarLink(
+		event.Name,
+		event.Description,
+		event.Location,
+		event.Date.Format("20060102T150405Z"),
+		endDateString,
+		user.Email,
+	)
+
 	data := types.EmailTicketRequestConfirmation{
 		FullName:          user.FullName(),
-		EventName:         event.Name,
+		Event:             event,
+		EventURL:          os.Getenv("FRONTEND_BASE_URL") + "/events/" + event.ReferenceID,
 		TicketsHTML:       template.HTML(emailTicketString), // Convert string to template.HTML
 		TicketURL:         os.Getenv("FRONTEND_BASE_URL") + "/profile/ticket-requests",
 		OrganizationEmail: event.Organization.Email,
+		ViewRequestURL:    os.Getenv("FRONTEND_BASE_URL") + "/profile/ticket-requests",
+		CancelRequestURL:  os.Getenv("FRONTEND_BASE_URL") + "/profile/ticket-requests",
+		AddToCalendarURL:  icsLink,
+		GoogleCalendarURL: googleCalenderLink,
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_request_created_confirmation.html", data)

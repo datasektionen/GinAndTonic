@@ -34,10 +34,15 @@ type EmailTicketAllocationReserveCreated struct {
 // Associated with ticket_request_confirmation
 type EmailTicketRequestConfirmation struct {
 	FullName          string
-	EventName         string
+	Event             models.Event
+	EventURL          string
 	TicketsHTML       template.HTML
 	TicketURL         string
 	OrganizationEmail string
+	ViewRequestURL    string
+	CancelRequestURL  string
+	AddToCalendarURL  string
+	GoogleCalendarURL string
 }
 
 type EmailGuestTicketRequestConfirmation struct {

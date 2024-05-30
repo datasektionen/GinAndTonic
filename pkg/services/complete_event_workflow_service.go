@@ -76,7 +76,7 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		ReferenceID:    *refId,
 		Name:           data.Event.Name,
 		Description:    data.Event.Description,
-		Date:           time.Unix(data.Event.Date, 0),
+		Date:           data.Event.Date,
 		Location:       data.Event.Location,
 		OrganizationID: data.Event.OrganizationID,
 		IsPrivate:      data.Event.IsPrivate,
@@ -182,35 +182,41 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 		return nil, err
 	}
 
-	if data.TicketRelease.PaymentDeadline != "" {
-		if data.TicketRelease.ReservePaymentDuration == "" {
-			tx.Rollback()
-			return nil, errors.New("reserve payment duration is required for payment deadline")
-		}
+	deadline := models.TicketReleasePaymentDeadline{
+		TicketReleaseID: ticketRelease.ID,
+	}
 
-		// format YYYY-MM-DD
-		paymentDeadline, _ := time.Parse("2006-01-02", data.TicketRelease.PaymentDeadline)
+	if data.TicketRelease.PaymentDeadline == "" {
+		tx.Rollback()
+		return nil, errors.New("payment deadline is required")
+	}
+
+	paymentDeadline, err := time.Parse("2006-01-02", data.TicketRelease.PaymentDeadline)
+	if err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("could not parse payment deadline: %w", err)
+	}
+
+	deadline.OriginalDeadline = paymentDeadline
+
+	if data.TicketRelease.ReservePaymentDuration != "" {
 		duration, err := time.ParseDuration(data.TicketRelease.ReservePaymentDuration)
 		if err != nil {
 			tx.Rollback()
-			return nil, err
+			return nil, fmt.Errorf("could not parse reserve payment duration: %w", err)
 		}
 
-		deadline := models.TicketReleasePaymentDeadline{
-			TicketReleaseID:        ticketRelease.ID,
-			OriginalDeadline:       paymentDeadline,
-			ReservePaymentDuration: &duration,
-		}
+		deadline.ReservePaymentDuration = &duration
+	}
 
-		if !deadline.Validate(&ticketRelease, &event) {
-			tx.Rollback()
-			return nil, errors.New("invalid payment deadline")
-		}
+	if !deadline.Validate(&ticketRelease, &event) {
+		tx.Rollback()
+		return nil, errors.New("invalid payment deadline")
+	}
 
-		if err := tx.Create(&deadline).Error; err != nil {
-			tx.Rollback()
-			return nil, err
-		}
+	if err := tx.Create(&deadline).Error; err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
 	// Create TicketTypes
@@ -228,8 +234,6 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 			return nil, err
 		}
 	}
-
-	fmt.Println("EventID", event.ID)
 
 	eventID := fmt.Sprint(event.ID)
 	ticketReleaseID := fmt.Sprint(ticketRelease.ID)

@@ -125,16 +125,11 @@ func (sos *SurfboardCreateOrderService) createOrder(
 
 	body, _ := io.ReadAll(response.Body)
 
-	fmt.Println("response Body:", string(body))
-
 	var resp OrderResponse
 	err = json.Unmarshal(body, &resp)
-	fmt.Println("Hello")
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("Hello")
 
 	if resp.Status != "SUCCESS" {
 		return nil, errors.New(resp.Message)

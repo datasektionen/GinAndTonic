@@ -245,12 +245,12 @@ func (trs *TicketRequestService) GetTicketRequest(ticketRequestID int) (ticketRe
 
 func (trs *TicketRequestService) isTicketReleaseOpen(ticketReleaseID uint) bool {
 	var ticketRelease models.TicketRelease
-	now := time.Now().Unix()
+	now := time.Now()
 
 	if err := trs.DB.Where("id = ?", ticketReleaseID).First(&ticketRelease).Error; err != nil {
 		return false
 	}
-	return now >= ticketRelease.Open && now <= ticketRelease.Close
+	return now.After(ticketRelease.Open) && now.Before(ticketRelease.Close)
 }
 
 func (trs *TicketRequestService) checkReservedTicketRelease(ticketRelease *models.TicketRelease, user *models.User) bool {

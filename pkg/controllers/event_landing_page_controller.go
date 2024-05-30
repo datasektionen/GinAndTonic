@@ -91,7 +91,13 @@ func (elpc *EventLandingPageController) GetEventLandingPage(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, landingPage)
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"landing_page": landingPage,
+		},
+		"message": "Event landing page retrieved successfully",
+	})
 }
 
 func (elpc *EventLandingPageController) GetEventLandingPageEditorState(c *gin.Context) {

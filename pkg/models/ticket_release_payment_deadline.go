@@ -21,12 +21,14 @@ func (trpd *TicketReleasePaymentDeadline) Validate(ticketRelease *TicketRelease,
 		return false
 	}
 
-	if *trpd.ReservePaymentDuration < 0 {
-		return false
-	}
+	if trpd.ReservePaymentDuration != nil {
+		if *trpd.ReservePaymentDuration < 0 {
+			return false
+		}
 
-	if event.Date.Unix() < time.Now().Add(*trpd.ReservePaymentDuration).Unix() {
-		return false
+		if event.Date.Unix() < time.Now().Add(*trpd.ReservePaymentDuration).Unix() {
+			return false
+		}
 	}
 
 	return true

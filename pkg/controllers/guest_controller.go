@@ -45,6 +45,8 @@ func (gc *GuestController) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"user": user,
+		"status":  "success",
+		"data":    gin.H{"user": user},
+		"message": "User retrieved successfully",
 	})
 }

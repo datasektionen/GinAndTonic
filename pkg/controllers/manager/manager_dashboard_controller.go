@@ -42,7 +42,13 @@ func (mc *ManagerController) GetNetworkDetails(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, network)
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"network": network,
+		},
+		"message": "Network details retrieved successfully",
+	})
 }
 
 // GetNetworkEvents is a method that returns all network events.

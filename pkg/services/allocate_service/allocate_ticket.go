@@ -10,10 +10,6 @@ import (
 )
 
 func AllocateTicket(ticketRequest models.TicketRequest, tx *gorm.DB) (*models.Ticket, error) {
-	if ticketRequest.TicketRelease.PaymentDeadline == nil {
-		return nil, errors.New("no payment deadline specified")
-	}
-
 	if ticketRequest.IsHandled {
 		var ticket models.Ticket
 		if err := tx.Where("ticket_request_id = ?", ticketRequest.ID).First(&ticket).Error; err != nil {

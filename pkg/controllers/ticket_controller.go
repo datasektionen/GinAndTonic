@@ -103,7 +103,11 @@ func (tc *TicketController) UsersList(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"tickets": ticketRequests})
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"data":    gin.H{"tickets": ticketRequests},
+		"message": "Tickets retrieved successfully",
+	})
 }
 
 func (tc *TicketController) CancelTicket(c *gin.Context) {

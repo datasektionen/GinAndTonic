@@ -266,18 +266,16 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 
 			now := time.Now()
 			var paymentDeadline time.Time = time.Now()
-			if ticketRelease.PaymentDeadline != nil {
-				if ticketRelease.PaymentDeadline.ReservePaymentDuration != nil {
-					paymentDeadline = now.Add(*ticketRelease.PaymentDeadline.ReservePaymentDuration)
-					// Add an hour first to ensure rounding up to the next hour
+			if ticketRelease.PaymentDeadline.ReservePaymentDuration != nil {
+				paymentDeadline = now.Add(*ticketRelease.PaymentDeadline.ReservePaymentDuration)
+				// Add an hour first to ensure rounding up to the next hour
+				paymentDeadline = paymentDeadline.Add(time.Hour)
+				// Then, set the minutes, seconds, and nanoseconds to 0, rounding up to the next hour
+				paymentDeadline = time.Date(paymentDeadline.Year(), paymentDeadline.Month(), paymentDeadline.Day(), paymentDeadline.Hour(), 0, 0, 0, paymentDeadline.Location())
+				// Check if the payment deadline is before now, which shouldn't normally happen since we're rounding up,
+				// but it's good to keep the logic to ensure the deadline is always in the future
+				if paymentDeadline.Before(now) {
 					paymentDeadline = paymentDeadline.Add(time.Hour)
-					// Then, set the minutes, seconds, and nanoseconds to 0, rounding up to the next hour
-					paymentDeadline = time.Date(paymentDeadline.Year(), paymentDeadline.Month(), paymentDeadline.Day(), paymentDeadline.Hour(), 0, 0, 0, paymentDeadline.Location())
-					// Check if the payment deadline is before now, which shouldn't normally happen since we're rounding up,
-					// but it's good to keep the logic to ensure the deadline is always in the future
-					if paymentDeadline.Before(now) {
-						paymentDeadline = paymentDeadline.Add(time.Hour)
-					}
 				}
 			}
 

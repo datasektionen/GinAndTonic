@@ -28,25 +28,25 @@ func NewTicketReleaseController(db *gorm.DB) *TicketReleaseController {
 }
 
 type TicketReleaseRequest struct {
-	EventID                int    `json:"event_id"`
-	Name                   string `json:"name"`
-	Description            string `json:"description"`
-	Open                   int    `json:"open"`
-	Close                  int    `json:"close"`
-	AllowExternal          bool   `json:"allow_external"`
-	TicketReleaseMethodID  int    `json:"ticket_release_method_id"`
-	OpenWindowDuration     int    `json:"open_window_duration"`
-	MaxTicketsPerUser      int    `json:"max_tickets_per_user"`
-	NotificationMethod     string `json:"notification_method"`
-	CancellationPolicy     string `json:"cancellation_policy"`
-	IsReserved             bool   `json:"is_reserved"`
-	PromoCode              string `json:"promo_code"`
-	TicketsAvailable       int    `json:"tickets_available"`
-	MethodDescription      string `json:"method_description"`
-	SaveTemplate           bool   `json:"save_template"`
-	PaymentDeadline        string `json:"payment_deadline"`
-	ReservePaymentDuration string `json:"reserve_payment_duration"`
-	AllocationCutOff       string `json:"allocation_cut_off"`
+	EventID                int       `json:"event_id"`
+	Name                   string    `json:"name"`
+	Description            string    `json:"description"`
+	Open                   time.Time `json:"open"`
+	Close                  time.Time `json:"close"`
+	AllowExternal          bool      `json:"allow_external"`
+	TicketReleaseMethodID  int       `json:"ticket_release_method_id"`
+	OpenWindowDuration     int       `json:"open_window_duration"`
+	MaxTicketsPerUser      int       `json:"max_tickets_per_user"`
+	NotificationMethod     string    `json:"notification_method"`
+	CancellationPolicy     string    `json:"cancellation_policy"`
+	IsReserved             bool      `json:"is_reserved"`
+	PromoCode              string    `json:"promo_code"`
+	TicketsAvailable       int       `json:"tickets_available"`
+	MethodDescription      string    `json:"method_description"`
+	SaveTemplate           bool      `json:"save_template"`
+	PaymentDeadline        string    `json:"payment_deadline"`
+	ReservePaymentDuration string    `json:"reserve_payment_duration"`
+	AllocationCutOff       string    `json:"allocation_cut_off"`
 }
 
 func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
@@ -149,8 +149,8 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		EventID:                     req.EventID,
 		Name:                        req.Name,
 		Description:                 req.Description,
-		Open:                        int64(req.Open),
-		Close:                       int64(req.Close),
+		Open:                        req.Open,
+		Close:                       req.Close,
 		HasAllocatedTickets:         false,
 		TicketReleaseMethodDetailID: ticketReleaseMethodDetails.ID,
 		IsReserved:                  req.IsReserved,
@@ -167,31 +167,46 @@ func (trmc *TicketReleaseController) CreateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	if err := trmc.handlePaymentDeadline(req, &ticketRelease, tx); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	deadline := models.TicketReleasePaymentDeadline{
+		TicketReleaseID: ticketRelease.ID,
+	}
+
+	if req.PaymentDeadline == "" {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment deadline is required"})
 		return
 	}
 
-	if req.ReservePaymentDuration != "" {
+	paymentDeadline, err := time.Parse("2006-01-02", req.PaymentDeadline)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+		return
+	}
+
+	deadline.OriginalDeadline = paymentDeadline
+
+	if req.ReservePaymentDuration == "" {
 		duration, err := time.ParseDuration(req.ReservePaymentDuration)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid duration"})
-			return
-		}
-
-		ticketRelease.PaymentDeadline.ReservePaymentDuration = &duration
-
-		if !ticketRelease.PaymentDeadline.Validate(&ticketRelease, &ticketRelease.Event) {
 			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reserve payment duration"})
 			return
 		}
 
-		if err := tx.Save(&ticketRelease.PaymentDeadline).Error; err != nil {
-			tx.Rollback()
-			utils.HandleDBError(c, err, "updating the ticket release payment deadline")
-			return
-		}
+		deadline.ReservePaymentDuration = &duration
+	}
+
+	if !deadline.Validate(&ticketRelease, &event) {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment deadline"})
+		return
+	}
+
+	if err := tx.Create(&deadline).Error; err != nil {
+		tx.Rollback()
+		utils.HandleDBError(c, err, "creating the payment deadline")
+		return
 	}
 
 	eventID := string(req.EventID)                                                                                              // Convert req.EventID to string
@@ -426,8 +441,8 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 	}
 
 	// update
-	ticketRelease.Open = int64(req.Open)
-	ticketRelease.Close = int64(req.Close)
+	ticketRelease.Open = req.Open
+	ticketRelease.Close = req.Close
 	ticketRelease.Name = req.Name
 	ticketRelease.Description = req.Description
 	ticketRelease.TicketsAvailable = req.TicketsAvailable
@@ -520,7 +535,7 @@ func (trmc *TicketReleaseController) ManuallyTryToAllocateReserveTickets(c *gin.
 	}
 
 	// Check that ticket release is closed
-	if ticketRelease.Close > time.Now().Unix() {
+	if ticketRelease.Close.After(time.Now()) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release is not closed"})
 		return
 	}
@@ -643,12 +658,9 @@ func (trmc *TicketReleaseController) UnsaveTemplate(c *gin.Context) {
 }
 
 func (trmc *TicketReleaseController) handlePaymentDeadline(req TicketReleaseRequest, ticketRelease *models.TicketRelease, tx *gorm.DB) error {
-	fmt.Println("PaymentDeadline: ")
 	if req.PaymentDeadline == "" {
-		return nil
+		return errors.New("Payment deadline is required")
 	}
-
-	fmt.Println("PaymentDeadline: ", req.PaymentDeadline)
 
 	paymentDeadline, err := time.Parse("2006-01-02", req.PaymentDeadline)
 	if err != nil {

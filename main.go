@@ -127,7 +127,7 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 		surfboard_job.UpdateMerchantStatuses(db)
 	})
 
-	_, err = c.AddFunc("@every 10s", func() {
+	_, err = c.AddFunc("@every 30m", func() {
 		surfboard_job.CheckOrderStatusesJob(db)
 	})
 

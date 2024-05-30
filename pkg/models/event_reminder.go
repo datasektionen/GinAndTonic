@@ -33,7 +33,7 @@ func (trr *TicketReleaseReminder) Validate(db *gorm.DB) error {
 		return fmt.Errorf("reminder time is in the past")
 	}
 
-	if trr.ReminderTime.After(time.Unix(ticketRelease.Open, 0)) {
+	if trr.ReminderTime.After(ticketRelease.Open) {
 		return fmt.Errorf("reminder time is after the ticket release opens")
 	}
 

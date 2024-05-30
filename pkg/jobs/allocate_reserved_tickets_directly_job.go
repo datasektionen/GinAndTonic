@@ -89,12 +89,10 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 	}()
 
 	// Check if there is a payment deadline set, otherwise we set it
-	if ticketRelease.PaymentDeadline == nil {
-		_, err := models.CreateReservedTicketReleasePaymentDeadline(tx, ticketRelease.ID)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+	_, err := models.CreateReservedTicketReleasePaymentDeadline(tx, ticketRelease.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	// This is the total number of tickets available for the ticket release

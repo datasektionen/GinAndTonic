@@ -34,6 +34,7 @@ func (cewc *CompleteEventWorkflowController) CreateEvent(c *gin.Context) {
 
 	var req types.EventFullWorkflowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Println("Error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

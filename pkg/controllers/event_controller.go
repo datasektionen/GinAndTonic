@@ -53,7 +53,7 @@ func (ec *EventController) CreateEvent(c *gin.Context) {
 		Name:           eventRequest.Name,
 		Description:    eventRequest.Description,
 		Location:       eventRequest.Location,
-		Date:           time.Unix(eventRequest.Date, 0),
+		Date:           eventRequest.Date,
 		OrganizationID: eventRequest.OrganizationID,
 		IsPrivate:      eventRequest.IsPrivate,
 		CreatedBy:      ugkthid.(string),
@@ -248,7 +248,11 @@ func (ec *EventController) UserGetEvent(c *gin.Context) {
 
 	event.TicketReleases = ticketReleasesFiltered
 
-	c.JSON(http.StatusOK, gin.H{"event": event, "timestamp": time.Now().Unix()})
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"data":    gin.H{"event": event, "timestamp": time.Now().Unix()},
+		"message": "Event retrieved successfully",
+	})
 }
 
 // GetEvent handles retrieving an event by ID
@@ -329,7 +333,19 @@ func (ec *EventController) CustomerGetEvent(c *gin.Context) {
 
 	event.TicketReleases = ticketReleasesFiltered
 
-	c.JSON(http.StatusOK, gin.H{"event": event, "timestamp": time.Now().Unix()})
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"data":    gin.H{"event": event},
+		"message": "Event retrieved successfully",
+	})
+}
+
+func (ec *EventController) GetTimestamp(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"data":    gin.H{"timestamp": time.Now().Unix()},
+		"message": "Timestamp retrieved successfully",
+	})
 }
 
 // UpdateEvent handles updating an event by ID
@@ -351,7 +367,7 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 	event.Name = eventRequest.Name
 	event.Description = eventRequest.Description
 	event.Location = eventRequest.Location
-	event.Date = time.Unix(eventRequest.Date, 0)
+	event.Date = eventRequest.Date
 	if eventRequest.EndDate != nil {
 		endDate := time.Unix(*eventRequest.EndDate, 0)
 		event.EndDate = &endDate
@@ -401,7 +417,10 @@ func (ec *EventController) DeleteEvent(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "success",
+		"timestamp": time.Now().Unix(),
+	})
 }
 
 func (ec *EventController) ListTickets(c *gin.Context) {
@@ -439,7 +458,11 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"tickets": tickets, "ticket_requests": ticketRequests})
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"data":    gin.H{"tickets": tickets, "ticket_requests": ticketRequests},
+		"message": "Tickets retrieved successfully",
+	})
 }
 
 // GetEventSecretToken returns the secret token for an event

@@ -192,10 +192,18 @@ func (eac *CustomerAuthController) SignupCustomerUser(c *gin.Context) {
 
 	if externalSignupRequest.IsSaved {
 		services.Notify_ExternalUserSignupVerification(eac.DB, &user)
-		c.JSON(http.StatusCreated, gin.H{"user": user})
+		c.JSON(http.StatusCreated, gin.H{
+			"status":  "success",
+			"data":    gin.H{"user": user},
+			"message": "User created successfully",
+		})
 	} else {
 		// Do something else
-		c.JSON(http.StatusCreated, gin.H{"user": user, "request_token": requestToken})
+		c.JSON(http.StatusCreated, gin.H{
+			"status":  "success",
+			"data":    gin.H{"user": user, "request_token": requestToken},
+			"message": "Guest user created successfully",
+		})
 	}
 }
 

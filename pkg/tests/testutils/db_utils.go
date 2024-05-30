@@ -65,21 +65,6 @@ func CleanupTestDatabase(db *gorm.DB) {
 	db.Migrator().DropTable(modelslist...)
 }
 
-func CreateTicketRelease(totalTickets int, methodName models.TRM, openWindowDuration int64, openTime int64) models.TicketRelease {
-	return models.TicketRelease{
-		TicketTypes: []models.TicketType{
-			{},
-		},
-		TicketReleaseMethodDetail: models.TicketReleaseMethodDetail{
-			TicketReleaseMethod: models.TicketReleaseMethod{
-				MethodName: string(methodName),
-			},
-			OpenWindowDuration: openWindowDuration,
-		},
-		Open: openTime,
-	}
-}
-
 func SetupUserWorkflow(db *gorm.DB) {
 	// Seed the database with necessary data for testing
 	// For example, create TicketRelease, TicketType, User, etc.
@@ -155,19 +140,6 @@ func CreateTicketReleaseMethodDetailWorkflow(db *gorm.DB) *models.TicketReleaseM
 	return ticketReleaseMethodDetail
 }
 
-func CreateTicketReleaseWorkflow(db *gorm.DB, event models.Event, ticketReleaseMethodDetail *models.TicketReleaseMethodDetail) models.TicketRelease {
-	ticketRelease := models.TicketRelease{
-		EventID:                     int(event.ID),
-		Open:                        time.Now().Unix() - 1000,
-		Close:                       time.Now().Unix() + 1000,
-		TicketReleaseMethodDetailID: ticketReleaseMethodDetail.ID,
-	}
-
-	db.Create(&ticketRelease)
-
-	return ticketRelease
-}
-
 func CreateTicketTypeWorkflow(db *gorm.DB, event models.Event) *models.TicketType {
 	ticketType := factory.NewTicketType(event.ID, "validTicketTypeName", "validTicketTypeDescription", 100, 100, false, 1)
 
@@ -204,7 +176,5 @@ func CreateTicketWorkflow(db *gorm.DB, trid uint, isReserve bool) models.Ticket 
 func SetupEventWorkflow(db *gorm.DB) {
 	event := CreateEventWorkflow(db)
 	CreateTicketReleaseMethodWorkflow(db)
-	ticketReleaseMethodDetail := CreateTicketReleaseMethodDetailWorkflow(db)
-	CreateTicketReleaseWorkflow(db, event, ticketReleaseMethodDetail)
 	CreateTicketTypeWorkflow(db, event)
 }

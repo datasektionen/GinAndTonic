@@ -25,13 +25,13 @@ type TicketReleaseRequest struct {
 }
 
 type EventRequest struct {
-	Name           string `json:"name"`
-	Description    string `json:"description"`
-	Date           int64  `json:"date"`
-	EndDate        *int64 `json:"end_date"`
-	Location       string `json:"location"`
-	OrganizationID int    `json:"organization_id"`
-	IsPrivate      bool   `json:"is_private"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description"`
+	Date           time.Time `json:"date"`
+	EndDate        *int64    `json:"end_date"`
+	Location       string    `json:"location"`
+	OrganizationID int       `json:"organization_id"`
+	IsPrivate      bool      `json:"is_private"`
 }
 
 type EventFullWorkflowRequest struct {
@@ -46,24 +46,24 @@ type TicketReleaseFullWorkFlowRequest struct {
 }
 
 type TicketReleasePostReq struct {
-	Name                   string `json:"name"`
-	Description            string `json:"description"`
-	Open                   int64  `json:"open"`
-	Close                  int64  `json:"close"`
-	AllowExternal          bool   `json:"allow_external"`
-	OpenWindowDuration     int    `json:"open_window_duration,omitempty"`
-	MethodDescription      string `json:"method_description,omitempty"`
-	MaxTicketsPerUser      int    `json:"max_tickets_per_user"`
-	NotificationMethod     string `json:"notification_method"`
-	CancellationPolicy     string `json:"cancellation_policy"`
-	TicketReleaseMethodID  int    `json:"ticket_release_method_id"`
-	IsReserved             bool   `json:"is_reserved"`
-	PromoCode              string `json:"promo_code"`
-	TicketsAvailable       int    `json:"tickets_available"`
-	SaveTemplate           bool   `json:"save_template"`
-	PaymentDeadline        string `json:"payment_deadline"`
-	ReservePaymentDuration string `json:"reserve_payment_duration"`
-	AllocationCutOff       string `json:"allocation_cut_off"`
+	Name                   string    `json:"name"`
+	Description            string    `json:"description"`
+	Open                   time.Time `json:"open"`
+	Close                  time.Time `json:"close"`
+	AllowExternal          bool      `json:"allow_external"`
+	OpenWindowDuration     int       `json:"open_window_duration,omitempty"`
+	MethodDescription      string    `json:"method_description,omitempty"`
+	MaxTicketsPerUser      int       `json:"max_tickets_per_user"`
+	NotificationMethod     string    `json:"notification_method"`
+	CancellationPolicy     string    `json:"cancellation_policy"`
+	TicketReleaseMethodID  int       `json:"ticket_release_method_id"`
+	IsReserved             bool      `json:"is_reserved"`
+	PromoCode              string    `json:"promo_code"`
+	TicketsAvailable       int       `json:"tickets_available"`
+	SaveTemplate           bool      `json:"save_template"`
+	PaymentDeadline        string    `json:"payment_deadline"`
+	ReservePaymentDuration string    `json:"reserve_payment_duration"`
+	AllocationCutOff       string    `json:"allocation_cut_off"`
 }
 
 type TicketTypePostReq struct {

@@ -2,7 +2,6 @@ package validation
 
 import (
 	"errors"
-	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"gorm.io/gorm"
@@ -20,12 +19,12 @@ func ValidateEventDates(db *gorm.DB, eventID uint) error {
 		// Check if event.date is after ticketRelease.close
 		// Convert from unix to time.Time
 
-		if event.Date.Before(time.Unix(ticketRelease.Close, 0)) {
+		if event.Date.Before(ticketRelease.Close) {
 			return errors.New("event date is after ticket release close")
 		}
 
 		if event.EndDate != nil {
-			if event.EndDate.Before(time.Unix(ticketRelease.Close, 0)) {
+			if event.EndDate.Before(ticketRelease.Close) {
 				return errors.New("event end date is after ticket release close")
 			}
 		}

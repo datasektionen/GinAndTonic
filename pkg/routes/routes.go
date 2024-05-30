@@ -153,6 +153,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/view/events/:refID/landing-page", eventController.GetUsersView)
+	r.GET("/timestamp", eventController.GetTimestamp)
 	r.GET("/guest-customer/:ugkthid/activate-promo-code/:eventID", ticketReleasePromoCodeController.GuestCreate)
 	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
 	r.GET("/guest-customer/:ugkthid", guestController.Get)

@@ -239,7 +239,7 @@ func HandleReminderJob(db *gorm.DB) func(ctx context.Context, t *asynq.Task) err
 		}
 
 		// Get the open of the ticket release
-		opensAt := time.Unix(ticketReleaseReminder.TicketRelease.Open, 0)
+		opensAt := ticketReleaseReminder.TicketRelease.Open
 
 		// If the ticket release open is more than 10 minutes from now, we should not send the reminder
 		// Instead we should schedule a new reminder

@@ -40,8 +40,6 @@ func ParseTemplate(templateFileName string, data interface{}) (string, error) {
 		log.Fatal(err)
 	}
 
-	fmt.Println("HTML Content", html)
-
 	return html, nil
 }
 

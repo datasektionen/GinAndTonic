@@ -55,32 +55,6 @@ func (ats *AllocateTicketsService) AllocateTickets(ticketRelease *models.TicketR
 		}
 	}()
 
-	if allocateTicketsRequest != nil && ticketRelease.PaymentDeadline == nil {
-		var paymentDeadline models.TicketReleasePaymentDeadline = models.TicketReleasePaymentDeadline{
-			TicketReleaseID:        ticketRelease.ID,
-			OriginalDeadline:       allocateTicketsRequest.OriginalDeadline,
-			ReservePaymentDuration: &allocateTicketsRequest.CalculatedDuration,
-		}
-
-		var event models.Event
-		if err := tx.Where("id = ?", ticketRelease.EventID).First(&event).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		if !paymentDeadline.Validate(ticketRelease, &event) {
-			tx.Rollback()
-			return errors.New("invalid payment deadline")
-		}
-
-		if err := ats.DB.FirstOrCreate(&paymentDeadline, paymentDeadline).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		ticketRelease.PaymentDeadline = &paymentDeadline
-	}
-
 	if err := tx.Model(ticketRelease).Update("has_allocated_tickets", true).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -182,7 +156,7 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 	methodDetail := ticketRelease.TicketReleaseMethodDetail
 
 	// Calculate the deadline for eligible requests
-	deadline := utils.ConvertUNIXTimeToDateTime(int64(ticketRelease.Open + methodDetail.OpenWindowDuration))
+	deadline := utils.ConvertUNIXTimeToDateTime(ticketRelease.Open.Add(time.Duration(methodDetail.OpenWindowDuration) * time.Minute).Unix())
 
 	// Fetch all ticket requests directly from the database
 	allTicketRequests, err := models.GetAllValidTicketRequestsToTicketRelease(tx, ticketRelease.ID)

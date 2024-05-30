@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"gorm.io/gorm"
 )
 
@@ -83,8 +81,6 @@ func (f *Feature) CanUseLimitedFeature(db *gorm.DB, planEnrollment *PlanEnrollme
 		return false, err
 	}
 
-	fmt.Println(f.Name)
-
 	currentUsageModel, err := GetLatestFeatureUsage(db, f.ID, planEnrollment.ID, objectReference)
 	if err != nil {
 		return false, err
@@ -113,10 +109,6 @@ func (f *Feature) CanUseLimitedFeature(db *gorm.DB, planEnrollment *PlanEnrollme
 	if len(yearlyUsagesList) > 0 {
 		yearlyUsage = GetTotalFeatureUsage(yearlyUsagesList)
 	}
-
-	fmt.Println("Current usage: ", currentUsage)
-	fmt.Println("Monthly usage: ", monthlyUsage)
-	fmt.Println("Yearly usage: ", yearlyUsage)
 
 	/*
 		- We now want to check the feature limit against the usages.

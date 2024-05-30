@@ -423,7 +423,7 @@ func Notify_RemindUserOfTicketRelease(db *gorm.DB, trReminder *models.TicketRele
 		EventName:         ticketRelease.Event.Name,
 		TicketReleaseName: ticketRelease.Name,
 		EventURL:          os.Getenv("FRONTEND_BASE_URL") + "/events/" + fmt.Sprintf("%d", ticketRelease.EventID),
-		OpensAt:           (time.Unix(ticketRelease.Open, 0).In(loc)).Format("2006-01-02 15:04:05"),
+		OpensAt:           (ticketRelease.Open.In(loc)).Format("2006-01-02 15:04:05"),
 	}
 
 	htmlContent, err := utils.ParseTemplate("templates/emails/ticket_release_reminder.html", data)

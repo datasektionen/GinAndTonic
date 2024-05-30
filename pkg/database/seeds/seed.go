@@ -67,8 +67,8 @@ func SeedTicketReleaseMethods(db *gorm.DB) {
 func SeedTicketReleases(db *gorm.DB) {
 	release := factory.NewTicketRelease(
 		1,          // Example EventID
-		1609459200, // Example Open time (Unix Timestamp)
-		1609545600, // Example Close time (Unix Timestamp)
+		time.Now(), // Open
+		time.Now(), // Close
 		false,
 		1, // Example TicketReleaseMethodDetailID
 	)

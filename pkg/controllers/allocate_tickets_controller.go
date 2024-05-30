@@ -66,7 +66,7 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 	}
 
 	// Close the ticket release
-	ticketRelease.Close = time.Now().Unix()
+	ticketRelease.Close = time.Now()
 
 	if err := atc.DB.Save(&ticketRelease).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error closing ticket release"})

@@ -25,8 +25,6 @@ func CheckApplicationStatus(tx *gorm.DB, networkMerchant *models.NetworkMerchant
 
 	body, _ := io.ReadAll(response.Body)
 
-	fmt.Println(string(body))
-
 	var resp CreateMerchantResponse
 	err = json.Unmarshal(body, &resp)
 	if err != nil {

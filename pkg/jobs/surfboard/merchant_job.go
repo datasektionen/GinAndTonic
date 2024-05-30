@@ -1,4 +1,4 @@
-package merchant_job
+package surfboard_job
 
 import (
 	"github.com/DowLucas/gin-ticket-release/pkg/models"

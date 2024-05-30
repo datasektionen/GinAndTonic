@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -20,7 +20,7 @@ services:
       - DB_PASSWORD=yourpassword
       - DB_NAME=ticketdb
       - DB_PORT=5432
-      - DB_SSLMODE=disable  # or your preferred SSL mode
+      - DB_SSLMODE=disable # or your preferred SSL mode
       - LOGIN_BASE_URL=http://nyckeln:7002
       - REDIS_URL=redis:6379
     volumes:

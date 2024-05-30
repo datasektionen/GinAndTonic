@@ -152,7 +152,6 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 	var allocationCutOff *time.Time = nil
 	if data.TicketRelease.AllocationCutOff != "" {
-		fmt.Println("AllocationCutOff", data.TicketRelease.AllocationCutOff)
 		t, err := time.Parse("2006-01-02", data.TicketRelease.AllocationCutOff)
 		if err != nil {
 			tx.Rollback()
@@ -184,26 +183,13 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 	}
 
 	if data.TicketRelease.PaymentDeadline != "" {
+		if data.TicketRelease.ReservePaymentDuration == "" {
+			tx.Rollback()
+			return nil, errors.New("reserve payment duration is required for payment deadline")
+		}
+
 		// format YYYY-MM-DD
 		paymentDeadline, _ := time.Parse("2006-01-02", data.TicketRelease.PaymentDeadline)
-
-		deadline := models.TicketReleasePaymentDeadline{
-			TicketReleaseID:  ticketRelease.ID,
-			OriginalDeadline: paymentDeadline,
-		}
-
-		if !deadline.Validate(&ticketRelease, &event) {
-			tx.Rollback()
-			return nil, errors.New("invalid payment deadline")
-		}
-
-		if err := tx.Create(&deadline).Error; err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-	}
-
-	if data.TicketRelease.ReservePaymentDuration != "" {
 		duration, err := time.ParseDuration(data.TicketRelease.ReservePaymentDuration)
 		if err != nil {
 			tx.Rollback()
@@ -212,6 +198,7 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 
 		deadline := models.TicketReleasePaymentDeadline{
 			TicketReleaseID:        ticketRelease.ID,
+			OriginalDeadline:       paymentDeadline,
 			ReservePaymentDuration: &duration,
 		}
 
@@ -225,6 +212,7 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 			return nil, err
 		}
 	}
+
 	// Create TicketTypes
 	for _, tt := range data.TicketTypes {
 		ticketType := models.TicketType{
@@ -240,6 +228,8 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 			return nil, err
 		}
 	}
+
+	fmt.Println("EventID", event.ID)
 
 	eventID := fmt.Sprint(event.ID)
 	ticketReleaseID := fmt.Sprint(ticketRelease.ID)

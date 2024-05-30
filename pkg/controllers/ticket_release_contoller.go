@@ -456,17 +456,10 @@ func (trmc *TicketReleaseController) UpdateTicketRelease(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("Hello")
-
 	err = trmc.handlePaymentDeadline(req, &ticketRelease, tx)
-	fmt.Println("Hello1")
 	if err != nil {
 		log.Println(err) // This won't terminate the program
 	}
-
-	fmt.Println("This is a test")
-
-	fmt.Println("Hello2")
 
 	if err := trmc.handleReservePaymentDuration(req, &ticketRelease, tx); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -696,8 +689,6 @@ func (trmc *TicketReleaseController) handlePaymentDeadline(req TicketReleaseRequ
 }
 
 func (trmc *TicketReleaseController) handleReservePaymentDuration(req TicketReleaseRequest, ticketRelease *models.TicketRelease, tx *gorm.DB) error {
-	fmt.Println("ReservePaymentDuration: ", req.ReservePaymentDuration)
-
 	if req.ReservePaymentDuration == "" {
 		return nil
 	}

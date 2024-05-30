@@ -21,7 +21,7 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/database"
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
-	merchant_job "github.com/DowLucas/gin-ticket-release/pkg/jobs/merchant"
+	surfboard_job "github.com/DowLucas/gin-ticket-release/pkg/jobs/surfboard"
 	"github.com/DowLucas/gin-ticket-release/pkg/jobs/tasks"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	model_default_values "github.com/DowLucas/gin-ticket-release/pkg/models/default_values"
@@ -124,7 +124,11 @@ func setupCronJobs(db *gorm.DB) *cron.Cron {
 	})
 
 	_, err = c.AddFunc("@every 10s", func() {
-		merchant_job.UpdateMerchantStatuses(db)
+		surfboard_job.UpdateMerchantStatuses(db)
+	})
+
+	_, err = c.AddFunc("@every 10s", func() {
+		surfboard_job.CheckOrderStatusesJob(db)
 	})
 
 	if err != nil {

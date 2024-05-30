@@ -39,6 +39,7 @@ type Ticket struct {
 	DeletedReason   string        `json:"deleted_reason" gorm:"default:null"`
 
 	OrderID *string `json:"order_id" gorm:"default:null"`
+	Order   Order   `json:"order"`
 }
 
 func (t *Ticket) BeforeSave(tx *gorm.DB) (err error) {

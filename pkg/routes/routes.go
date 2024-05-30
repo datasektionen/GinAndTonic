@@ -134,6 +134,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	bankingController := controllers.NewBankingController(bankingService)
 	guestController := controllers.NewGuestController(db)
 	surfboardPaymentController := surfboard_controllers.NewPaymentSurfboardController(db)
+	surfboardPaymentWebhookController := surfboard_controllers.NewPaymentWebhookController(db)
 
 	var rlm *RateLimiterMiddleware
 	var rlmURLParam *RateLimiterMiddleware
@@ -148,7 +149,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	}
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
-	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
+	r.POST("/payments/webhook", surfboardPaymentWebhookController.HandleWebhook)
 
 	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/view/events/:refID/landing-page", eventController.GetUsersView)

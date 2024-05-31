@@ -3,7 +3,6 @@ package controllers
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,7 +14,6 @@ import (
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/customer"
 	"github.com/stripe/stripe-go/v72/paymentintent"
-	"github.com/stripe/stripe-go/v72/webhook"
 	"gorm.io/gorm"
 )
 
@@ -260,59 +258,59 @@ func (pc *PaymentController) HandleCreate(ticket *models.Ticket, c *gin.Context)
 
 // Payment webhook
 func (pc *PaymentController) PaymentWebhook(c *gin.Context) {
-	const MaxBodyBytes = int64(65536)
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
-	payload, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.String(http.StatusServiceUnavailable, "Error reading request body: %v", err)
-		return
-	}
+	// const MaxBodyBytes = int64(65536)
+	// c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxBodyBytes)
+	// payload, err := io.ReadAll(c.Request.Body)
+	// if err != nil {
+	// 	c.String(http.StatusServiceUnavailable, "Error reading request body: %v", err)
+	// 	return
+	// }
 
-	event, err := webhook.ConstructEvent(payload, c.GetHeader("Stripe-Signature"), endpointSecret)
-	if err != nil {
-		c.String(http.StatusBadRequest, "Error parsing webhook: %v", err.Error())
-		return
-	}
+	// event, err := webhook.ConstructEvent(payload, c.GetHeader("Stripe-Signature"), endpointSecret)
+	// if err != nil {
+	// 	c.String(http.StatusBadRequest, "Error parsing webhook: %v", err.Error())
+	// 	return
+	// }
 
-	var webhookEvent models.WebhookEvent
-	if err := pc.DB.Where("stripe_id = ?", event.ID).First(&webhookEvent).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			c.String(http.StatusInternalServerError, "Error checking for existing webhook event")
-			return
-		}
-		// If the webhook event does not exist, create a new one
-		webhookEvent = models.WebhookEvent{
-			StripeID:  event.ID,
-			EventType: event.Type,
-			Processed: false, // Initially false, will be set to true once processed
-		}
-		if err := pc.DB.Create(&webhookEvent).Error; err != nil {
-			c.String(http.StatusInternalServerError, "Error creating webhook event")
-			return
-		}
-	} else if webhookEvent.Processed {
-		// If the webhook event already exists and has been processed, return
-		c.String(http.StatusOK, "Webhook event already processed")
-		return
-	}
+	// var webhookEvent models.WebhookEvent
+	// if err := pc.DB.Where("stripe_id = ?", event.ID).First(&webhookEvent).Error; err != nil {
+	// 	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	// 		c.String(http.StatusInternalServerError, "Error checking for existing webhook event")
+	// 		return
+	// 	}
+	// 	// If the webhook event does not exist, create a new one
+	// 	webhookEvent = models.WebhookEvent{
+	// 		StripeID:  event.ID,
+	// 		EventType: event.Type,
+	// 		Processed: false, // Initially false, will be set to true once processed
+	// 	}
+	// 	if err := pc.DB.Create(&webhookEvent).Error; err != nil {
+	// 		c.String(http.StatusInternalServerError, "Error creating webhook event")
+	// 		return
+	// 	}
+	// } else if webhookEvent.Processed {
+	// 	// If the webhook event already exists and has been processed, return
+	// 	c.String(http.StatusOK, "Webhook event already processed")
+	// 	return
+	// }
 
-	// Process the event
-	peErr := pc.pService.ProcessEvent(&event)
-	if peErr != nil {
-		webhookEvent.LastError = peErr.Message
-	} else {
-		webhookEvent.Processed = true
-	}
+	// // Process the event
+	// peErr := pc.pService.ProcessEvent(&event)
+	// if peErr != nil {
+	// 	webhookEvent.LastError = peErr.Message
+	// } else {
+	// 	webhookEvent.Processed = true
+	// }
 
-	// Save the processed event
-	if err := pc.DB.Save(&webhookEvent).Error; err != nil {
-		c.String(http.StatusInternalServerError, "Error saving webhook event")
-		return
-	}
+	// // Save the processed event
+	// if err := pc.DB.Save(&webhookEvent).Error; err != nil {
+	// 	c.String(http.StatusInternalServerError, "Error saving webhook event")
+	// 	return
+	// }
 
-	if peErr != nil {
-		c.String(peErr.StatusCode, peErr.Message)
-	} else {
-		c.Status(http.StatusOK)
-	}
+	// if peErr != nil {
+	// 	c.String(peErr.StatusCode, peErr.Message)
+	// } else {
+	// 	c.Status(http.StatusOK)
+	// }
 }

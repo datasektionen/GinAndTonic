@@ -11,6 +11,7 @@ import (
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
 	surfboard_controllers "github.com/DowLucas/gin-ticket-release/pkg/controllers/surfboard"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
+	surfboard_middlware "github.com/DowLucas/gin-ticket-release/pkg/middleware/surfboard"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	banking_service "github.com/DowLucas/gin-ticket-release/pkg/services/banking"
@@ -149,7 +150,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	}
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
-	r.POST("/payments/webhook", surfboardPaymentWebhookController.HandleWebhook)
+	r.POST("/payments/webhook", surfboard_middlware.ValidatePaymentWebhookSignature(), surfboardPaymentWebhookController.HandlePaymentWebhook)
 
 	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/view/events/:refID/landing-page", eventController.GetUsersView)

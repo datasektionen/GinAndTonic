@@ -23,6 +23,8 @@ func Migrate(db *gorm.DB) error {
 		&models.OrganizationStore{},
 		&models.StoreTerminal{},
 		&models.Order{},
+		&models.OrderDetails{},
+		&models.OrderWebhookEvent{},
 	); err != nil {
 		fmt.Println("error", err)
 		return err
@@ -59,6 +61,7 @@ func Migrate(db *gorm.DB) error {
 		&models.UserPasswordReset{},
 		&models.EventSalesReport{},
 		&models.WebhookEvent{},
+		&models.OrderWebhookEvent{},
 		&models.AddOn{},
 		&models.TicketAddOn{},
 		&models.TicketReleasePaymentDeadline{},

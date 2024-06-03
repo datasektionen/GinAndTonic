@@ -20,7 +20,6 @@ const (
 type Ticket struct {
 	gorm.Model
 	TicketRequestID uint          `gorm:"index" json:"ticket_request_id"`
-	TicketRequest   TicketRequest `json:"ticket_request"`
 	IsPaid          bool          `json:"is_paid" default:"false"`
 	IsReserve       bool          `json:"is_reserve"`
 	WasReserve      bool          `json:"was_reserve" default:"false"`
@@ -57,23 +56,63 @@ func (t *Ticket) BeforeUpdate(tx *gorm.DB) (err error) {
 	return
 }
 
+func (t *Ticket) GetTicketRequest(db *gorm.DB) (*TicketRequest, error) {
+	var ticketRequest TicketRequest
+	if err := db.
+		Preload("TicketType").
+		Preload("TicketAddOns").
+		Preload("TicketRelease").
+		First(&ticketRequest, t.TicketRequestID).Error; err != nil {
+		return nil, err
+	}
+
+	return &ticketRequest, nil
+}
+
+func GetTicketWithRequest(db *gorm.DB, ticketID uint) (*Ticket, *TicketRequest, error) {
+	var ticket Ticket
+	var ticketRequest TicketRequest
+
+	// First, fetch the ticket
+	if result := db.First(&ticket, ticketID); result.Error != nil {
+		return nil, nil, result.Error
+	}
+
+	// Then, fetch the associated TicketRequest
+	if result := db.First(&ticketRequest, ticket.TicketRequestID); result.Error != nil {
+		return nil, nil, result.Error
+	}
+
+	return &ticket, &ticketRequest, nil
+}
+
 func (t *Ticket) Delete(db *gorm.DB, reason string) error {
+	var ticketRequest TicketRequest
+	if err := db.First(&ticketRequest, t.TicketRequestID).Error; err != nil {
+		return err
+	}
+
 	// Delete the associated TicketRequest
-	if err := db.Model(&t.TicketRequest).Update("deleted_reason", reason).Error; err != nil {
+	if err := db.Model(&ticketRequest).Update("deleted_reason", reason).Error; err != nil {
 		return err
 	}
 
 	// Delete the ticket request as well
-	if err := db.Delete(&t.TicketRequest).Error; err != nil {
+	if err := db.Delete(&ticketRequest).Error; err != nil {
 		return err
 	}
 
 	return db.Delete(t).Error
 }
 
-func (t *Ticket) CalulcateTotalPrice() float64 {
+func (t *Ticket) CalulcateTotalPrice(db *gorm.DB) float64 {
+	tr, err := t.GetTicketRequest(db)
+	if err != nil {
+		return 0
+	}
+
 	var totalPrice float64
-	totalPrice += (float64)(t.TicketRequest.TicketType.Price*100) * (float64)(t.TicketRequest.TicketAmount)
+	totalPrice += (float64)(tr.TicketType.Price*100) * (float64)(tr.TicketAmount)
 
 	for _, addOn := range t.TicketAddOns {
 		totalPrice += (float64)(addOn.AddOn.Price*100) * (float64)(addOn.Quantity)
@@ -215,9 +254,14 @@ func GetAllReserveTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tic
 	return tickets, nil
 }
 
-func (t *Ticket) ValidatePaymentDeadline() (err error) {
+func (t *Ticket) ValidatePaymentDeadline(db *gorm.DB) (err error) {
+	tr, err := t.GetTicketRequest(db)
+	if err != nil {
+		return err
+	}
+
 	// Validate that t.TicketRequest.TicketRelease.Event.Date is loaded
-	if t.TicketRequest.TicketRelease.Event.ID == 0 {
+	if tr.TicketRelease.Event.ID == 0 {
 		// Throw error
 		return fmt.Errorf("event not loaded")
 	}
@@ -228,7 +272,7 @@ func (t *Ticket) ValidatePaymentDeadline() (err error) {
 		}
 	} else {
 		// Check if time is after event start
-		if time.Now().After(t.TicketRequest.TicketRelease.Event.Date) {
+		if time.Now().After(tr.TicketRelease.Event.Date) {
 			return fmt.Errorf("event has already started")
 		}
 	}

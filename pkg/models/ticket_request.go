@@ -18,7 +18,7 @@ type TicketRequest struct {
 	UserUGKthID       string                   `json:"user_ug_kth_id"`
 	User              User                     `json:"user"`
 	IsHandled         bool                     `json:"is_handled" gorm:"default:false"`
-	Tickets           []Ticket                 `json:"tickets"`
+	Ticket            Ticket                   `json:"tickets" gorm:"foreignKey:TicketRequestID"`
 	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
 	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketRequestID" json:"ticket_add_ons"`
 	HandledAt         *time.Time               `json:"handled_at" gorm:"default:null"`
@@ -52,8 +52,6 @@ func (tr *TicketRequest) BeforeSave(tx *gorm.DB) (err error) {
 
 	return
 }
-
-
 
 func (tr *TicketRequest) Delete(tx *gorm.DB, reason string) error {
 	if err := tx.Model(tr).Update("deleted_reason", reason).Error; err != nil {

@@ -231,6 +231,15 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		var ticket models.Ticket
 		for i := 0; i < len(reservedTickets); i++ {
 			ticket = reservedTickets[i]
+
+			ticketRequest, err := ticket.GetTicketRequest(tx)
+			if err != nil {
+				allocator_logger.WithFields(logrus.Fields{
+					"id": ticketRelease.ID,
+				}).Errorf("Error getting ticket request for ticket with ID %d: %s", ticket.ID, err.Error())
+				continue
+			}
+
 			// If i is greater than or equal to newReserveTickets then we have alalocated all tickets
 			// And we want to update the reserve number for the remaining tickets
 			// This should be i - newReserveTickets + 1
@@ -249,7 +258,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			// We want to allocate the ticket
 			// We set the ticket to not be a reserve ticket and set the reserve number to 0
 
-			if ticket.TicketRequest.TicketType.ID == 0 {
+			if ticketRequest.TicketType.ID == 0 {
 				// Fatal error, but we can just load the ticket type
 				if err := tx.Preload("TicketRequest.TicketType").First(&ticket).Error; err != nil {
 					allocator_logger.WithFields(logrus.Fields{
@@ -260,7 +269,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			}
 
 			var isPaid bool = false
-			if ticket.TicketRequest.TicketType.Price == 0 && ticket.TicketRequest.TicketType.ID != 0 {
+			if ticketRequest.TicketType.Price == 0 && ticketRequest.TicketType.ID != 0 {
 				isPaid = true
 			}
 

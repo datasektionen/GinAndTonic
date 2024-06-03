@@ -2,10 +2,12 @@ package surfboard_webhook_service
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
+	surfboard_service_receipt "github.com/DowLucas/gin-ticket-release/pkg/services/surfboard/receipts"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
 	surfboard_types "github.com/DowLucas/gin-ticket-release/pkg/types/surfboard"
 	"gorm.io/gorm"
@@ -64,10 +66,8 @@ func (pws *OrderWebhookService) HandleOrderWebhook(data surfboard_types.OrderWeb
 	case surfboard_types.OrderPaymentInit:
 		err = pws.handlePaymentInitiated(order, data)
 	case surfboard_types.OrderPaymentProc:
-		fmt.Println("Payment processed")
 		err = pws.handlePaymentProcessed(order, data)
 	case surfboard_types.OrderPaymentComp:
-		fmt.Println("handle Payment completed")
 		err = pws.handlePaymentCompleted(order, data)
 	case surfboard_types.OrderPaymentFailed:
 		err = pws.handlePaymentFailed(order, data)
@@ -152,7 +152,19 @@ func (pws *OrderWebhookService) handlePaymentProcessed(order *models.Order, data
 }
 
 func (pws *OrderWebhookService) handlePaymentCompleted(order *models.Order, data surfboard_types.OrderWebhookData) error {
-	return order.PaymentCompleted(pws.DB, data)
+	err := order.PaymentCompleted(pws.DB, data)
+	if err != nil {
+		return err
+	}
+
+	err = surfboard_service_receipt.EmailReceipt(pws.DB, order.MerchantID, order.OrderID)
+
+	if err != nil {
+		log.Printf("Error sending email receipt: %v", err)
+		return nil
+	}
+
+	return nil
 }
 
 func (pws *OrderWebhookService) handlePaymentFailed(order *models.Order, data surfboard_types.OrderWebhookData) error {

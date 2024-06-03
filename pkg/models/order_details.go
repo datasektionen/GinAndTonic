@@ -27,6 +27,8 @@ type OrderDetails struct {
 	Total    float64 `json:"total"`
 	Currency string  `json:"currency"`
 
+	Voided bool `json:"voided" gorm:"default:false"`
+
 	Refunded   bool       `json:"refunded" gorm:"default:false"`
 	RefundedAt *time.Time `json:"refunded_at"`
 	PayedAt    *time.Time `json:"payed_at"`

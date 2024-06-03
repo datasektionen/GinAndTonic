@@ -1,6 +1,7 @@
 package surfboard_webhook_service
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -29,6 +30,9 @@ func (pws *OrderWebhookService) HandleOrderWebhook(data surfboard_types.OrderWeb
 	}()
 
 	eventType := data.EventType
+
+	fmt.Println("Event type: ", eventType)
+
 	orderID := data.Data.OrderID
 
 	order, err := models.GetOrderByID(pws.DB, orderID)
@@ -58,15 +62,17 @@ func (pws *OrderWebhookService) HandleOrderWebhook(data surfboard_types.OrderWeb
 	case surfboard_types.OrderTerminalEvent:
 		break
 	case surfboard_types.OrderPaymentInit:
-		pws.handlePaymentInitiated(order, data)
+		err = pws.handlePaymentInitiated(order, data)
 	case surfboard_types.OrderPaymentProc:
-		pws.handlePaymentProcessed(order, data)
+		fmt.Println("Payment processed")
+		err = pws.handlePaymentProcessed(order, data)
 	case surfboard_types.OrderPaymentComp:
-		pws.handlePaymentCompleted(order, data)
+		fmt.Println("handle Payment completed")
+		err = pws.handlePaymentCompleted(order, data)
 	case surfboard_types.OrderPaymentFailed:
-		pws.handlePaymentFailed(order, data)
+		err = pws.handlePaymentFailed(order, data)
 	case surfboard_types.OrderPaymentCancelled:
-		pws.handlePaymentCancelled(order, data)
+		err = pws.handlePaymentCancelled(order, data)
 	case surfboard_types.OrderPaymentVoided:
 		break
 	default:

@@ -430,12 +430,12 @@ func (ec *EventController) ListTickets(c *gin.Context) {
 	var ticketRequests []models.TicketRequest
 	if err := ec.DB.
 		Unscoped().
-		Preload("Transaction").
 		Preload("User.FoodPreferences").
 		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.EventFormReponses.EventFormField").
 		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Preload("TicketRequest.TicketAddOns.AddOn").
+		Preload("Order.Details").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ?", eventID).

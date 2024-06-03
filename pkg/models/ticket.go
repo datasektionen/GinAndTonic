@@ -71,6 +71,17 @@ func (t *Ticket) Delete(db *gorm.DB, reason string) error {
 	return db.Delete(t).Error
 }
 
+func (t *Ticket) CalulcateTotalPrice() float64 {
+	var totalPrice float64
+	totalPrice += (float64)(t.TicketRequest.TicketType.Price*100) * (float64)(t.TicketRequest.TicketAmount)
+
+	for _, addOn := range t.TicketAddOns {
+		totalPrice += (float64)(addOn.AddOn.Price*100) * (float64)(addOn.Quantity)
+	}
+
+	return totalPrice
+}
+
 func GetTicketByID(db *gorm.DB, ticketID uint) (ticket Ticket, err error) {
 	err = db.
 		Preload("TicketRequest.TicketType").
@@ -84,6 +95,7 @@ func GetTicketByID(db *gorm.DB, ticketID uint) (ticket Ticket, err error) {
 
 func GetTicketsByIDs(db *gorm.DB, ticketIDs []uint) (tickets []Ticket, err error) {
 	err = db.
+		Preload("TicketAddOns").
 		Preload("TicketRequest.TicketType").
 		Preload("TicketRequest.TicketRelease").
 		Find(&tickets, ticketIDs).Error

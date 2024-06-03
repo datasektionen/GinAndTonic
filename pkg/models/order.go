@@ -28,9 +28,8 @@ type Order struct {
 	UserUGKthID     string `json:"user_ug_kth_id"`
 	PaymentPageLink string `json:"paymentPageLink"`
 
-	Status  OrderStatusType `json:"status" gorm:"type:varchar(255);default:'pending'"`
-	Details OrderDetails    `json:"details" gorm:"foreignKey:OrderID"`
-	Tickets []Ticket        `json:"tickets" gorm:"foreignKey:OrderID"`
+	Details OrderDetails `json:"details" gorm:"foreignKey:OrderID"`
+	Tickets []Ticket     `json:"tickets" gorm:"foreignKey:OrderID"`
 
 	WebhookEvents []OrderWebhookEvent `json:"webhook_events" gorm:"foreignKey:OrderID"`
 }
@@ -44,16 +43,16 @@ func GetOrderByID(db *gorm.DB, orderID string) (*Order, error) {
 	return &order, nil
 }
 
-func (o Order) IsPaymentCompleted() bool {
-	return o.Status == OrderStatusPaymentCompleted
+func (o *Order) IsPaymentCompleted() bool {
+	return o.Details.PaymentStatus == OrderStatusPaymentCompleted
 }
 
-func (o Order) CanUpdateOrder() bool {
-	if o.Status == OrderStatusPaymentCompleted {
+func (o *Order) CanUpdateOrder() bool {
+	if o.Details.PaymentStatus == OrderStatusPaymentCompleted {
 		return false
 	}
 
-	if o.Status == OrderStatusPaymentCancelled {
+	if o.Details.PaymentStatus == OrderStatusPaymentCancelled {
 		return false
 	}
 
@@ -69,21 +68,21 @@ func GetAllIncompleteOrders(db *gorm.DB) ([]Order, error) {
 	return orders, nil
 }
 
-func (o Order) CancelOrder(db *gorm.DB) error {
-	if o.Status == OrderStatusPaymentCompleted {
+func (o *Order) CancelOrder(db *gorm.DB) error {
+	if o.Details.PaymentStatus == OrderStatusPaymentCompleted {
 		return errors.New("order has already been completed")
 	}
 
-	if o.Status == OrderStatusPartialPaymentCompleted {
+	if o.Details.PaymentStatus == OrderStatusPartialPaymentCompleted {
 		return errors.New("order has already been partially completed")
 	}
 
-	if o.Status == OrderStatusPaymentCancelled {
+	if o.Details.PaymentStatus == OrderStatusPaymentCancelled {
 		return errors.New("order has already been cancelled")
 	}
 
-	o.Status = OrderStatusPaymentCancelled
-	if err := db.Save(o).Error; err != nil {
+	o.Details.PaymentStatus = OrderStatusPaymentCancelled
+	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Tickets").Save(o).Error; err != nil {
 		return err
 	}
 
@@ -95,42 +94,40 @@ func (o Order) CancelOrder(db *gorm.DB) error {
 	return nil
 }
 
-func (o Order) PaymentInitiated(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
-	o.Status = OrderStatusInitiated
-	o.Details.PaymentStatus = data.Data.PaymentStatus
+func (o *Order) PaymentInitiated(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
+	o.Details.PaymentStatus = OrderStatusType(data.Data.PaymentStatus)
 	o.Details.PaymentMethod = data.Data.PaymentMethod
 	o.Details.PaymentID = data.Data.PaymentID
-	if err := db.Save(o).Error; err != nil {
+
+	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Tickets").Save(o).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o Order) PaymentProcessed(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
-	o.Status = OrderStatusProcessed
-	o.Details.PaymentStatus = data.Data.PaymentStatus
+func (o *Order) PaymentProcessed(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
+	o.Details.PaymentStatus = OrderStatusType(data.Data.PaymentStatus)
 	o.Details.PaymentMethod = data.Data.PaymentMethod
 	o.Details.PaymentID = data.Data.PaymentID
 	o.Details.TruncatedPan = data.Data.TruncatedPan
-	if err := db.Save(o).Error; err != nil {
+
+	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Tickets").Save(o).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o Order) PaymentCompleted(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
-	o.Status = OrderStatusPaymentCompleted
-	o.Details.PaymentStatus = data.Data.PaymentStatus
+func (o *Order) PaymentCompleted(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
+	o.Details.PaymentStatus = OrderStatusType(data.Data.PaymentStatus)
 	o.Details.PaymentMethod = data.Data.PaymentMethod
 	o.Details.PaymentID = data.Data.PaymentID
 
 	now := time.Now()
-
 	o.Details.PayedAt = &now
 
-	if err := db.Save(o).Error; err != nil {
+	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Tickets").Save(o).Error; err != nil {
 		return err
 	}
 
@@ -143,23 +140,22 @@ func (o Order) PaymentCompleted(db *gorm.DB, data surfboard_types.OrderWebhookDa
 
 	return nil
 }
-
-func (o Order) PaymentFailed(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
-	o.Status = OrderStatusPaymentFailed
-	o.Details.PaymentStatus = data.Data.PaymentStatus
+func (o *Order) PaymentFailed(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
+	o.Details.PaymentStatus = OrderStatusType(data.Data.PaymentStatus)
 	o.Details.PaymentID = data.Data.PaymentID
-	if err := db.Save(o).Error; err != nil {
+
+	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Tickets").Save(o).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (o Order) PaymentCancelled(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
-	o.Status = OrderStatusPaymentCancelled
-	o.Details.PaymentStatus = data.Data.PaymentStatus
+func (o *Order) PaymentCancelled(db *gorm.DB, data surfboard_types.OrderWebhookData) error {
+	o.Details.PaymentStatus = OrderStatusType(data.Data.PaymentStatus)
 	o.Details.PaymentID = data.Data.PaymentID
-	if err := db.Save(o).Error; err != nil {
+
+	if err := db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Tickets").Save(o).Error; err != nil {
 		return err
 	}
 

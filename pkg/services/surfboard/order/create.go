@@ -135,15 +135,26 @@ func (sos *SurfboardCreateOrderService) createOrder(
 		return nil, errors.New(resp.Message)
 	}
 
+	var totlaPrice float64
+	for _, ticket := range tickets {
+		totlaPrice += ticket.CalulcateTotalPrice()
+	}
+
 	var order models.Order = models.Order{
 		OrderID:         resp.Data.OrderID,
 		MerchantID:      merchant.MerchantID,
 		EventID:         uint(terminal.EventID),
 		UserUGKthID:     user.UGKthID,
 		PaymentPageLink: resp.Data.PaymentPageLink,
+		Details: models.OrderDetails{
+			OrderID:       resp.Data.OrderID,
+			PaymentStatus: models.OrderStatusPending,
+			Currency:      "SEK", // TODO: Get currency from terminal
+			Total:         totlaPrice,
+		},
 	}
 
-	err = tx.Create(&order).Error
+	err = tx.Session(&gorm.Session{FullSaveAssociations: true}).Create(&order).Error
 	if err != nil {
 		return nil, err
 	}

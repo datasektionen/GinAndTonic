@@ -53,6 +53,8 @@ func (tr *TicketRequest) BeforeSave(tx *gorm.DB) (err error) {
 	return
 }
 
+
+
 func (tr *TicketRequest) Delete(tx *gorm.DB, reason string) error {
 	if err := tx.Model(tr).Update("deleted_reason", reason).Error; err != nil {
 		return err

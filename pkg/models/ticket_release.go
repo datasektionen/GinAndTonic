@@ -18,7 +18,7 @@ type TicketRelease struct {
 	Close                       time.Time                    `json:"close"`
 	AllowExternal               bool                         `gorm:"default:false" json:"allow_external"` // Allow external users to buy tickets
 	TicketTypes                 []TicketType                 `gorm:"foreignKey:TicketReleaseID" json:"ticket_types"`
-	TicketRequests              []TicketRequest              `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
+	TicketOrders                []TicketOrder                `gorm:"foreignKey:TicketReleaseID" json:"ticket_requests"`
 	TicketsAvailable            int                          `json:"tickets_available"`              // The total number of tickets for the ticket release
 	PayWithin                   *int64                       `json:"pay_within" gorm:"default:null"` // TODO: Remove
 	IsReserved                  bool                         `gorm:"default:false" json:"is_reserved"`
@@ -43,8 +43,8 @@ func DeleteTicketRelease(db *gorm.DB, ticketReleaseID uint) error {
 		}
 	}()
 
-	// Soft delete associated TicketRequests
-	if err := tx.Where("ticket_release_id = ?", ticketReleaseID).Delete(&TicketRequest{}).Error; err != nil {
+	// Soft delete associated TicketOrders
+	if err := tx.Where("ticket_release_id = ?", ticketReleaseID).Delete(&TicketOrder{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

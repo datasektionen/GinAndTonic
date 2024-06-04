@@ -12,43 +12,57 @@ type TicketStatus string
 
 const (
 	Pending   TicketStatus = "pending"
-	Reserved  TicketStatus = "reserved"
+	Reserved  TicketStatus = "reserve"
 	Cancelled TicketStatus = "cancelled"
 	Allocated TicketStatus = "allocated"
 )
 
+
+
 type Ticket struct {
 	gorm.Model
-	TicketRequestID uint          `gorm:"index" json:"ticket_request_id"`
-	IsPaid          bool          `json:"is_paid" default:"false"`
-	IsReserve       bool          `json:"is_reserve"`
-	WasReserve      bool          `json:"was_reserve" default:"false"`
-	ReserveNumber   uint          `json:"reserve_number" default:"0"`
-	Refunded        bool          `json:"refunded" default:"false"`
-	UserUGKthID     string        `json:"user_ug_kth_id"`
-	User            User          `json:"user"`
-	Transaction     *Transaction  `json:"transaction"`
-	Status          TicketStatus  `json:"status" gorm:"default:'pending'"`
-	CheckedIn       bool          `json:"checked_in" default:"false"`
-	CheckedInAt     sql.NullTime  `json:"checked_in_at"`
-	QrCode          string        `json:"qr_code" gorm:"unique;not null"`
-	PurchasableAt   *time.Time    `json:"purchasable_at" gorm:"default:null"`
-	PaymentDeadline *time.Time    `json:"payment_deadline" gorm:"default:null"`
-	TicketAddOns    []TicketAddOn `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
-	DeletedReason   string        `json:"deleted_reason" gorm:"default:null"`
+
+	TicketOrderID     uint                     `json:"ticket_order_id" gorm:"index"`
+	TicketOrder       TicketOrder              `json:"ticket_order"`
+	TicketTypeID      uint                     `json:"ticket_type_id" gorm:"index"`
+	TicketType        TicketType               `json:"ticket_type"`
+	UserUGKthID       string                   `json:"user_ug_kth_id"`
+	User              User                     `json:"user"`
+	TicketAmount      int                      `json:"ticket_amount"`
+	IsHandled         bool                     `json:"is_handled" gorm:"default:false"`
+	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
+	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
+	HandledAt         sql.NullTime             `json:"handled_at" gorm:"default:null"`
+	DeletedReason     string                   `json:"deleted_reason" gorm:"default:null"`
+
+	// Original Ticket fields
+	IsPaid          bool         `json:"is_paid" default:"false"`
+	IsReserve       bool         `json:"is_reserve"`
+	WasReserve      bool         `json:"was_reserve" default:"false"`
+	ReserveNumber   uint         `json:"reserve_number" default:"0"`
+	Refunded        bool         `json:"refunded" default:"false"`
+	Status          TicketStatus `json:"status" gorm:"default:'pending'"`
+	CheckedIn       bool         `json:"checked_in" default:"false"`
+	CheckedInAt     sql.NullTime `json:"checked_in_at"`
+	QrCode          string       `json:"qr_code" gorm:"unique;not null"`
+	PurchasableAt   sql.NullTime `json:"purchasable_at" gorm:"default:null"`
+	PaymentDeadline sql.NullTime `json:"payment_deadline" gorm:"default:null"`
 
 	OrderID *string `json:"order_id" gorm:"default:null"`
 	Order   Order   `json:"order"`
 }
 
 func (t *Ticket) BeforeSave(tx *gorm.DB) (err error) {
+	if t.IsHandled && t.HandledAt.Valid {
+		now := time.Now()
+		t.HandledAt = sql.NullTime{Time: now, Valid: true}
+	}
 	if t.IsReserve && !t.WasReserve {
 		t.WasReserve = true
 	}
 
 	return
 }
-
 func (t *Ticket) BeforeUpdate(tx *gorm.DB) (err error) {
 	if !t.DeletedAt.Valid {
 		t.DeletedReason = ""
@@ -56,74 +70,18 @@ func (t *Ticket) BeforeUpdate(tx *gorm.DB) (err error) {
 	return
 }
 
-func (t *Ticket) GetTicketRequest(db *gorm.DB) (*TicketRequest, error) {
-	var ticketRequest TicketRequest
-	if err := db.
-		Preload("TicketType").
-		Preload("TicketAddOns").
-		Preload("TicketRelease").
-		First(&ticketRequest, t.TicketRequestID).Error; err != nil {
-		return nil, err
-	}
-
-	return &ticketRequest, nil
-}
-
-func GetTicketWithRequest(db *gorm.DB, ticketID uint) (*Ticket, *TicketRequest, error) {
-	var ticket Ticket
-	var ticketRequest TicketRequest
-
-	// First, fetch the ticket
-	if result := db.First(&ticket, ticketID); result.Error != nil {
-		return nil, nil, result.Error
-	}
-
-	// Then, fetch the associated TicketRequest
-	if result := db.First(&ticketRequest, ticket.TicketRequestID); result.Error != nil {
-		return nil, nil, result.Error
-	}
-
-	return &ticket, &ticketRequest, nil
-}
-
 func (t *Ticket) Delete(db *gorm.DB, reason string) error {
-	var ticketRequest TicketRequest
-	if err := db.First(&ticketRequest, t.TicketRequestID).Error; err != nil {
-		return err
-	}
-
 	// Delete the associated TicketRequest
-	if err := db.Model(&ticketRequest).Update("deleted_reason", reason).Error; err != nil {
-		return err
-	}
-
-	// Delete the ticket request as well
-	if err := db.Delete(&ticketRequest).Error; err != nil {
+	if err := db.Model(t).Update("deleted_reason", reason).Error; err != nil {
 		return err
 	}
 
 	return db.Delete(t).Error
 }
 
-func (t *Ticket) CalulcateTotalPrice(db *gorm.DB) float64 {
-	tr, err := t.GetTicketRequest(db)
-	if err != nil {
-		return 0
-	}
-
-	var totalPrice float64
-	totalPrice += (float64)(tr.TicketType.Price*100) * (float64)(tr.TicketAmount)
-
-	for _, addOn := range t.TicketAddOns {
-		totalPrice += (float64)(addOn.AddOn.Price*100) * (float64)(addOn.Quantity)
-	}
-
-	return totalPrice
-}
-
 func GetTicketByID(db *gorm.DB, ticketID uint) (ticket Ticket, err error) {
 	err = db.
-		Preload("TicketRequest.TicketType").
+		Preload("TicketType").
 		First(&ticket, ticketID).Error
 	if err != nil {
 		return Ticket{}, err
@@ -135,8 +93,8 @@ func GetTicketByID(db *gorm.DB, ticketID uint) (ticket Ticket, err error) {
 func GetTicketsByIDs(db *gorm.DB, ticketIDs []uint) (tickets []Ticket, err error) {
 	err = db.
 		Preload("TicketAddOns").
-		Preload("TicketRequest.TicketType").
-		Preload("TicketRequest.TicketRelease").
+		Preload("TicketType").
+		Preload("TicketOrder.TicketRelease").
 		Find(&tickets, ticketIDs).Error
 	if err != nil {
 		return nil, err
@@ -145,24 +103,11 @@ func GetTicketsByIDs(db *gorm.DB, ticketIDs []uint) (tickets []Ticket, err error
 	return tickets, nil
 }
 
-func GetTicketRequestsToEvent(db *gorm.DB, eventID uint) (ticketRequests []TicketRequest, err error) {
-	err = db.
-		Joins("INNER JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
-		Where("ticket_releases.event_id = ?", eventID).
-		Find(&ticketRequests).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return ticketRequests, nil
-}
-
 func GetTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) {
-	// eventID is fetched in TicketRequest.TicketRelease.EventID
+	// eventID is fetched in TicketOrder.TicketRelease.EventID
 	err = db.
-		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
-		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Joins("JOIN ticket_orders ON tickets.ticket_order_id = ticket_orders.id").
+		Joins("JOIN ticket_releases ON ticket_orders.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ?", eventID).
 		Find(&tickets).Error
 
@@ -174,10 +119,10 @@ func GetTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) 
 }
 
 func GetAllPaidTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err error) {
-	// eventID is fetched in TicketRequest.TicketRelease.EventID
+	// eventID is fetched in TicketOrder.TicketRelease.EventID
 	err = db.
-		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
-		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Joins("JOIN ticket_orders ON tickets.ticket_order_id = ticket_orders.id").
+		Joins("JOIN ticket_releases ON ticket_orders.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ? AND tickets.is_paid = ?", eventID, true).
 		Find(&tickets).Error
 
@@ -189,10 +134,10 @@ func GetAllPaidTicketsToEvent(db *gorm.DB, eventID uint) (tickets []Ticket, err 
 }
 
 func GetTicketToEvent(db *gorm.DB, eventID, ticketID uint) (ticket Ticket, err error) {
-	// eventID is fetched in TicketRequest.TicketRelease.EventID
+	// eventID is fetched in TicketOrder.TicketRelease.EventID
 	err = db.
-		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
-		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+		Joins("JOIN ticket_orders ON tickets.ticket_order_id = ticket_orders.id").
+		Joins("JOIN ticket_releases ON ticket_orders.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ? AND tickets.id = ?", eventID, ticketID).
 		First(&ticket).Error
 
@@ -207,12 +152,12 @@ func GetTicketToEvent(db *gorm.DB, eventID, ticketID uint) (ticket Ticket, err e
 func GetAllValidUsersTicket(db *gorm.DB, userUGKthID string) ([]Ticket, error) {
 	var tickets []Ticket
 	if err := db.
-		Preload("TicketRequest.TicketRelease.Event").
-		Preload("TicketRequest.TicketType").
-		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail").
-		Preload("TicketRequest.TicketRelease.PaymentDeadline").
+		Preload("TicketOrder.TicketRelease.Event").
+		Preload("TicketOrder.TicketRelease.TicketReleaseMethodDetail").
+		Preload("TicketOrder.TicketRelease.PaymentDeadline").
+		Preload("TicketOrder.TicketRelease.AddOns").
+		Preload("TicketType").
 		Preload("TicketAddOns").
-		Preload("TicketRequest.TicketRelease.AddOns").
 		Where("user_ug_kth_id = ?", userUGKthID).
 		Find(&tickets).Error; err != nil {
 		return nil, err
@@ -224,11 +169,11 @@ func GetAllValidUsersTicket(db *gorm.DB, userUGKthID string) ([]Ticket, error) {
 func GetAllTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tickets []Ticket, err error) {
 	// Get all tickets to a ticket release thats not soft deleted or reserved
 	err = db.
-		Preload("TicketRequest.TicketType").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
-		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
-		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
-		Where("ticket_releases.id = ? AND tickets.is_reserve = ?", ticketReleaseID, false).
+		Preload("TicketType").
+		Preload("TicketOrder.TicketRelease.Event.Organization").
+		Joins("JOIN ticket_orders ON tickets.ticket_order_id = ticket_orders.id").
+		Joins("JOIN ticket_releases ON ticket_orders.ticket_release_id = ticket_releases.id").
+		Where("ticket_releases.id = ? AND tickets.refunded = ? AND tickets.is_reserve = ?", ticketReleaseID, false, false).
 		Find(&tickets).Error
 	if err != nil {
 		return nil, err
@@ -243,7 +188,7 @@ func GetAllReserveTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tic
 		Preload("TicketRequest.User").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
-		Where("ticket_releases.id = ? AND tickets.refunded = ? AND tickets.is_reserve = ?", ticketReleaseID, false, true).
+		Where("ticket_releases.id = ? AND tickets.is_reserve = ?", ticketReleaseID, false, true).
 		Order("reserve_number ASC").
 		Find(&tickets).Error
 
@@ -255,24 +200,21 @@ func GetAllReserveTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tic
 }
 
 func (t *Ticket) ValidatePaymentDeadline(db *gorm.DB) (err error) {
-	tr, err := t.GetTicketRequest(db)
-	if err != nil {
-		return err
-	}
+	var event Event
+	db.First(&event, t.TicketOrder.TicketRelease.EventID)
 
 	// Validate that t.TicketRequest.TicketRelease.Event.Date is loaded
-	if tr.TicketRelease.Event.ID == 0 {
-		// Throw error
-		return fmt.Errorf("event not loaded")
+	if event.Date.IsZero() {
+		return fmt.Errorf("event date is not loaded")
 	}
 
-	if t.PaymentDeadline != nil {
-		if time.Now().After(*t.PaymentDeadline) {
+	if t.PaymentDeadline.Valid {
+		if time.Now().After(t.PaymentDeadline.Time) {
 			return fmt.Errorf("payment deadline has passed")
 		}
 	} else {
 		// Check if time is after event start
-		if time.Now().After(tr.TicketRelease.Event.Date) {
+		if time.Now().After(event.Date) {
 			return fmt.Errorf("event has already started")
 		}
 	}

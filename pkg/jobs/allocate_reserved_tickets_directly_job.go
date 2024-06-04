@@ -106,14 +106,14 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 
 	var numberOfAlreadyAllocatedTickets int = len(allAllocatedTickets)
 
-	ticketRequests, err := models.GetAllValidTicketRequestsToTicketRelease(tx, ticketRelease.ID)
+	ticketOrders, err := models.GetAllValidTicketOrdersToTicketRelease(tx, ticketRelease.ID)
 
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	for _, ticketRequest := range ticketRequests {
+	for _, ticketOrder := range ticketOrders {
 		// Allocate ticket requests directly
 		if err != nil {
 			tx.Rollback()
@@ -127,7 +127,7 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 			break
 		}
 
-		ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
+		ticket, err := allocate_service.AllocateTicketOrder(ticketRequest, tx)
 
 		if err != nil {
 			tx.Rollback()

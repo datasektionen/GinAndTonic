@@ -159,14 +159,14 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 	deadline := utils.ConvertUNIXTimeToDateTime(ticketRelease.Open.Add(time.Duration(methodDetail.OpenWindowDuration) * time.Minute).Unix())
 
 	// Fetch all ticket requests directly from the database
-	allTicketRequests, err := models.GetAllValidTicketRequestsToTicketRelease(tx, ticketRelease.ID)
+	allTicketOrders, err := models.GetAllValidTicketOrdersToTicketRelease(tx, ticketRelease.ID)
 
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	if len(allTicketRequests) == 0 {
+	if len(allTicketOrders) == 0 {
 		// return empty array if there are no ticket requests
 		return allTickets, nil
 	}

@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"database/sql"
 	"errors"
 	"os"
 	"time"
@@ -176,8 +177,8 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		// Here we want to check if the ticket has been paid or if the ticket has not been paid within the time limit.
 		var mustPayBefore time.Time
 
-		if ticket.PaymentDeadline != nil {
-			mustPayBefore = *ticket.PaymentDeadline
+		if ticket.PaymentDeadline.Valid {
+			mustPayBefore = ticket.PaymentDeadline.Time
 		} else {
 			allocator_logger.WithFields(logrus.Fields{
 				"id": ticketRelease.ID,
@@ -232,7 +233,6 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 		for i := 0; i < len(reservedTickets); i++ {
 			ticket = reservedTickets[i]
 
-			ticketRequest, err := ticket.GetTicketRequest(tx)
 			if err != nil {
 				allocator_logger.WithFields(logrus.Fields{
 					"id": ticketRelease.ID,
@@ -258,7 +258,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			// We want to allocate the ticket
 			// We set the ticket to not be a reserve ticket and set the reserve number to 0
 
-			if ticketRequest.TicketType.ID == 0 {
+			if ticket.TicketType.ID == 0 {
 				// Fatal error, but we can just load the ticket type
 				if err := tx.Preload("TicketRequest.TicketType").First(&ticket).Error; err != nil {
 					allocator_logger.WithFields(logrus.Fields{
@@ -269,7 +269,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			}
 
 			var isPaid bool = false
-			if ticketRequest.TicketType.Price == 0 && ticketRequest.TicketType.ID != 0 {
+			if ticket.TicketType.Price == 0 && ticket.TicketType.ID != 0 {
 				isPaid = true
 			}
 
@@ -293,13 +293,13 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 			ticket.IsReserve = false
 			ticket.ReserveNumber = 0
 			ticket.IsPaid = isPaid
-			ticket.PurchasableAt = &now
+			ticket.PurchasableAt = sql.NullTime{Time: now, Valid: true}
 
 			if paymentDeadline.After(ticketRelease.Event.Date) {
 				// If it is, then there is no deadline since it will automatically be set to the event date
-				ticket.PaymentDeadline = nil
+				ticket.PaymentDeadline = sql.NullTime{}
 			} else {
-				ticket.PaymentDeadline = &paymentDeadline
+				ticket.PaymentDeadline = sql.NullTime{Time: paymentDeadline, Valid: true}
 			}
 
 			if err := tx.Save(&ticket).Error; err != nil {

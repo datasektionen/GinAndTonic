@@ -10,14 +10,14 @@ import (
 	"gorm.io/gorm"
 )
 
-func AllocateTicket(ticket models.Ticket, paymentDeadline models.TicketReleasePaymentDeadline, tx *gorm.DB) (*models.Ticket, error) {
-	if ticket.IsHandled {
-		return &ticket, nil
+func AllocateTicket(ticket *models.Ticket, paymentDeadline models.TicketReleasePaymentDeadline, tx *gorm.DB) error {
+	if ticket.TicketOrder.IsHandled {
+		return errors.New("ticket order is already handled")
 	}
 
 	if ticket.TicketType.ID == 0 {
 		// Fatal error
-		return nil, errors.New("no ticket type specified")
+		return errors.New("no ticket type specified")
 	}
 
 	var isPaid bool = false
@@ -29,23 +29,29 @@ func AllocateTicket(ticket models.Ticket, paymentDeadline models.TicketReleasePa
 	var qrCode string = utils.GenerateRandomString(16)
 	now := time.Now()
 
-	ticket.IsHandled = true
 	ticket.IsPaid = isPaid
 	ticket.QrCode = qrCode
+	ticket.IsReserve = false
 	ticket.PurchasableAt = sql.NullTime{Time: now, Valid: true}
 	ticket.PaymentDeadline = sql.NullTime{Time: paymentDeadline.OriginalDeadline, Valid: true}
+	ticket.Status = models.Allocated
 
 	if err := tx.Save(&ticket).Error; err != nil {
-		return nil, err
+		return err
 	}
 
-	// Set the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
+	// Set ticket.TicketOrder.IsHandled to true
+	if err := tx.Model(&ticket.TicketOrder).Update("is_handled", true).Error; err != nil {
+		return err
+	}
 
-	return &ticket, nil
+	// Set the TicketID in the ticketOrder.TicketAddOn.TicketID to the ticket.ID
+
+	return nil
 }
 
 func AllocateTicketOrder(ticketOrder models.TicketOrder, tx *gorm.DB) (*[]models.Ticket, error) {
-	if ticketOrder.IsTicketRequest() {
+	if ticketOrder.IsticketOrder() {
 		return &ticketOrder.Tickets, nil
 	}
 
@@ -54,12 +60,12 @@ func AllocateTicketOrder(ticketOrder models.TicketOrder, tx *gorm.DB) (*[]models
 	var tickets []models.Ticket
 
 	for _, ticket := range ticketOrder.Tickets {
-		ticket, err := AllocateTicket(ticket, paymentDeadline, tx)
+		err := AllocateTicket(&ticket, paymentDeadline, tx)
 		if err != nil {
 			return nil, err
 		}
 
-		tickets = append(tickets, *ticket)
+		tickets = append(tickets, ticket)
 	}
 
 	ticketOrder.Type = models.TicketOrderTicket
@@ -71,32 +77,28 @@ func AllocateTicketOrder(ticketOrder models.TicketOrder, tx *gorm.DB) (*[]models
 }
 
 func AllocateReserveTicket(
-	ticketRequest models.TicketRequest,
+	ticket *models.Ticket,
 	reserveNumber uint,
-	tx *gorm.DB) (*models.Ticket, error) {
-	ticketRequest.IsHandled = true
-	if err := tx.Save(&ticketRequest).Error; err != nil {
-		return nil, err
+	tx *gorm.DB) error {
+	if ticket.TicketOrder.IsHandled {
+		return nil
 	}
 
 	qrCode := utils.GenerateRandomString(16)
 
-	ticket := models.Ticket{
-		TicketRequestID: ticketRequest.ID,
-		ReserveNumber:   reserveNumber,
-		IsReserve:       true,
-		UserUGKthID:     ticketRequest.UserUGKthID,
-		QrCode:          qrCode,
+	ticket.IsPaid = false
+	ticket.QrCode = qrCode
+	ticket.IsReserve = true
+	ticket.ReserveNumber = reserveNumber
+	ticket.Status = models.Reserve
+
+	if err := tx.Save(&ticket).Error; err != nil {
+		return err
 	}
 
-	if err := tx.Create(&ticket).Error; err != nil {
-		return nil, err
+	if err := tx.Model(&ticket.TicketOrder).Update("is_handled", true).Error; err != nil {
+		return err
 	}
 
-	// S	et the TicketID in the ticketRequest.TicketAddOn.TicketID to the ticket.ID
-	if err := tx.Model(&models.TicketAddOn{}).Where("ticket_request_id = ?", ticketRequest.ID).Update("ticket_id", ticket.ID).Error; err != nil {
-		return nil, err
-	}
-
-	return &ticket, nil
+	return nil
 }

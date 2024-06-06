@@ -20,7 +20,7 @@ func NewTicketService(db *gorm.DB) *TicketService {
 }
 
 func (ts *TicketService) GetAllTicketsToEvent(eventID int) (tickets []models.Ticket, err error) {
-	// Get all tickets where ticket.TicketRequest.EventID == EventID
+	// Get all tickets where ticket.ticketOrder.EventID == EventID
 	tickets, err = models.GetTicketsToEvent(ts.DB, uint(eventID))
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 	var ticket models.Ticket
 	if err := ts.DB.
 		Preload("User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
+		Preload("TicketOrder.TicketRelease.Event.Organization").
 		Where("id = ?", ticketID).First(&ticket).Error; err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket"}
 	}
@@ -82,7 +82,10 @@ func (ts *TicketService) CancelTicket(ugKthID string, ticketID int) *types.Error
 	}
 
 	// Notify user
-	if err := Notify_TicketCancelled(ts.DB, &ticket.User, &ticket.TicketRequest.TicketRelease.Event.Organization, ticket.TicketRequest.TicketRelease.Event.Name); err != nil {
+	if err := Notify_TicketCancelled(ts.DB,
+		&ticket.User,
+		&ticket.TicketOrder.TicketRelease.Event.Organization,
+		ticket.TicketOrder.TicketRelease.Event.Name); err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error notifying user"}
 	}
 
@@ -121,19 +124,19 @@ func (tc *TicketService) UpdateTicket(ticket *models.Ticket, body *types.UpdateT
 	// check if body.PaymentDeadline is set and different from ticket.PaymentDeadline
 	shouldNotifyUser := false
 
-	if body.PaymentDeadline != nil {
-		if !utils.IsEqualTimePtr(ticket.PaymentDeadline, body.PaymentDeadline) {
+	if body.PaymentDeadline != nil && ticket.PaymentDeadline.Valid {
+		if !utils.IsEqualTimePtr(&ticket.PaymentDeadline.Time, body.PaymentDeadline) {
 			shouldNotifyUser = true
-			ticket.PaymentDeadline = body.PaymentDeadline
+			ticket.PaymentDeadline = sql.NullTime{Time: *body.PaymentDeadline, Valid: true}
 		}
 	}
 
 	if body.PaymentDeadline != nil {
-		ticket.PaymentDeadline = body.PaymentDeadline
+		ticket.PaymentDeadline = sql.NullTime{Time: *body.PaymentDeadline, Valid: true}
 	}
 
 	// Checks the payment deadline, ensure that Event is preloaded
-	if err := ticket.ValidatePaymentDeadline(); err != nil {
+	if err := ticket.ValidatePaymentDeadline(tc.DB); err != nil {
 		return nil, err
 	}
 
@@ -146,7 +149,7 @@ func (tc *TicketService) UpdateTicket(ticket *models.Ticket, body *types.UpdateT
 	}
 
 	if shouldNotifyUser {
-		if err := Notify_UpdatedPaymentDeadlineEmail(tc.DB, int(ticket.ID), ticket.PaymentDeadline); err != nil {
+		if err := Notify_UpdatedPaymentDeadlineEmail(tc.DB, int(ticket.ID), &ticket.PaymentDeadline.Time); err != nil {
 			return nil, err
 		}
 	}

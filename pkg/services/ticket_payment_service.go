@@ -18,7 +18,7 @@ func HandleSuccessfulTicketPayment(
 	ticketId int,
 ) (ticket *models.Ticket, err error) {
 	// Handles a successful ticket payment
-	if err := db.Preload("TicketRequest").Where("id = ?", ticketId).First(&ticket).Error; err != nil {
+	if err := db.Preload("ticketOrder").Where("id = ?", ticketId).First(&ticket).Error; err != nil {
 		return nil, err
 	}
 

@@ -14,11 +14,11 @@ type EventSiteVisit struct {
 
 type EventSiteVisitSummary struct {
 	gorm.Model
-	EventID           uint    `json:"event_id" gorm:"index"`
-	TotalVisits       int     `json:"total_visits"`
-	UniqueUsers       int     `json:"unique_users"`
-	NumTicketRequests int     `json:"num_ticket_requests"`
-	TotalIncome       float64 `json:"total_income"`
+	EventID     uint    `json:"event_id" gorm:"index"`
+	TotalVisits int     `json:"total_visits"`
+	UniqueUsers int     `json:"unique_users"`
+	NumTickets  int     `json:"num_tickets"`
+	TotalIncome float64 `json:"total_income"`
 }
 
 // Get EventSiteVisits of all events that has passed

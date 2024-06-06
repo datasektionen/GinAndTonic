@@ -9,16 +9,16 @@ import (
 	"gorm.io/gorm"
 )
 
-type ManagerTicketRequestController struct {
+type ManagerTicketOrderController struct {
 	DB         *gorm.DB
-	trService  *services.TicketRequestService
-	mtrService *manager_service.ManagerTicketRequestService
+	service    *services.TicketOrderService
+	mtrService *manager_service.ManagerTicketOrderService
 }
 
-func NewManagerTicketRequestController(db *gorm.DB) *ManagerTicketRequestController {
-	trservice := services.NewTicketRequestService(db)
-	mtrequestservice := manager_service.NewManagerTicketRequestService(db)
-	return &ManagerTicketRequestController{DB: db, trService: trservice, mtrService: mtrequestservice}
+func NewManagerticketOrderController(db *gorm.DB) *ManagerTicketOrderController {
+	service := services.NewTicketOrderService(db)
+	mtrequestservice := manager_service.NewManagerTicketOrderService(db)
+	return &ManagerTicketOrderController{DB: db, service: service, mtrService: mtrequestservice}
 }
 
 /*
@@ -26,12 +26,12 @@ This controller handles manager actions made on ticket requests. for instance de
 */
 
 type ReqTR struct {
-	Action           string `json:"action" binding:"required"`
-	TicketRequestIDs []int  `json:"ticket_request_ids"`
+	Action         string `json:"action" binding:"required"`
+	TicketOrderIDs []int  `json:"ticket_order_ids"`
 }
 
-// DeleteTicketRequest is a method that deletes a ticket request.
-func (trc *ManagerTicketRequestController) TicketRequestAction(c *gin.Context) {
+// DeleteticketOrder is a method that deletes a ticket request.
+func (trc *ManagerTicketOrderController) TicketOrderAction(c *gin.Context) {
 	// Body consists of ticekt_request_ids to be deleted
 
 	var req ReqTR
@@ -42,7 +42,7 @@ func (trc *ManagerTicketRequestController) TicketRequestAction(c *gin.Context) {
 
 	switch req.Action {
 	case "delete":
-		err := trc.mtrService.DeleteTicketRequests(req.TicketRequestIDs)
+		err := trc.mtrService.DeleteTicketOrder(req.TicketOrderIDs)
 		if err != nil {
 			c.JSON(err.StatusCode, gin.H{"error": err.Message})
 			return
@@ -50,15 +50,15 @@ func (trc *ManagerTicketRequestController) TicketRequestAction(c *gin.Context) {
 
 		c.JSON(200, gin.H{"message": "Ticket request deleted"})
 	case "undelete":
-		err := trc.mtrService.UndeleteTicketRequests(req.TicketRequestIDs)
+		err := trc.mtrService.UndeleteTicketOrders(req.TicketOrderIDs)
 		if err != nil {
 			c.JSON(err.StatusCode, gin.H{"error": err.Message})
 			return
 		}
 	case "allocate":
-		err := services.SelectivelyAllocateTicketRequests(
+		err := services.SelectivelyAllocateTicketOrders(
 			trc.DB,
-			req.TicketRequestIDs,
+			req.TicketOrderIDs,
 		)
 		if err != nil {
 			c.JSON(err.StatusCode, gin.H{"error": err.Message})

@@ -13,16 +13,16 @@ import (
 	"gorm.io/gorm"
 )
 
-type TicketRequestController struct {
-	Service *services.TicketRequestService
+type TicketOrderController struct {
+	Service *services.TicketOrderService
 }
 
-func NewTicketRequestController(db *gorm.DB) *TicketRequestController {
-	service := services.NewTicketRequestService(db)
-	return &TicketRequestController{Service: service}
+func NewTicketOrderController(db *gorm.DB) *TicketOrderController {
+	service := services.NewTicketOrderService(db)
+	return &TicketOrderController{Service: service}
 }
 
-func (trc *TicketRequestController) UsersList(c *gin.Context) {
+func (trc *TicketOrderController) UsersList(c *gin.Context) {
 	UGKthId, exists := c.Get("user_id")
 	if !exists {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing user ID"})
@@ -43,24 +43,23 @@ func (trc *TicketRequestController) UsersList(c *gin.Context) {
 		}
 	}
 
-	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthId.(string), &idsInt)
+	ticketOrders, err := trc.Service.GetTicketOrdersForUser(UGKthId.(string), &idsInt)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ticket_requests": ticketRequests})
+	c.JSON(http.StatusOK, gin.H{"ticket_orders": ticketOrders})
 }
 
-type TicketRequestCreateRequest struct {
-	TicketRequests []models.TicketRequest `json:"ticket_requests"`
+type TicketOrderCreateRequest struct {
+	TicketOrder    models.TicketOrder     `json:"ticket_order"`
 	SelectedAddOns []types.SelectedAddOns `json:"selected_add_ons"`
 }
 
 // Create a ticket request
-func (trc *TicketRequestController) Create(c *gin.Context) {
-	var request TicketRequestCreateRequest
-	var ticketRequestsIds []int
+func (trc *TicketOrderController) Create(c *gin.Context) {
+	var request TicketOrderCreateRequest
 
 	UGKthID, _ := c.Get("user_id")
 
@@ -69,38 +68,29 @@ func (trc *TicketRequestController) Create(c *gin.Context) {
 		return
 	}
 
-	var ticketRequests []models.TicketRequest = request.TicketRequests
-	// var addOns []models.AddOn = request.AddOns
+	ticketOrder := request.TicketOrder
+	ticketOrder.UserUGKthID = UGKthID.(string)
 
-	for i := range ticketRequests {
-		ticketRequests[i].UserUGKthID = UGKthID.(string)
-	}
-
-	mTicketRequests, err := trc.Service.CreateTicketRequests(ticketRequests, &request.SelectedAddOns)
+	mTicketOrder, err := trc.Service.CreateTicketOrder(ticketOrder, &request.SelectedAddOns)
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
 		return
 	}
 
-	for _, ticketRequest := range mTicketRequests {
-		ticketRequestsIds = append(ticketRequestsIds, int(ticketRequest.ID))
-	}
+	services.Notify_TicketOrderCreated(trc.Service.DB, int(ticketOrder.ID))
 
-	services.Notify_TicketRequestCreated(trc.Service.DB, ticketRequestsIds)
-
-	c.JSON(http.StatusCreated, mTicketRequests)
+	c.JSON(http.StatusCreated, mTicketOrder)
 }
 
-type TicketRequestGuestCreateRequest struct {
-	TicketRequests []models.TicketRequest `json:"ticket_requests"`
+type TicketOrderGuestCreateRequest struct {
+	TicketOrder    models.TicketOrder     `json:"ticket_order"`
 	SelectedAddOns []types.SelectedAddOns `json:"selected_add_ons"`
 	RequestToken   string                 `json:"request_token" binding:"required"`
 }
 
 // Guest reqeust controller
-func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
-	var request TicketRequestGuestCreateRequest
-	var ticketRequestsIds []int
+func (trc *TicketOrderController) GuestCreate(c *gin.Context) {
+	var request TicketOrderGuestCreateRequest
 
 	userUGKTHId := c.Param("ugkthid")
 	if userUGKTHId == "" {
@@ -120,59 +110,55 @@ func (trc *TicketRequestController) GuestCreate(c *gin.Context) {
 		return
 	}
 
-	var ticketRequests []models.TicketRequest = request.TicketRequests
+	ticketOrder := request.TicketOrder
+	ticketOrder.UserUGKthID = userUGKTHId
+	ticketReleaseID := ticketOrder.TicketReleaseID
+
 	var ticketRelease models.TicketRelease
 
-	for i := range ticketRequests {
-		ticketReleaseID := ticketRequests[i].TicketReleaseID
-		if err := trc.Service.DB.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").First(&ticketRelease, ticketReleaseID).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release ID"})
-			return
-		}
-
-		if ticketRelease.TicketReleaseMethodDetail.TicketReleaseMethod.RequiresCustomerAccount() {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release requires customer account"})
-			return
-		}
-
-		ticketRequests[i].UserUGKthID = userUGKTHId
+	if err := trc.Service.DB.Preload("TicketReleaseMethodDetail.TicketReleaseMethod").First(&ticketRelease, ticketReleaseID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket release ID"})
+		return
 	}
 
-	mTicketRequests, err := trc.Service.CreateTicketRequests(ticketRequests, &request.SelectedAddOns)
+	if ticketRelease.TicketReleaseMethodDetail.TicketReleaseMethod.RequiresCustomerAccount() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ticket release requires customer account"})
+		return
+	}
+
+	mTicketOrder, err := trc.Service.CreateTicketOrder(ticketOrder, &request.SelectedAddOns)
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
 		return
 	}
 
-	for _, ticketRequest := range mTicketRequests {
-		ticketRequestsIds = append(ticketRequestsIds, int(ticketRequest.ID))
-	}
-
-	services.Notify_GuestTicketRequestCreated(trc.Service.DB, ticketRequestsIds)
+	services.Notify_GuestTicketOrderCreated(trc.Service.DB, int(ticketOrder.ID))
 
 	c.JSON(http.StatusCreated, gin.H{
-		"ticket_requests": mTicketRequests,
+		"ticket_order": mTicketOrder,
 	})
 }
 
-func (trc *TicketRequestController) Get(c *gin.Context) {
+func (trc *TicketOrderController) Get(c *gin.Context) {
 	UGKthID, _ := c.Get("user_id")
-	ticketRequests, err := trc.Service.GetTicketRequestsForUser(UGKthID.(string), nil)
+	ticketOrders, err := trc.Service.GetTicketOrdersForUser(UGKthID.(string), nil)
 
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
 		return
 	}
 
-	c.JSON(http.StatusOK, ticketRequests)
+	c.JSON(http.StatusOK, gin.H{
+		"ticket_orders": ticketOrders,
+	})
 }
 
-func (trc *TicketRequestController) CancelTicketRequest(c *gin.Context) {
+func (trc *TicketOrderController) CancelTicketOrder(c *gin.Context) {
 	// Get the ID of the ticket request from the URL parameters
-	ticketRequestID := c.Param("ticketRequestID")
+	ticketOrderID := c.Param("ticketOrderID")
 
 	// Use your database or service layer to find the ticket request by ID and cancel it
-	err := trc.Service.CancelTicketRequest(ticketRequestID)
+	err := trc.Service.CancelTicketOrder(ticketOrderID)
 	if err != nil {
 		// Handle error, for example send a 404 Not Found response
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket request not found"})
@@ -183,7 +169,7 @@ func (trc *TicketRequestController) CancelTicketRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "Ticket request cancelled"})
 }
 
-func (trc *TicketRequestController) GuestCancelTicketRequest(c *gin.Context) {
+func (trc *TicketOrderController) GuestCancelTicketOrder(c *gin.Context) {
 	// Get the ID of the ticket request from the URL parameters
 	ugkthid := c.Param("ugkthid")
 	if ugkthid == "" {
@@ -197,24 +183,24 @@ func (trc *TicketRequestController) GuestCancelTicketRequest(c *gin.Context) {
 		return
 	}
 
-	ticketRequestID := c.Param("ticketRequestID")
+	ticketOrderID := c.Param("ticketOrderID")
 
 	var user models.User
 	if err := trc.Service.DB.
-		Preload("TicketRequests").
+		Preload("TicketOrders").
 		Where("id = ? AND request_token = ?", ugkthid, requestToken).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid request token"})
 		return
 	}
 
-	userTicketRequest := user.TicketRequests[0]
-	if fmt.Sprint(userTicketRequest.ID) != ticketRequestID {
+	userTicketOrder := user.TicketOrders[0]
+	if fmt.Sprint(userTicketOrder.ID) != ticketOrderID {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid ticket request ID"})
 		return
 	}
 
 	// Use your database or service layer to find the ticket request by ID and cancel it
-	err := trc.Service.CancelTicketRequest(ticketRequestID)
+	err := trc.Service.CancelTicketOrder(ticketOrderID)
 	if err != nil {
 		// Handle error, for example send a 404 Not Found response
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket request not found"})
@@ -231,10 +217,10 @@ func (trc *TicketRequestController) GuestCancelTicketRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "Ticket request cancelled"})
 }
 
-func (trc *TicketRequestController) UpdateAddOns(c *gin.Context) {
+func (trc *TicketOrderController) UpdateAddOns(c *gin.Context) {
 	// Get the ID of the ticket request from the URL parameters
-	ticketRequestIDstring := c.Param("ticketRequestID")
-	ticketRequestID, err := strconv.Atoi(ticketRequestIDstring)
+	ticketOrderIDstring := c.Param("ticketOrderID")
+	ticketOrderID, err := strconv.Atoi(ticketOrderIDstring)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket request ID"})
 		return
@@ -257,7 +243,7 @@ func (trc *TicketRequestController) UpdateAddOns(c *gin.Context) {
 	}
 
 	// Use your database or service layer to update the add-ons for the ticket request
-	var aerr *types.ErrorResponse = trc.Service.UpdateAddOns(request, ticketRequestID, ticketReleaseID)
+	var aerr *types.ErrorResponse = trc.Service.UpdateAddOns(request, ticketOrderID, ticketReleaseID)
 	if aerr != nil {
 		// Handle aerror, for example send a 404 Not Found response
 		c.JSON(aerr.StatusCode, gin.H{"error": aerr.Message})

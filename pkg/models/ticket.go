@@ -12,12 +12,10 @@ type TicketStatus string
 
 const (
 	Pending   TicketStatus = "pending"
-	Reserved  TicketStatus = "reserve"
+	Reserve   TicketStatus = "reserve"
 	Cancelled TicketStatus = "cancelled"
 	Allocated TicketStatus = "allocated"
 )
-
-
 
 type Ticket struct {
 	gorm.Model
@@ -28,35 +26,25 @@ type Ticket struct {
 	TicketType        TicketType               `json:"ticket_type"`
 	UserUGKthID       string                   `json:"user_ug_kth_id"`
 	User              User                     `json:"user"`
-	TicketAmount      int                      `json:"ticket_amount"`
-	IsHandled         bool                     `json:"is_handled" gorm:"default:false"`
 	EventFormReponses []EventFormFieldResponse `json:"event_form_responses"`
 	TicketAddOns      []TicketAddOn            `gorm:"foreignKey:TicketID" json:"ticket_add_ons"`
-	HandledAt         sql.NullTime             `json:"handled_at" gorm:"default:null"`
 	DeletedReason     string                   `json:"deleted_reason" gorm:"default:null"`
 
 	// Original Ticket fields
 	IsPaid          bool         `json:"is_paid" default:"false"`
-	IsReserve       bool         `json:"is_reserve"`
+	IsReserve       bool         `json:"is_reserve" default:"false"`
 	WasReserve      bool         `json:"was_reserve" default:"false"`
 	ReserveNumber   uint         `json:"reserve_number" default:"0"`
 	Refunded        bool         `json:"refunded" default:"false"`
 	Status          TicketStatus `json:"status" gorm:"default:'pending'"`
 	CheckedIn       bool         `json:"checked_in" default:"false"`
-	CheckedInAt     sql.NullTime `json:"checked_in_at"`
+	CheckedInAt     sql.NullTime `json:"checked_in_at" gorm:"default:null"`
 	QrCode          string       `json:"qr_code" gorm:"unique;not null"`
 	PurchasableAt   sql.NullTime `json:"purchasable_at" gorm:"default:null"`
 	PaymentDeadline sql.NullTime `json:"payment_deadline" gorm:"default:null"`
-
-	OrderID *string `json:"order_id" gorm:"default:null"`
-	Order   Order   `json:"order"`
 }
 
 func (t *Ticket) BeforeSave(tx *gorm.DB) (err error) {
-	if t.IsHandled && t.HandledAt.Valid {
-		now := time.Now()
-		t.HandledAt = sql.NullTime{Time: now, Valid: true}
-	}
 	if t.IsReserve && !t.WasReserve {
 		t.WasReserve = true
 	}
@@ -71,7 +59,7 @@ func (t *Ticket) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (t *Ticket) Delete(db *gorm.DB, reason string) error {
-	// Delete the associated TicketRequest
+	// Delete the associated ticketOrder
 	if err := db.Model(t).Update("deleted_reason", reason).Error; err != nil {
 		return err
 	}
@@ -185,7 +173,7 @@ func GetAllTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tickets []
 func GetAllReserveTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tickets []Ticket, err error) {
 	// Get all tickets to a ticket release thats not soft deleted or reserved or refunded
 	err = db.
-		Preload("TicketRequest.User").
+		Preload("ticketOrder.User").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.id = ? AND tickets.is_reserve = ?", ticketReleaseID, false, true).
@@ -200,10 +188,14 @@ func GetAllReserveTicketsToTicketRelease(db *gorm.DB, ticketReleaseID uint) (tic
 }
 
 func (t *Ticket) ValidatePaymentDeadline(db *gorm.DB) (err error) {
+	if t.TicketOrder.TicketRelease.EventID == 0 {
+		return fmt.Errorf("event id is not loaded")
+	}
+
 	var event Event
 	db.First(&event, t.TicketOrder.TicketRelease.EventID)
 
-	// Validate that t.TicketRequest.TicketRelease.Event.Date is loaded
+	// Validate that t.ticketOrder.TicketRelease.Event.Date is loaded
 	if event.Date.IsZero() {
 		return fmt.Errorf("event date is not loaded")
 	}

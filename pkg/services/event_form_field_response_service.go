@@ -18,7 +18,7 @@ func NewEventFormFieldResponseService(db *gorm.DB) *EventFormFieldResponseServic
 }
 
 func (s *EventFormFieldResponseService) Upsert(user *models.User,
-	ticketRequestID string,
+	ticketID string,
 	responses []types.EventFormFieldResponseCreateRequest) error {
 	tx := s.db.Begin()
 	if tx.Error != nil {
@@ -31,14 +31,14 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 		}
 	}()
 
-	var ticketRequest models.TicketRequest
-	if err := tx.Where("id = ? AND user_ug_kth_id = ?", ticketRequestID, user.UGKthID).First(&ticketRequest).Error; err != nil {
+	var ticket models.Ticket
+	if err := tx.Where("id = ? AND user_ug_kth_id = ?", ticketID, user.UGKthID).First(&ticket).Error; err != nil {
 		tx.Rollback()
 		return errors.New("error getting ticket request")
 	}
 
 	var existingResponses []models.EventFormFieldResponse
-	if err := tx.Preload("EventFormField").Where("ticket_request_id = ?", ticketRequestID).Find(&existingResponses).Error; err != nil {
+	if err := tx.Preload("EventFormField").Where("ticket_id = ?", ticketID).Find(&existingResponses).Error; err != nil {
 		tx.Rollback()
 		return errors.New("error getting existing responses")
 	}
@@ -74,7 +74,7 @@ func (s *EventFormFieldResponseService) Upsert(user *models.User,
 
 			// Create a new response
 			newResponse := models.EventFormFieldResponse{
-				TicketRequestID:  ticketRequest.ID,
+				TicketID:         ticket.ID,
 				EventFormFieldID: response.EventFormFieldID,
 				Value:            *response.Value,
 			}

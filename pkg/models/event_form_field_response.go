@@ -10,7 +10,7 @@ import (
 
 type EventFormFieldResponse struct {
 	gorm.Model
-	TicketRequestID  uint           `gorm:"primarykey" json:"ticket_request_id"`   // Foreign key to the TicketRequest model
+	TicketID         uint           `gorm:"primarykey" json:"ticket_request_id"`   // Foreign key to the ticketOrder model
 	EventFormFieldID uint           `gorm:"primarykey" json:"event_form_field_id"` // Foreign key to the EventFormField model
 	EventFormField   EventFormField `json:"event_form_field"`
 	Value            string         `json:"value"` // The value of the field

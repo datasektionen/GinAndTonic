@@ -21,10 +21,14 @@ func StartEventSiteVisitsJob(db *gorm.DB) error {
 			return err
 		}
 
-		ticketRequests, err := models.GetTicketRequestsToEvent(db, event.ID)
-
+		ticketOrders, err := models.GetTicketOrdersToEvent(db, event.ID)
 		if err != nil {
 			return err
+		}
+
+		var numTickets int = 0
+		for _, ticketOrder := range ticketOrders {
+			numTickets += ticketOrder.NumTickets
 		}
 
 		totalIncome, err := models.GetEventTotalIncome(db, int(event.ID))
@@ -35,7 +39,7 @@ func StartEventSiteVisitsJob(db *gorm.DB) error {
 		// Round totalIncome to 2 decimal places
 		totalIncome = math.Round(totalIncome / 100)
 
-		err = process_sesvj(db, event.ID, eventSiteVisits, len(ticketRequests), totalIncome)
+		err = process_sesvj(db, event.ID, eventSiteVisits, numTickets, totalIncome)
 
 		if err != nil {
 			return err
@@ -46,7 +50,7 @@ func StartEventSiteVisitsJob(db *gorm.DB) error {
 }
 
 func process_sesvj(db *gorm.DB, eventID uint, eventSiteVisits []models.EventSiteVisit,
-	numTicketReleases int, totalIncome float64) error {
+	numTickets int, totalIncome float64) error {
 	if len(eventSiteVisits) == 0 {
 		return nil
 	}
@@ -66,7 +70,7 @@ func process_sesvj(db *gorm.DB, eventID uint, eventSiteVisits []models.EventSite
 		}
 	}
 
-	summary.NumTicketRequests = numTicketReleases
+	summary.NumTickets = numTickets
 	summary.TotalIncome = totalIncome
 
 	if err := db.Save(&summary).Error; err != nil {

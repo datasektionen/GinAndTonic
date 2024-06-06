@@ -79,16 +79,16 @@ func (atc *AllocateTicketsController) AllocateTickets(c *gin.Context) {
 func (atc *AllocateTicketsController) ListAllocatedTickets(c *gin.Context) {
 	ticketReleaseID := c.Param("ticketReleaseID")
 
-	var ticketRequests []models.TicketRequest
-	if err := atc.DB.Preload("Tickets").Where("ticket_release_id = ?", ticketReleaseID).Find(&ticketRequests).Error; err != nil {
+	var ticketOrders []models.TicketOrder
+	if err := atc.DB.Preload("Tickets").Where("ticket_release_id = ?", ticketReleaseID).Find(&ticketOrders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested tickets"})
 		return
 	}
 
 	// Get Ticket associated with each RequestedTicket
 	var tickets []models.Ticket
-	for _, requestedTicket := range ticketRequests {
-		tickets = append(tickets, requestedTicket.Tickets...)
+	for _, ticketOrder := range ticketOrders {
+		tickets = append(tickets, ticketOrder.Tickets...)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets})
@@ -99,9 +99,9 @@ func (atc *AllocateTicketsController) ListAllocatedTicketsForEvent(c *gin.Contex
 
 	var tickets []models.Ticket
 	if err := atc.DB.
-		Preload("TicketRequest").
-		Preload("TicketRequest.TicketType").
-		Preload("TicketRequest.TicketRelease").
+		Preload("TicketOrder").
+		Preload("TicketType").
+		Preload("TicketRelease").
 		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
 		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ?", eventID).
@@ -113,10 +113,10 @@ func (atc *AllocateTicketsController) ListAllocatedTicketsForEvent(c *gin.Contex
 	c.JSON(http.StatusOK, gin.H{"tickets": tickets})
 }
 
-func (atc *AllocateTicketsController) SelectivelyAllocateTicketRequest(c *gin.Context) {
+func (atc *AllocateTicketsController) SelectivelyAllocateTicketOrder(c *gin.Context) {
 	// Get the ID of the ticket request from the URL parameters
-	ticketRequestIDstring := c.Param("ticketRequestID")
-	ticketRequestID, err := strconv.Atoi(ticketRequestIDstring)
+	ticketOrderIDstring := c.Param("ticketOrderID")
+	ticketOrderID, err := strconv.Atoi(ticketOrderIDstring)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket request ID"})
@@ -124,9 +124,9 @@ func (atc *AllocateTicketsController) SelectivelyAllocateTicketRequest(c *gin.Co
 	}
 
 	// Use your database or service layer to find the ticket request by ID and cancel it
-	err = services.SelectivelyAllocateTicketRequest(
+	err = services.SelectivelyAllocateTicketOrder(
 		atc.DB,
-		ticketRequestID,
+		ticketOrderID,
 	)
 	if err != nil {
 		// Handle error, for example send a 404 Not Found response

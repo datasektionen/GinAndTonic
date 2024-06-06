@@ -90,12 +90,7 @@ func GetCompletedTransactionsByEvent(db *gorm.DB, eventID int) ([]models.Transac
 
 	var transactions []models.Transaction
 
-	for _, ticket := range tickets {
-		if ticket.Transaction == nil {
-			continue
-		}
-		transactions = append(transactions, *ticket.Transaction)
-	}
+	// TODO revamp with surfboard
 
 	return transactions, nil
 }
@@ -159,8 +154,8 @@ func GetFreeTicketsByEvent(db *gorm.DB, eventID int) ([]models.Ticket, error) {
 		Joins("JOIN ticket_releases ON ticket_releases.id = ticket_requests.ticket_release_id").
 		Joins("JOIN ticket_types ON ticket_types.id = ticket_requests.ticket_type_id").
 		Where("ticket_types.price = 0 AND ticket_releases.event_id = ?", eventID).
-		Preload("TicketRequest").
-		Preload("TicketRequest.TicketType").
+		Preload("ticketOrder").
+		Preload("ticketOrder.TicketType").
 		Preload("TicketAddOns.AddOn").
 		Find(&tickets).Error; err != nil {
 		return nil, err

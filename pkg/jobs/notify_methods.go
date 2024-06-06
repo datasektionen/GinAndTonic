@@ -1,11 +1,11 @@
 package jobs
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"math"
 	"os"
-	"time"
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
@@ -20,16 +20,16 @@ func Notify_ReserveTicketConvertedAllocation(db *gorm.DB, ticketId int) error {
 
 	var ticket models.Ticket
 	err := db.
-		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").
-		Preload("TicketRequest.TicketType").
+		Preload("TicketOrder.User").
+		Preload("TicketOrder.TicketRelease.Event.Organization").
+		Preload("TicketOrder.TicketType").
 		First(&ticket, ticketId).Error
 	if err != nil {
 		return err
 	}
 
-	user := ticket.TicketRequest.User
-	ticketRelease := ticket.TicketRequest.TicketRelease
+	user := ticket.TicketOrder.User
+	ticketRelease := ticket.TicketOrder.TicketRelease
 	event := ticketRelease.Event
 
 	if user.Email == "" {
@@ -37,8 +37,8 @@ func Notify_ReserveTicketConvertedAllocation(db *gorm.DB, ticketId int) error {
 	}
 
 	var payBeforeString string
-	if ticket.PaymentDeadline != nil {
-		payBeforeString = ticket.PaymentDeadline.Format("2006-01-02 15:04:05")
+	if ticket.PaymentDeadline.Valid {
+		payBeforeString = ticket.PaymentDeadline.Time.Format("2006-01-02 15:04:05")
 	}
 
 	data := types.EmailTicketAllocationCreated{
@@ -67,8 +67,8 @@ func Notify_TicketNotPaidInTime(db *gorm.DB, ticket *models.Ticket) error {
 		return nil
 	}
 
-	user := ticket.TicketRequest.User
-	ticketRelease := ticket.TicketRequest.TicketRelease
+	user := ticket.TicketOrder.User
+	ticketRelease := ticket.TicketOrder.TicketRelease
 	event := ticketRelease.Event
 
 	if user.Email == "" {
@@ -77,8 +77,8 @@ func Notify_TicketNotPaidInTime(db *gorm.DB, ticket *models.Ticket) error {
 
 	var tickets []types.EmailTicket
 	tickets = append(tickets, types.EmailTicket{
-		Name:  ticket.TicketRequest.TicketType.Name,
-		Price: fmt.Sprintf("%f", math.Round(100*ticket.TicketRequest.TicketType.Price)/100),
+		Name:  ticket.TicketType.Name,
+		Price: fmt.Sprintf("%f", math.Round(100*ticket.TicketType.Price)/100),
 	})
 
 	emailTicketString, _ := utils.GenerateEmailTable(tickets)
@@ -106,15 +106,15 @@ func Notify_UpdateReserveNumbers(db *gorm.DB, ticketId int) error {
 
 	var ticket models.Ticket
 	err := db.
-		Preload("TicketRequest.TicketRelease.Event.Organization").
-		Preload("TicketRequest.User").
+		Preload("TicketOrder.TicketRelease.Event.Organization").
+		Preload("TicketOrder.User").
 		First(&ticket, ticketId).Error
 	if err != nil {
 		return err
 	}
 
-	user := ticket.TicketRequest.User
-	ticketRelease := ticket.TicketRequest.TicketRelease
+	user := ticket.TicketOrder.User
+	ticketRelease := ticket.TicketOrder.TicketRelease
 	event := ticketRelease.Event
 
 	if user.Email == "" {
@@ -168,21 +168,21 @@ func Notify_GDPRFoodPreferencesRenewal(db *gorm.DB, user *models.User) error {
 	return nil
 }
 
-func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, paymentDeadline *time.Time) error {
+func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, paymentDeadline sql.NullTime) error {
 	if os.Getenv("ENV") == "test" {
 		return nil
 	}
 
 	var ticket models.Ticket
 	err := db.
-		Preload("TicketRequest.User").
-		Preload("TicketRequest.TicketRelease.Event.Organization").First(&ticket, ticketId).Error
+		Preload("TicketOrder.User").
+		Preload("TicketOrder.TicketRelease.Event.Organization").First(&ticket, ticketId).Error
 	if err != nil {
 		return err
 	}
 
-	user := ticket.TicketRequest.User
-	ticketRelease := ticket.TicketRequest.TicketRelease
+	user := ticket.TicketOrder.User
+	ticketRelease := ticket.TicketOrder.TicketRelease
 	event := ticketRelease.Event
 
 	if user.Email == "" {
@@ -190,11 +190,11 @@ func Notify_ReservedTicketAllocated(db *gorm.DB, ticketId int, paymentDeadline *
 	}
 
 	var payBeforeString string
-	if paymentDeadline != nil {
-		payBeforeString = paymentDeadline.Format("2006-01-02 15:04:05")
+	if paymentDeadline.Valid {
+		payBeforeString = paymentDeadline.Time.Format("2006-01-02 15:04:05")
 	}
 
-	var isGuest bool = ticket.TicketRequest.User.IsGuestCustomer(db)
+	var isGuest bool = ticket.TicketOrder.User.IsGuestCustomer(db)
 	var ticketUrl string = os.Getenv("FRONTEND_BASE_URL")
 
 	if !isGuest {

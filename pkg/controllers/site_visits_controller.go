@@ -53,8 +53,8 @@ func (svc *SitVisitsController) Get(c *gin.Context) {
 		"unique_visitors":               summaries[0].UniqueUsers,
 		"unique_visitors_last_week":     lastWeekSummary.UniqueUsers,
 		"last_week_date":                lastWeekSummary.CreatedAt,
-		"num_ticket_requests":           summaries[0].NumTicketRequests,
-		"num_ticket_requests_last_week": lastWeekSummary.NumTicketRequests,
+		"num_ticket_requests":           summaries[0].NumTickets,
+		"num_ticket_requests_last_week": lastWeekSummary.NumTickets,
 		"total_income":                  summaries[0].TotalIncome,
 		"total_income_last_week":        lastWeekSummary.TotalIncome,
 	})

@@ -24,7 +24,7 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	organizationController := controllers.NewOrganizationController(db)
 	eventLandingPageController := controllers.NewEventLandingPageController(db)
 	networkMerchantController := manager_controller.NewManagerMerchantController(db)
-	managerTicketRequestsController := manager_controller.NewManagerTicketRequestController(db)
+	managerticketOrdersController := manager_controller.NewManagerticketOrderController(db)
 	managerTicketsController := manager_controller.NewManagerTicketController(db)
 
 	managerGroup := r.Group("/manager")
@@ -105,7 +105,7 @@ func ManagerRoutes(r *gin.Engine, db *gorm.DB) *gin.Engine {
 	// Ticket requests
 	managerGroup.PUT("/events/:eventID/ticket-requests/action",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
-		managerTicketRequestsController.TicketRequestAction)
+		managerticketOrdersController.TicketOrderAction)
 
 	// Tickets
 	managerGroup.PUT("/events/:eventID/tickets/action",

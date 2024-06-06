@@ -426,41 +426,26 @@ func (ec *EventController) DeleteEvent(c *gin.Context) {
 func (ec *EventController) ListTickets(c *gin.Context) {
 	eventID := c.Param("eventID")
 
-	var tickets []models.Ticket
-	var ticketRequests []models.TicketRequest
+	var ticketOrders []models.TicketOrder
 	if err := ec.DB.
 		Unscoped().
 		Preload("User.FoodPreferences").
-		Preload("TicketRequest.TicketType").
-		Preload("TicketRequest.EventFormReponses.EventFormField").
-		Preload("TicketRequest.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
-		Preload("TicketRequest.TicketAddOns.AddOn").
-		Preload("Order.Details").
-		Joins("JOIN ticket_requests ON tickets.ticket_request_id = ticket_requests.id").
-		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
-		Where("ticket_releases.event_id = ?", eventID).
-		Find(&tickets).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested tickets"})
-		return
-	}
-
-	if err := ec.DB.
-		Unscoped().
-		Preload("User.FoodPreferences").
-		Preload("TicketType").
-		Preload("EventFormReponses.EventFormField").
-		Preload("TicketAddOns.AddOn").
+		Preload("Tickets.TicketType").
+		Preload("Tickets.EventFormReponses.EventFormField").
 		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
-		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
-		Where("ticket_releases.event_id = ? AND NOT EXISTS (SELECT 1 FROM tickets WHERE tickets.ticket_request_id = ticket_requests.id)", eventID).
-		Find(&ticketRequests).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested ticket requests"})
+		Preload("Tickets.TicketAddOns.AddOn").
+		Preload("Order.Details").
+		Joins("JOIN ticket_orders ON tickets.ticket_order_id = ticket_orders.id").
+		Joins("JOIN ticket_releases ON ticket_orders.ticket_release_id = ticket_releases.id").
+		Where("ticket_releases.event_id = ?", eventID).
+		Find(&ticketOrders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested tickets"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"data":    gin.H{"tickets": tickets, "ticket_requests": ticketRequests},
+		"data":    gin.H{"ticket_orders": ticketOrders},
 		"message": "Tickets retrieved successfully",
 	})
 }

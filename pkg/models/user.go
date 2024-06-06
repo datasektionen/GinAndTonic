@@ -23,8 +23,8 @@ type User struct {
 	NetworkID *uint `json:"network_id" gorm:"default:NULL"`
 	Network   *Network
 
-	TicketOrders          []TicketOrder          `json:"tickets"`
-	Tickets               []Ticket               `json:"tickets"`
+	TicketOrders          []TicketOrder          `json:"ticket_orders" gorm:"foreignKey:UserUGKthID"`
+	Tickets               []Ticket               `json:"tickets" gorm:"foreignKey:UserUGKthID"`
 	Organizations         []Organization         `gorm:"many2many:organization_users;" json:"organizations"`
 	OrganizationUserRoles []OrganizationUserRole `gorm:"foreignKey:UserUGKthID" json:"organization_user_roles"`
 	FoodPreferences       UserFoodPreference     `gorm:"foreignKey:UserUGKthID" json:"food_preferences"`

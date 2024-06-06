@@ -8,90 +8,100 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/types"
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-type TicketRequestService struct {
+type TicketOrderService struct {
 	DB *gorm.DB
 }
 
-func NewTicketRequestService(db *gorm.DB) *TicketRequestService {
-	return &TicketRequestService{DB: db}
+func NewTicketOrderService(db *gorm.DB) *TicketOrderService {
+	return &TicketOrderService{DB: db}
 }
 
-func (trs *TicketRequestService) CreateTicketRequests(ticketRequests []models.TicketRequest,
-	selectedAddOns *[]types.SelectedAddOns) (modelTicketRequests []models.TicketRequest, err *types.ErrorResponse) {
+func (trs *TicketOrderService) CreateTicketOrder(ticketOrder models.TicketOrder,
+	selectedAddOns *[]types.SelectedAddOns) (*models.TicketOrder, *types.ErrorResponse) {
 	// Start transaction
 	trx := trs.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			trx.Rollback()
+		}
+	}()
 
-	// Check if all ticket requests are for the same ticket release
-	if !allTicketsRequestIsForSameTicketRelease(ticketRequests) {
+	var ticketRelease models.TicketRelease
+	if err := trx.Preload("TicketReleaseMethodDetail").Where("id = ?", ticketOrder.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		trx.Rollback()
-		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "All ticket requests must be for the same ticket release"}
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
 
-	addonErr := ValidateAddOnsForTicketRequest(trx, *selectedAddOns, int(ticketRequests[0].TicketReleaseID))
+	addonErr := ValidateAddOnsForTicket(trx, *selectedAddOns, int(ticketRelease.ID))
 	if addonErr != nil {
 		trx.Rollback()
 		return nil, addonErr
 	}
 
-	var ticketRelease models.TicketRelease
-	if err := trx.Preload("TicketReleaseMethodDetail").Where("id = ?", ticketRequests[0].TicketReleaseID).First(&ticketRelease).Error; err != nil {
-		trx.Rollback()
-		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
-	}
-
-	if len(ticketRequests) > int(ticketRelease.TicketReleaseMethodDetail.MaxTicketsPerUser) {
+	if len(ticketOrder.Tickets) > int(ticketRelease.TicketReleaseMethodDetail.MaxTicketsPerUser) {
 		trx.Rollback()
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Too many tickets requested"}
 	}
 
-	for _, ticketRequest := range ticketRequests {
-		tr, err := trs.CreateTicketRequest(trx, &ticketRequest)
+	modelTicketOrder := models.TicketOrder{
+		TicketReleaseID: ticketOrder.TicketReleaseID,
+		UserUGKthID:     ticketOrder.UserUGKthID,
+		IsHandled:       false,
+		Type:            models.TicketOrderRequest,
+		NumTickets:      len(ticketOrder.Tickets),
+	}
+
+	if err := trx.Create(&modelTicketOrder).Error; err != nil {
+		trx.Rollback()
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket order"}
+	}
+
+	for _, ticket := range ticketOrder.Tickets {
+		tr, err := trs.CreateticketOrder(trx, &modelTicketOrder, &ticket)
 		if err != nil {
 			trx.Rollback()
 			return nil, err
 		}
+		for _, selectedAddOn := range *selectedAddOns {
+			ticketAddon := models.TicketAddOn{
+				TicketID: &tr.ID,
+				AddOnID:  uint(selectedAddOn.ID),
+				Quantity: selectedAddOn.Quantity,
+			}
 
-		// Should be updated to handle multiple ticket requests
-		modelTicketRequests = append(modelTicketRequests, *tr)
-	}
-
-	for _, selectedAddOn := range *selectedAddOns {
-		// TODO: needs to change if multiple ticket requests are allowed in the future
-		trId := modelTicketRequests[0].ID
-
-		ticketAddon := models.TicketAddOn{
-			TicketRequestID: &trId,
-			AddOnID:         uint(selectedAddOn.ID),
-			Quantity:        selectedAddOn.Quantity,
+			if err := trx.Create(&ticketAddon).Error; err != nil {
+				trx.Rollback()
+				return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket add-on"}
+			}
 		}
 
-		if err := trx.Create(&ticketAddon).Error; err != nil {
-			trx.Rollback()
-			return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket add-on"}
-		}
 	}
 
 	trx.Commit()
 
-	return modelTicketRequests, nil
+	if trx.Error != nil {
+		trx.Rollback()
+		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket order"}
+	}
+
+	return &modelTicketOrder, nil
 }
 
-func (trs *TicketRequestService) CreateTicketRequest(
+func (trs *TicketOrderService) CreateticketOrder(
 	transaction *gorm.DB,
-	ticketRequest *models.TicketRequest,
-) (mTicketRequest *models.TicketRequest, err *types.ErrorResponse) {
+	ticketOrder *models.TicketOrder,
+	ticket *models.Ticket,
+) (mTicket *models.Ticket, err *types.ErrorResponse) {
 	var user models.User
-
-	if err := transaction.Where("id = ?", ticketRequest.UserUGKthID).First(&user).Error; err != nil {
+	if err := transaction.Where("id = ?", ticket.UserUGKthID).First(&user).Error; err != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
 	}
 
 	var ticketRelease models.TicketRelease
-	if err := transaction.Preload("ReservedUsers").Preload("Event.Organization").Where("id = ?", ticketRequest.TicketReleaseID).First(&ticketRelease).Error; err != nil {
+	if err := transaction.Preload("ReservedUsers").Preload("Event.Organization").Where("id = ?", ticketOrder.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		log.Println("Error getting ticket release")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
@@ -101,12 +111,12 @@ func (trs *TicketRequestService) CreateTicketRequest(
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release has allocated tickets"}
 	}
 
-	if !trs.isTicketReleaseOpen(ticketRequest.TicketReleaseID) {
+	if !trs.isTicketReleaseOpen(ticketOrder.TicketReleaseID) {
 		log.Println("Ticket release is not open")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket release is not open"}
 	}
 
-	if !trs.isTicketTypeValid(ticketRequest.TicketTypeID, ticketRequest.TicketReleaseID) {
+	if !trs.isTicketTypeValid(ticket.TicketTypeID, ticketOrder.TicketReleaseID) {
 		log.Println("Ticket type is not valid for ticket release")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket type is not valid for ticket release"}
 	}
@@ -127,13 +137,13 @@ func (trs *TicketRequestService) CreateTicketRequest(
 
 		// If any of these users has a ticke to this event we should not allow the request if its over the limit
 		for _, existingUser := range existingUsersWithSameEmail {
-			if trs.userAlreadyHasATicketToEvent(&existingUser, &ticketRelease, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
+			if trs.userAlreadyHasATicketToEvent(&existingUser, &ticketRelease, &ticketReleaseMethodDetail, ticketOrder.NumTickets) {
 				return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
 			}
 		}
 	}
 
-	if trs.userAlreadyHasATicketToEvent(&user, &ticketRelease, &ticketReleaseMethodDetail, ticketRequest.TicketAmount) {
+	if trs.userAlreadyHasATicketToEvent(&user, &ticketRelease, &ticketReleaseMethodDetail, ticketOrder.NumTickets) {
 		log.Println("User cannot request more tickets to this event")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "User cannot request more tickets to this event"}
 	}
@@ -143,70 +153,75 @@ func (trs *TicketRequestService) CreateTicketRequest(
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "You don't have access to this ticket release"}
 	}
 
-	mTicketRequest = &models.TicketRequest{
-		UserUGKthID:     user.UGKthID,
-		TicketTypeID:    ticketRequest.TicketTypeID,
-		TicketReleaseID: ticketRelease.ID,
-		TicketAmount:    ticketRequest.TicketAmount,
+	mTicket = &models.Ticket{
+		TicketOrderID: ticketOrder.ID,
+		TicketTypeID:  ticket.TicketTypeID,
+		UserUGKthID:   user.UGKthID,
 	}
 
-	if err := transaction.Create(mTicketRequest).Error; err != nil {
-		log.Println("Error creating ticket request")
+	if err := transaction.Create(mTicket).Error; err != nil {
+		log.Println("Error creating order ticket")
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket request"}
 	}
 
 	// Check the release method
+	// TODO MOVE THIS SOMEWHERE ELSE
 	if ticketReleaseMethodDetail.TicketReleaseMethod.MethodName == string(models.RESERVED_TICKET_RELEASE) {
 		// We can allocated the ticket to the user directly if there are tickets_available
 		// Otherwise fail the request
 		var ticketCount int64
-		if err := transaction.Model(&models.TicketRequest{}).Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, true).Count(&ticketCount).Error; err != nil {
+		if err := transaction.
+			Model(&models.Ticket{}).
+			Joins("JOIN ticket_orders ON ticket_orders.id = tickets.ticket_order_id").
+			Where("tickets.ticket_release_id = ? AND ticket_orders.handled_at IS NOT NULL", ticketRelease.ID).
+			Count(&ticketCount).Error; err != nil {
 			transaction.Rollback()
 			return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket count"}
 		}
 
-		if int64(ticketRelease.TicketsAvailable) < ticketCount+int64(ticketRequest.TicketAmount) {
+		if int64(ticketRelease.TicketsAvailable) < ticketCount+int64(ticketOrder.NumTickets) {
 			transaction.Rollback()
 			return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Not enough tickets available"}
 		}
 	}
 
-	return mTicketRequest, nil
+	return mTicket, nil
 }
 
-func (trs *TicketRequestService) GetTicketRequestsForUser(UGKthID string, ids *[]int) ([]models.TicketRequest, *types.ErrorResponse) {
-	ticketRequests, err := models.GetAllValidUsersTicketRequests(trs.DB, UGKthID, ids)
-
+func (trs *TicketOrderService) GetTicketOrdersForUser(UGKthID string, ids *[]int) ([]models.TicketOrder, *types.ErrorResponse) {
+	ticketOrders, err := models.GetAllValidUsersTicketOrder(trs.DB, UGKthID, ids)
 	if err != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket requests"}
 	}
 
-	return ticketRequests, nil
+	return ticketOrders, nil
 }
 
-func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) error {
+func (trs *TicketOrderService) CancelTicketOrder(ticketOrderID string) error {
 	// Use your database layer to find the ticket request by ID and cancel it
 	// This is just a placeholder implementation, replace it with your actual code
-	ticketRequest := &models.TicketRequest{}
-	result := trs.DB.Preload("User").Preload("TicketRelease.Event.Organization").Where("id = ?", ticketRequestID).First(ticketRequest)
+	ticketOrder := &models.TicketOrder{}
+	result := trs.DB.
+		Preload("User").
+		Preload("TicketRelease.Event.Organization").Where("id = ?", ticketOrderID).First(ticketOrder)
 	if result.Error != nil {
 		return result.Error
 	}
 
-	user := ticketRequest.User
-	org := ticketRequest.TicketRelease.Event.Organization
+	user := ticketOrder.User
+	org := ticketOrder.TicketRelease.Event.Organization
 
 	// Check if ticket request is allocated to a ticket
 	// If the ticket request is allocated to a ticket, it cannot be cancelled
-	if len(ticketRequest.Tickets) > 0 {
-		return errors.New("ticket request is already allocated to a ticket, cancel the ticket instead")
+	if ticketOrder.IsHandled {
+		return errors.New("ticket order has already been handled")
 	}
 
-	if err := trs.DB.Delete(ticketRequest).Error; err != nil {
+	if err := trs.DB.Delete(ticketOrder).Error; err != nil {
 		return err
 	}
 
-	err := Notify_TicketRequestCancelled(trs.DB, &user, &org, ticketRequest.TicketRelease.Event.Name)
+	err := Notify_ticketOrderCancelled(trs.DB, &user, &org, ticketOrder.TicketRelease.Event.Name)
 
 	if err != nil {
 		return err
@@ -215,35 +230,17 @@ func (trs *TicketRequestService) CancelTicketRequest(ticketRequestID string) err
 	return nil
 }
 
-// Additional private methods (isTicketReleaseOpen, isTicketTypeValid, userAlreadyHasATicketToEvent) go here...
-
-/*
-List all ticket request for the user
-*/
-func (trs *TicketRequestService) Get(c *gin.Context) {
-	var ticketRequests []models.TicketRequest
-
-	UGKthID, _ := c.Get("user_id")
-
-	if err := trs.DB.Preload("TicketType").Preload("TicketRelease.TicketReleaseMethodDetail").Where("user_ug_kth_id = ?", UGKthID.(string)).Find(&ticketRequests).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the ticket requests"})
-		return
-	}
-
-	c.JSON(http.StatusOK, ticketRequests)
-}
-
-func (trs *TicketRequestService) GetTicketRequest(ticketRequestID int) (ticketRequest *models.TicketRequest, err *types.ErrorResponse) {
+func (trs *TicketOrderService) GetTicketOrder(ticketOrderID int) (ticketOrder *models.TicketOrder, err *types.ErrorResponse) {
 	// Use your database or service layer to find the ticket request by ID
-	ticketRequest, err2 := models.GetValidTicketReqeust(trs.DB, uint(ticketRequestID))
+	ticketOrder, err2 := models.GetValidTicketOrder(trs.DB, uint(ticketOrderID))
 	if err2 != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket request"}
 	}
 
-	return ticketRequest, nil
+	return ticketOrder, nil
 }
 
-func (trs *TicketRequestService) isTicketReleaseOpen(ticketReleaseID uint) bool {
+func (trs *TicketOrderService) isTicketReleaseOpen(ticketReleaseID uint) bool {
 	var ticketRelease models.TicketRelease
 	now := time.Now()
 
@@ -253,7 +250,7 @@ func (trs *TicketRequestService) isTicketReleaseOpen(ticketReleaseID uint) bool 
 	return now.After(ticketRelease.Open) && now.Before(ticketRelease.Close)
 }
 
-func (trs *TicketRequestService) checkReservedTicketRelease(ticketRelease *models.TicketRelease, user *models.User) bool {
+func (trs *TicketOrderService) checkReservedTicketRelease(ticketRelease *models.TicketRelease, user *models.User) bool {
 	if !ticketRelease.IsReserved {
 		return true
 	}
@@ -261,7 +258,7 @@ func (trs *TicketRequestService) checkReservedTicketRelease(ticketRelease *model
 	return ticketRelease.UserHasAccessToTicketRelease(trs.DB, user.UGKthID)
 }
 
-func (trs *TicketRequestService) isTicketTypeValid(ticketTypeID uint, ticketReleaseID uint) bool {
+func (trs *TicketOrderService) isTicketTypeValid(ticketTypeID uint, ticketReleaseID uint) bool {
 	var count int64
 	trs.DB.Model(&models.TicketRelease{}).Joins("JOIN ticket_types ON ticket_types.ticket_release_id = ticket_releases.id").
 		Where("ticket_types.id = ? AND ticket_releases.id = ?", ticketTypeID, ticketReleaseID).Count(&count)
@@ -269,21 +266,23 @@ func (trs *TicketRequestService) isTicketTypeValid(ticketTypeID uint, ticketRele
 	return count > 0
 }
 
-func (trs *TicketRequestService) userAlreadyHasATicketToEvent(user *models.User, ticketRelease *models.TicketRelease, ticketReleaseMethodDetail *models.TicketReleaseMethodDetail, requestedAmount int) bool {
-	var totalRequestedAmount int64
-	trs.DB.Model(&models.TicketRequest{}).
-		Joins("JOIN ticket_releases ON ticket_requests.ticket_release_id = ticket_releases.id").
+func (trs *TicketOrderService) userAlreadyHasATicketToEvent(user *models.User,
+	ticketRelease *models.TicketRelease,
+	ticketReleaseMethodDetail *models.TicketReleaseMethodDetail, requestedAmount int) bool {
+	var totalOrderedAmount int64
+	trs.DB.Model(&models.TicketOrder{}).
+		Joins("JOIN ticket_releases ON ticket_orders.ticket_release_id = ticket_releases.id").
 		Joins("JOIN events ON ticket_releases.event_id = events.id").
-		Where("ticket_requests.user_ug_kth_id = ? AND ticket_releases.id = ?", user.UGKthID, ticketRelease.ID).
-		Select("SUM(ticket_requests.ticket_amount)").
-		Row().Scan(&totalRequestedAmount)
+		Where("ticket_orders.user_ug_kth_id = ? AND ticket_releases.id = ?", user.UGKthID, ticketRelease.ID).
+		Select("SUM(ticket_orders.num_tickets)").
+		Row().Scan(&totalOrderedAmount)
 
 	newRequestedTicketsAmount := int64(ticketReleaseMethodDetail.MaxTicketsPerUser) - int64(requestedAmount)
 
-	return totalRequestedAmount > newRequestedTicketsAmount
+	return totalOrderedAmount > newRequestedTicketsAmount
 }
 
-func (trs *TicketRequestService) UpdateAddOns(selectedAddOns []types.SelectedAddOns, ticketRequestID, ticketReleaseID int) *types.ErrorResponse {
+func (trs *TicketOrderService) UpdateAddOns(selectedAddOns []types.SelectedAddOns, ticketOrderID, ticketReleaseID int) *types.ErrorResponse {
 	// Use your database layer to find the ticket xrequest by ID and update the add-ons
 	// This is just a placeholder implementation, replace it with your actual code
 	// Start by removing all ticket add-ons for the ticket request
@@ -294,36 +293,39 @@ func (trs *TicketRequestService) UpdateAddOns(selectedAddOns []types.SelectedAdd
 		}
 	}()
 
-	var ticketRequest models.TicketRequest
-	if err := tx.Where("id = ?", ticketRequestID).First(&ticketRequest).Error; err != nil {
+	var ticketOrder models.TicketOrder
+	if err := tx.Preload("Tickets").Where("id = ?", ticketOrderID).First(&ticketOrder).Error; err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket request"}
 	}
 
-	if ticketRequest.IsHandled {
+	if ticketOrder.IsHandled {
 		return &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Ticket request has been handled"}
 	}
 
-	addonErr := ValidateAddOnsForTicketRequest(tx, selectedAddOns, ticketReleaseID)
+	addonErr := ValidateAddOnsForTicket(tx, selectedAddOns, ticketReleaseID)
 	if addonErr != nil {
 		tx.Rollback()
 		return addonErr
 	}
 
-	if err := tx.Unscoped().Where("ticket_request_id = ?", ticketRequestID).Delete(&models.TicketAddOn{}).Error; err != nil {
+	if err := tx.Unscoped().Where("ticket_request_id = ?", ticketOrderID).Delete(&models.TicketAddOn{}).Error; err != nil {
 		return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error deleting ticket add-ons"}
 	}
 
 	// Then add the new add-ons
-	for _, selectedAddOn := range selectedAddOns {
-		trID := uint(ticketRequestID)
-		ticketAddOn := models.TicketAddOn{
-			TicketRequestID: &trID,
-			AddOnID:         uint(selectedAddOn.ID),
-			Quantity:        selectedAddOn.Quantity,
-		}
+	for _, ticket := range ticketOrder.Tickets {
+		trID := ticket.ID
 
-		if err := tx.Create(&ticketAddOn).Error; err != nil {
-			return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket add-on"}
+		for _, selectedAddOn := range selectedAddOns {
+			ticketAddOn := models.TicketAddOn{
+				TicketID: &trID,
+				AddOnID:  uint(selectedAddOn.ID),
+				Quantity: selectedAddOn.Quantity,
+			}
+
+			if err := tx.Create(&ticketAddOn).Error; err != nil {
+				return &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket add-on"}
+			}
 		}
 	}
 
@@ -332,20 +334,4 @@ func (trs *TicketRequestService) UpdateAddOns(selectedAddOns []types.SelectedAdd
 	}
 
 	return nil
-}
-
-func allTicketsRequestIsForSameTicketRelease(ticketRequests []models.TicketRequest) bool {
-	if len(ticketRequests) == 0 {
-		return false
-	}
-
-	ticketReleaseID := ticketRequests[0].TicketReleaseID
-
-	for _, ticketRequest := range ticketRequests {
-		if ticketRequest.TicketReleaseID != ticketReleaseID {
-			return false
-		}
-	}
-
-	return true
 }

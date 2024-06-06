@@ -260,7 +260,7 @@ func process_mpartj(db *gorm.DB, ticketRelease models.TicketRelease) error {
 
 			if ticket.TicketType.ID == 0 {
 				// Fatal error, but we can just load the ticket type
-				if err := tx.Preload("TicketRequest.TicketType").First(&ticket).Error; err != nil {
+				if err := tx.Preload("ticketOrder.TicketType").First(&ticket).Error; err != nil {
 					allocator_logger.WithFields(logrus.Fields{
 						"id": ticketRelease.ID,
 					}).Errorf("Error getting ticket type for ticket with ID %d: %s", ticket.ID, err.Error())

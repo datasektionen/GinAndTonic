@@ -24,21 +24,21 @@ func (sos *SendOutService) SendOutEmails(event *models.Event,
 	message string,
 	ticketReleases []models.TicketRelease,
 	filters types.TicketFilter) *types.ErrorResponse {
-	var allTicketRequests []models.TicketRequest
+	var allTicketOrders []models.TicketOrder
 	for _, ticketRelease := range ticketReleases {
-		var tr []models.TicketRequest
+		var to []models.TicketOrder
 		if err := sos.DB.
 			Preload("TicketRelease").
 			Preload("User").
 			Preload("Tickets").
 			Where("ticket_release_id = ?", ticketRelease.ID).
-			Find(&tr).Error; err != nil {
+			Find(&to).Error; err != nil {
 			return &types.ErrorResponse{StatusCode: 500, Message: "Error fetching tickets"}
 		}
-		allTicketRequests = append(allTicketRequests, tr...)
+		allTicketOrders = append(allTicketOrders, to...)
 	}
 
-	users := calculateUsers(allTicketRequests, ticketReleases, filters)
+	users := calculateUsers(allTicketOrders, ticketReleases, filters)
 
 	htmlMessage := blackfriday.Run([]byte(message))
 
@@ -80,13 +80,13 @@ func (sos *SendOutService) SendOutEmails(event *models.Event,
 	return nil
 }
 
-func applyFiltersToTickets(ticketsRequests []models.TicketRequest, filters types.TicketFilter) []models.TicketRequest {
-	filteredTicketsRequests := make([]models.TicketRequest, 0)
+func applyFiltersToTickets(ticketOrders []models.TicketOrder, filters types.TicketFilter) []models.TicketOrder {
+	filteredTicketOrders := make([]models.TicketOrder, 0)
 
-	for _, ticketRequest := range ticketsRequests {
+	for _, ticketOrder := range ticketOrders {
 		keep := true
 
-		for _, ticket := range ticketRequest.Tickets {
+		for _, ticket := range ticketOrder.Tickets {
 			checkedInMatch := filters.CheckedIn == types.Ignore || (filters.CheckedIn == types.YES && ticket.CheckedIn) || (filters.CheckedIn == types.NO && !ticket.CheckedIn)
 			isPaidMatch := filters.IsPaid == types.Ignore || (filters.IsPaid == types.YES && ticket.IsPaid) || (filters.IsPaid == types.NO && !ticket.IsPaid)
 			refundedMatch := filters.Refunded == types.Ignore || (filters.Refunded == types.YES && ticket.Refunded) || (filters.Refunded == types.NO && !ticket.Refunded)
@@ -99,20 +99,20 @@ func applyFiltersToTickets(ticketsRequests []models.TicketRequest, filters types
 			}
 		}
 
-		isHandledMatch := filters.IsHandled == types.Ignore || (filters.IsHandled == types.YES && ticketRequest.IsHandled) || (filters.IsHandled == types.NO && !ticketRequest.IsHandled)
+		isHandledMatch := filters.IsHandled == types.Ignore || (filters.IsHandled == types.YES && ticketOrder.IsHandled) || (filters.IsHandled == types.NO && !ticketOrder.IsHandled)
 		keep = keep && isHandledMatch
 
 		if keep {
-			filteredTicketsRequests = append(filteredTicketsRequests, ticketRequest)
+			filteredTicketOrders = append(filteredTicketOrders, ticketOrder)
 		}
 	}
 
-	return filteredTicketsRequests
+	return filteredTicketOrders
 }
 
-func calculateUsers(tickets []models.TicketRequest, selectedTicketReleases []models.TicketRelease, filters types.TicketFilter) []models.User {
+func calculateUsers(ticketOrders []models.TicketOrder, selectedTicketReleases []models.TicketRelease, filters types.TicketFilter) []models.User {
 	usersMap := make(map[string]models.User)
-	filteredTickets := applyFiltersToTickets(tickets, filters)
+	filteredTickets := applyFiltersToTickets(ticketOrders, filters)
 
 	for _, ticket := range filteredTickets {
 		usersMap[ticket.UserUGKthID] = ticket.User

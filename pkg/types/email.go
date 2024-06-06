@@ -32,7 +32,7 @@ type EmailTicketAllocationReserveCreated struct {
 }
 
 // Associated with ticket_request_confirmation
-type EmailTicketRequestConfirmation struct {
+type EmailticketOrderConfirmation struct {
 	FullName          string
 	Event             models.Event
 	EventURL          string
@@ -45,11 +45,11 @@ type EmailTicketRequestConfirmation struct {
 	GoogleCalendarURL string
 }
 
-type EmailGuestTicketRequestConfirmation struct {
+type EmailGuestticketOrderConfirmation struct {
 	FullName          string
 	EventName         string
 	TicketsHTML       template.HTML
-	TicketRequestURL  string
+	TicketOrderURL    string
 	OrganizationEmail string
 }
 
@@ -69,14 +69,14 @@ type EmailTicketCancelledConfirmation struct {
 }
 
 // Associated with ticket_request_cancelled_confirmation
-type EmailTicketRequestCancelledConfirmation struct {
+type EmailticketOrderCancelledConfirmation struct {
 	FullName          string
 	EventName         string
 	OrganizationEmail string
 }
 
 // Associated with ticket_request_reserve_number_update
-type EmailTicketRequestReserveNumberUpdate struct {
+type EmailticketOrderReserveNumberUpdate struct {
 	FullName          string
 	EventName         string
 	TicketURL         string

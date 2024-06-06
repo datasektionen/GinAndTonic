@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func ValidateAddOnsForTicketRequest(db *gorm.DB, selectedAddOns []types.SelectedAddOns, ticketReleaseID int) *types.ErrorResponse {
+func ValidateAddOnsForTicket(db *gorm.DB, selectedAddOns []types.SelectedAddOns, ticketReleaseID int) *types.ErrorResponse {
 	// Fetch all add-ons associated with the ticket release.
 	var ticketReleaseAddOns []models.AddOn
 	if err := db.Where("ticket_release_id = ?", ticketReleaseID).Find(&ticketReleaseAddOns).Error; err != nil {

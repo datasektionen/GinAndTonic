@@ -50,7 +50,7 @@ func Migrate(db *gorm.DB) error {
 		&models.EventLandingPage{},
 		&models.TicketType{},
 		&models.Ticket{},
-		&models.TicketRequest{},
+		&models.TicketOrder{},
 		&models.Role{},
 		&models.OrganizationRole{},
 		&models.OrganizationUserRole{},

@@ -34,11 +34,11 @@ func (gc *GuestController) Get(c *gin.Context) {
 	var user models.User
 	if err := gc.DB.
 		Preload("Roles").
-		Preload("TicketRequests.TicketRelease.Event.FormFields").
-		Preload("TicketRequests.TicketType").
-		Preload("TicketRequests.TicketAddOns.AddOn").
-		Preload("TicketRequests.EventFormReponses").
-		Preload("TicketRequests.Tickets").
+		Preload("ticketOrders.TicketRelease.Event.FormFields").
+		Preload("ticketOrders.TicketType").
+		Preload("ticketOrders.TicketAddOns.AddOn").
+		Preload("ticketOrders.EventFormReponses").
+		Preload("ticketOrders.Tickets").
 		Where("id = ? AND request_token = ?", ugkthid, request_token).First(&user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 		return

@@ -95,34 +95,33 @@ func GenerateSalesReportPDF(db *gorm.DB, data *SaleRecord, ticketReleases []mode
 		currentY += lineHt * 1.5
 
 		// And in your loop:
-		for _, t := range tickets {
-			ticketRequest, err := t.GetTicketRequest(db)
+		for _, ticket := range tickets {
+
 			if err != nil {
 				return err
 			}
-
 			var transaction models.Transaction
-			if err := db.Where("ticket_id = ?", t.ID).First(&transaction).Error; err != nil {
+			if err := db.Where("ticket_id = ?", ticket.ID).First(&transaction).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					// Check if the ticket is free
-					if ticketRequest.TicketType.Price == 0 {
-						group := ticketGroups[ticketRequest.TicketType.Name]
+					if ticket.TicketType.Price == 0 {
+						group := ticketGroups[ticket.TicketType.Name]
 						group.Subtotal += 0
-						group.NumSold += ticketRequest.TicketAmount
-						group.Tickets = append(group.Tickets, t)
-						ticketGroups[ticketRequest.TicketType.Name] = group
+						group.NumSold += 1
+						group.Tickets = append(group.Tickets, ticket)
+						ticketGroups[ticket.TicketType.Name] = group
 					}
 					continue
 				}
 				return err
 			}
 
-			if t.IsPaid && transaction.ID != 0 {
-				group := ticketGroups[ticketRequest.TicketType.Name]
+			if ticket.IsPaid && transaction.ID != 0 {
+				group := ticketGroups[ticket.TicketType.Name]
 				group.Subtotal += float64(transaction.Amount)
-				group.NumSold += ticketRequest.TicketAmount
-				group.Tickets = append(group.Tickets, t)
-				ticketGroups[ticketRequest.TicketType.Name] = group
+				group.NumSold += 1
+				group.Tickets = append(group.Tickets, ticket)
+				ticketGroups[ticket.TicketType.Name] = group
 			}
 		}
 

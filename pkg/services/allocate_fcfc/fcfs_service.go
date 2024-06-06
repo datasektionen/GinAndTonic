@@ -11,14 +11,13 @@ func AllocateFCFSTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) ([]*m
 	// The first ticket request to come in will be the first to be allocated a ticket
 	// The last ticket request to come in will be the last to be allocated a ticket
 	// Fetch all ticket requests directly from the database
-	allTicketRequests, err := models.GetAllValidTicketRequestToTicketReleaseOrderedByCreatedAt(tx, ticketRelease.ID)
-
+	allTicketOrders, err := models.GetAllValidTicketOrdersToTicketReleaseOrderedByCreatedAt(tx, ticketRelease.ID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	if len(allTicketRequests) == 0 {
+	if len(allTicketOrders) == 0 {
 		// return empty list of tickets
 		return []*models.Ticket{}, nil
 	}
@@ -26,29 +25,29 @@ func AllocateFCFSTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) ([]*m
 	var numberOfTicketsAllocated int = 0
 	var tickets []*models.Ticket
 
-	for _, ticketRequest := range allTicketRequests {
-		// Check if the ticket request is handled
-		if ticketRequest.IsHandled {
+	for _, ticketOrder := range allTicketOrders {
+		if ticketOrder.IsHandled {
 			continue
 		}
 
-		var ticket *models.Ticket
-		if numberOfTicketsAllocated >= ticketRelease.TicketsAvailable {
-			ticket, err = allocate_service.AllocateReserveTicket(ticketRequest,
-				uint(numberOfTicketsAllocated-ticketRelease.TicketsAvailable),
-				tx)
-		} else {
-			ticket, err = allocate_service.AllocateTicket(ticketRequest, tx)
+		for _, ticket := range ticketOrder.Tickets {
+			// Check if the ticket request is handled
+
+			if numberOfTicketsAllocated >= ticketRelease.TicketsAvailable {
+				err = allocate_service.AllocateReserveTicket(&ticket, uint(numberOfTicketsAllocated-ticketRelease.TicketsAvailable), tx)
+			} else {
+				err = allocate_service.AllocateTicket(&ticket, ticketRelease.PaymentDeadline, tx)
+			}
+
+			if err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
+			numberOfTicketsAllocated++
+
+			tickets = append(tickets, &ticket)
 		}
-
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		numberOfTicketsAllocated++
-
-		tickets = append(tickets, ticket)
 	}
 
 	return tickets, nil

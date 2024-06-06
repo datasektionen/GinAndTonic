@@ -114,12 +114,6 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 	}
 
 	for _, ticketOrder := range ticketOrders {
-		// Allocate ticket requests directly
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
 		if totalTicketsAvailable < numberOfAlreadyAllocatedTickets {
 			artd_logger.WithFields(logrus.Fields{
 				"ticket_release_id": ticketRelease.ID,
@@ -127,26 +121,28 @@ func process_artd(db *gorm.DB, ticketRelease *models.TicketRelease) error {
 			break
 		}
 
-		ticket, err := allocate_service.AllocateTicketOrder(ticketRequest, tx)
+		tickets, err := allocate_service.AllocateTicketOrder(ticketOrder, tx)
 
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
 
-		err = Notify_ReservedTicketAllocated(tx, int(ticket.ID), ticket.PaymentDeadline)
+		for _, ticket := range *tickets {
+			err = Notify_ReservedTicketAllocated(tx, int(ticket.ID), ticket.PaymentDeadline)
 
-		if err != nil {
-			tx.Rollback()
-			return err
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			artd_logger.WithFields(logrus.Fields{
+				"ticket_id":       ticket.ID,
+				"ticket_order_id": ticket.TicketOrderID,
+			}).Info("Allocated ticket directly")
+
+			numberOfAlreadyAllocatedTickets++
 		}
-
-		artd_logger.WithFields(logrus.Fields{
-			"ticket_id":         ticket.ID,
-			"ticket_request_id": ticket.TicketRequestID,
-		}).Info("Allocated ticket directly")
-
-		numberOfAlreadyAllocatedTickets++
 	}
 
 	err = tx.Commit().Error

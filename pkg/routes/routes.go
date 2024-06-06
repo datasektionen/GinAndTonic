@@ -120,11 +120,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	ticketTypeController := controllers.NewTicketTypeController(db)
 	organizationUsersController := controllers.NewOrganizationUsersController(db)
 	userFoodPreferenceController := controllers.NewUserFoodPreferenceController(db)
-	ticketRequestController := controllers.NewTicketRequestController(db)
+	ticketOrderController := controllers.NewTicketOrderController(db)
 	allocateTicketsController := controllers.NewAllocateTicketsController(db, allocateTicketsService)
 	ticketsController := controllers.NewTicketController(db)
 	constantOptionsController := controllers.NewConstantOptionsController(db)
-	paymentsController := controllers.NewPaymentController(db)
 	notificationController := controllers.NewNotificationController(db)
 	contactController := controllers.NewContactController(db)
 	ticketReleaseReminderController := controllers.NewTicketReleaseReminderController(db)
@@ -156,14 +155,13 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/view/events/:refID/landing-page", eventController.GetUsersView)
 	r.GET("/timestamp", eventController.GetTimestamp)
 	r.GET("/guest-customer/:ugkthid/activate-promo-code/:eventID", ticketReleasePromoCodeController.GuestCreate)
-	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
 	r.GET("/guest-customer/:ugkthid", guestController.Get)
-	r.DELETE("/guest-customer/:ugkthid/ticket-requests/:ticketRequestID", ticketRequestController.GuestCancelTicketRequest)
+	r.DELETE("/guest-customer/:ugkthid/ticket-requests/:ticketOrderID", ticketOrderController.GuestCancelTicketOrder)
 	r.DELETE("/guest-customer/:ugkthid/my-tickets/:ticketID", ticketsController.GuestCancelTicket)
-	r.PUT("/guest-customer/:ugkthid/events/:eventID/ticket-requests/:ticketRequestID/form-fields", eventFromFieldResponseController.GuestUpsert)
+	r.PUT("/guest-customer/:ugkthid/events/:eventID/ticket-requests/:ticketOrderID/form-fields", eventFromFieldResponseController.GuestUpsert)
 	r.GET("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestGet)
 	r.PUT("/guest-customer/:ugkthid/user-food-preferences", userFoodPreferenceController.GuestUpdate)
-	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlmURLParam.MiddlewareFuncURLParam(), ticketRequestController.GuestCreate)
+	r.POST("/guest-customer/:ugkthid/events/:eventID/guest-customer/ticket-requests", rlmURLParam.MiddlewareFuncURLParam(), ticketOrderController.GuestCreate)
 
 	r.Use(authentication.ValidateTokenMiddleware(true))
 	r.Use(middleware.UserLoader(db))
@@ -239,7 +237,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	// Form fields
 	r.PUT("/events/:eventID/form-fields", eventFormFieldController.Upsert)
-	r.PUT("/events/:eventID/ticket-requests/:ticketRequestID/form-fields", eventFromFieldResponseController.Upsert)
+	r.PUT("/events/:eventID/ticket-requests/:ticketOrderID/form-fields", eventFromFieldResponseController.Upsert)
 
 	// Ticket release reminder
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/reminder",
@@ -255,21 +253,21 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Allocate tickets routes
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.AllocateTickets)
 	r.GET("/events/:eventID/ticket-release/:ticketReleaseID/allocate-tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), allocateTicketsController.ListAllocatedTickets)
-	r.POST("/events/:eventID/ticket-requests/:ticketRequestID/allocate",
+	r.POST("/events/:eventID/ticket-requests/:ticketOrderID/allocate",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
-		allocateTicketsController.SelectivelyAllocateTicketRequest)
+		allocateTicketsController.SelectivelyAllocateTicketOrder)
 
 	// Ticket request event routes
-	r.GET("/events/:eventID/ticket-requests", ticketRequestController.Get)
-	r.POST("/events/:eventID/ticket-requests", rlm.MiddlewareFunc(), ticketRequestController.Create)
-	r.DELETE("/events/:eventID/ticket-requests/:ticketRequestID", ticketRequestController.CancelTicketRequest)
-	r.PUT("/ticket-releases/:ticketReleaseID/ticket-requests/:ticketRequestID/add-ons", ticketRequestController.UpdateAddOns)
+	r.GET("/events/:eventID/ticket-requests", ticketOrderController.Get)
+	r.POST("/events/:eventID/ticket-requests", rlm.MiddlewareFunc(), ticketOrderController.Create)
+	r.DELETE("/events/:eventID/ticket-requests/:ticketOrderID", ticketOrderController.CancelTicketOrder)
+	r.PUT("/ticket-releases/:ticketReleaseID/ticket-requests/:ticketOrderID/add-ons", ticketOrderController.UpdateAddOns)
 
 	// Ticket events routes
 	r.GET("/events/:eventID/tickets", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventController.ListTickets)
 
 	// My tickets
-	r.GET("/my-ticket-requests", ticketRequestController.UsersList)
+	r.GET("/my-ticket-requests", ticketOrderController.UsersList)
 	r.GET("/my-tickets", ticketsController.UsersList)
 
 	// Ticket routes
@@ -278,7 +276,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Ticket routes
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicket)
-	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
 
 	// All routes that have with payments
 

@@ -42,7 +42,7 @@ func (sos *SurfboardCreateOrderService) CreateOrder(ticketIDs []uint,
 	}
 
 	for _, ticket := range tickets {
-		if ticket.TicketRequest.TicketRelease.EventID != int(event.ID) {
+		if ticket.TicketOrder.TicketRelease.EventID != int(event.ID) {
 			tx.Rollback()
 			return nil, errors.New("ticket does not belong to event")
 		}
@@ -137,7 +137,8 @@ func (sos *SurfboardCreateOrderService) createOrder(
 
 	var totlaPrice float64
 	for _, ticket := range tickets {
-		totlaPrice += ticket.CalulcateTotalPrice()
+		// TODO IMPLEMENT
+		totlaPrice += ticket.TicketType.Price
 	}
 
 	var order models.Order = models.Order{
@@ -166,7 +167,7 @@ func (sos *SurfboardCreateOrderService) generateOrderLines(tickets []models.Tick
 	orderLines := []OrderLine{}
 
 	for _, ticket := range tickets {
-		ticketType := ticket.TicketRequest.TicketType
+		ticketType := ticket.TicketType
 		orderLine := OrderLine{
 			ID:       fmt.Sprintf("ticket-%d", ticket.ID),
 			Name:     ticketType.Name,

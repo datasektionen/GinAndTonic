@@ -159,80 +159,80 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 	deadline := utils.ConvertUNIXTimeToDateTime(ticketRelease.Open.Add(time.Duration(methodDetail.OpenWindowDuration) * time.Minute).Unix())
 
 	// Fetch all ticket requests directly from the database
-	allTicketOrders, err := models.GetAllValidTicketOrdersToTicketRelease(tx, ticketRelease.ID)
+	unhandledTickets, err := models.GetAllUnhandledTicketsByTicketReleaseID(tx, ticketRelease.ID)
 
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	if len(allTicketOrders) == 0 {
+	if len(unhandledTickets) == 0 {
 		// return empty array if there are no ticket requests
 		return allTickets, nil
 	}
 
-	eligibleTicketRequestsForLottery := make([]models.TicketRequest, 0)
-	notEligibleTicketRequests := make([]models.TicketRequest, 0)
+	eligibleTicketOrdersForLottery := make([]models.Ticket, 0)
+	notEligibleTicketOrders := make([]models.Ticket, 0)
 
 	// Split ticket requests based on eligibility
-	for _, tr := range allTicketRequests {
+	for _, tr := range unhandledTickets {
 		if tr.CreatedAt.Before(deadline) || tr.CreatedAt.Equal(deadline) {
-			eligibleTicketRequestsForLottery = append(eligibleTicketRequestsForLottery, tr)
+			eligibleTicketOrdersForLottery = append(eligibleTicketOrdersForLottery, tr)
 		} else {
-			notEligibleTicketRequests = append(notEligibleTicketRequests, tr)
+			notEligibleTicketOrders = append(notEligibleTicketOrders, tr)
 		}
 	}
 
 	// Fetch total available tickets directly
 	var availableTickets int = ticketRelease.TicketsAvailable
 
-	if len(eligibleTicketRequestsForLottery) > availableTickets {
-		rand.Shuffle(len(eligibleTicketRequestsForLottery), func(i, j int) {
-			eligibleTicketRequestsForLottery[i], eligibleTicketRequestsForLottery[j] = eligibleTicketRequestsForLottery[j], eligibleTicketRequestsForLottery[i]
+	if len(eligibleTicketOrdersForLottery) > availableTickets {
+		rand.Shuffle(len(eligibleTicketOrdersForLottery), func(i, j int) {
+			eligibleTicketOrdersForLottery[i], eligibleTicketOrdersForLottery[j] = eligibleTicketOrdersForLottery[j], eligibleTicketOrdersForLottery[i]
 		})
 		reserveNumber = 1
-		for i := 0; i < len(eligibleTicketRequestsForLottery); i++ {
+		for i := 0; i < len(eligibleTicketOrdersForLottery); i++ {
 			if i < availableTickets {
-				ticket, err := allocate_service.AllocateTicket(eligibleTicketRequestsForLottery[i], tx)
+				err := allocate_service.AllocateTicket(&eligibleTicketOrdersForLottery[i], ticketRelease.PaymentDeadline, tx)
 				if err != nil {
 					return nil, err
 				}
-				allTickets = append(allTickets, ticket)
+				allTickets = append(allTickets, &eligibleTicketOrdersForLottery[i])
 			} else {
-				ticket, err := allocate_service.AllocateReserveTicket(eligibleTicketRequestsForLottery[i], reserveNumber, tx)
+				err := allocate_service.AllocateReserveTicket(&eligibleTicketOrdersForLottery[i], reserveNumber, tx)
 				if err != nil {
 					return nil, err
 				}
 				reserveNumber++
-				allTickets = append(allTickets, ticket)
+				allTickets = append(allTickets, &eligibleTicketOrdersForLottery[i])
 			}
 		}
 	} else {
-		for _, ticketRequest := range eligibleTicketRequestsForLottery {
-			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
+		for _, ticket := range eligibleTicketOrdersForLottery {
+			err := allocate_service.AllocateTicket(&ticket, ticketRelease.PaymentDeadline, tx)
 			if err != nil {
 				return nil, err
 			}
-			allTickets = append(allTickets, ticket)
+			allTickets = append(allTickets, &ticket)
 		}
 	}
 
-	remainingTickets := availableTickets - len(eligibleTicketRequestsForLottery)
+	remainingTickets := availableTickets - len(eligibleTicketOrdersForLottery)
 	reserveNumber = 1
-	for _, ticketRequest := range notEligibleTicketRequests {
+	for _, ticket := range notEligibleTicketOrders {
 		if remainingTickets > 0 {
-			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
+			err := allocate_service.AllocateTicket(&ticket, ticketRelease.PaymentDeadline, tx)
 			if err != nil {
 				return nil, err
 			}
-			allTickets = append(allTickets, ticket)
+			allTickets = append(allTickets, &ticket)
 			remainingTickets--
 		} else {
-			ticket, err := allocate_service.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
+			err := allocate_service.AllocateReserveTicket(&ticket, reserveNumber, tx)
 			if err != nil {
 				return nil, err
 			}
-			allTickets = append(allTickets, ticket)
+			allTickets = append(allTickets, &ticket)
 			reserveNumber++
 		}
 	}
@@ -243,11 +243,11 @@ func (ats *AllocateTicketsService) allocateFCFSLotteryTickets(
 func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models.TicketRelease, tx *gorm.DB) (tickets []*models.Ticket, err error) {
 	// Fetch all ticket requests directly from the database
 	var reserveNumber uint = 1
-	var allTicketRequests []models.TicketRequest
+	var allTickets []models.Ticket
 	if err := tx.Preload("TicketType").
-		Preload("TicketRelease.Event").
-		Preload("TicketRelease.TicketReleaseMethodDetail").
-		Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, false).Find(&allTicketRequests).Order("created_at").Error; err != nil {
+		Preload("TicketOrder.TicketRelease.Event").
+		Preload("TicketOrder.TicketRelease.TicketReleaseMethodDetail").
+		Where("ticket_release_id = ? AND is_handled = ?", ticketRelease.ID, false).Find(&allTickets).Order("created_at").Error; err != nil {
 		return nil, err
 	}
 
@@ -255,19 +255,19 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	var availableTickets int = ticketRelease.TicketsAvailable
 
 	// Give all users tickets up to the available tickets, give the rest reserve tickets
-	for i, ticketRequest := range allTicketRequests {
+	for i, ticket := range allTickets {
 		if i < availableTickets {
-			ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
+			err := allocate_service.AllocateTicket(&ticket, ticketRelease.PaymentDeadline, tx)
 			if err != nil {
 				return nil, err
 			}
-			tickets = append(tickets, ticket)
+			tickets = append(tickets, &ticket)
 		} else {
-			ticket, err := allocate_service.AllocateReserveTicket(ticketRequest, reserveNumber, tx)
+			err := allocate_service.AllocateReserveTicket(&ticket, reserveNumber, tx)
 			if err != nil {
 				return nil, err
 			}
-			tickets = append(tickets, ticket)
+			tickets = append(tickets, &ticket)
 			reserveNumber++
 		}
 	}
@@ -275,7 +275,7 @@ func (ats *AllocateTicketsService) allocateReservedTickets(ticketRelease *models
 	return tickets, nil
 }
 
-func SelectivelyAllocateTicketRequest(db *gorm.DB, ticketRequestID int) error {
+func SelectivelyAllocateTicketOrder(db *gorm.DB, ticketOrderId int) error {
 	// Use your database layer to find the ticket request by ID and allocate it
 	// This is just a placeholder implementation, replace it with your actual code
 	tx := db.Begin()
@@ -285,36 +285,39 @@ func SelectivelyAllocateTicketRequest(db *gorm.DB, ticketRequestID int) error {
 		}
 	}()
 
-	var ticketRequest models.TicketRequest
+	var ticketOrder models.TicketOrder
 	err := tx.Preload("User").
+		Preload("Tickets").
 		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
 		Preload("TicketRelease.PaymentDeadline").
-		Where("id = ?", ticketRequestID).First(&ticketRequest).Error
+		Where("id = ?", ticketOrderId).First(&ticketOrder).Error
 
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if ticketOrder.IsHandled {
+		tx.Rollback()
+		return errors.New("ticket has already been handled")
 	}
 
 	// Check if ticket request is already handled
 	// If the ticket request is already handled, it cannot be allocated
-	if ticketRequest.IsHandled {
-		tx.Rollback()
-		return errors.New("ticket request is already handled")
-	}
+	for _, ticket := range ticketOrder.Tickets {
+		// Alocate the ticket
+		err = allocate_service.AllocateTicket(&ticket, ticket.TicketOrder.TicketRelease.PaymentDeadline, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	// Alocate the ticket
-	ticket, err := allocate_service.AllocateTicket(ticketRequest, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+		err = Notify_TicketAllocationCreated(tx, int(ticket.ID), nil)
 
-	err = Notify_TicketAllocationCreated(tx, int(ticket.ID), nil)
-
-	if err != nil {
-		tx.Rollback()
-		return err
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	err = tx.Commit().Error
@@ -325,12 +328,12 @@ func SelectivelyAllocateTicketRequest(db *gorm.DB, ticketRequestID int) error {
 	return nil
 }
 
-func SelectivelyAllocateTicketRequests(db *gorm.DB, ticketRequestIDs []int) *types.ErrorResponse {
+func SelectivelyAllocateTicketOrders(db *gorm.DB, ticketOrderIds []int) *types.ErrorResponse {
 	// Use your database layer to find the ticket requests by ID and allocate them
 	// This is just a placeholder implementation, replace it with your actual code
 
-	for _, ticketRequestID := range ticketRequestIDs {
-		err := SelectivelyAllocateTicketRequest(db, ticketRequestID)
+	for _, ticketOrderId := range ticketOrderIds {
+		err := SelectivelyAllocateTicketOrder(db, ticketOrderId)
 		if err != nil {
 			return &types.ErrorResponse{StatusCode: 400, Message: err.Error()}
 		}

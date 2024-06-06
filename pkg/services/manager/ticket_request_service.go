@@ -8,18 +8,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type ManagerTicketRequestService struct {
+type ManagerTicketOrderService struct {
 	DB *gorm.DB
 }
 
-func NewManagerTicketRequestService(db *gorm.DB) *ManagerTicketRequestService {
-	return &ManagerTicketRequestService{DB: db}
+func NewManagerTicketOrderService(db *gorm.DB) *ManagerTicketOrderService {
+	return &ManagerTicketOrderService{DB: db}
 }
 
-// DeleteTicketRequest is a method that deletes a ticket request.
-func (trc *ManagerTicketRequestService) DeleteTicketRequests(ticketRequestIDs []int) *types.ErrorResponse {
-	var ticketRequests []models.TicketRequest
-	err := trc.DB.Where("id IN (?)", ticketRequestIDs).Find(&ticketRequests).Error
+// DeleteticketOrder is a method that deletes a ticket request.
+func (trc ManagerTicketOrderService) DeleteTicketOrder(ticketOrderIds []int) *types.ErrorResponse {
+	var ticketOrders []models.TicketOrder
+	err := trc.DB.Where("id IN (?)", ticketOrderIds).Find(&ticketOrders).Error
 	if err != nil {
 		return &types.ErrorResponse{StatusCode: 400, Message: "Ticket request not found"}
 	}
@@ -31,17 +31,17 @@ func (trc *ManagerTicketRequestService) DeleteTicketRequests(ticketRequestIDs []
 		}
 	}()
 
-	for _, ticketRequest := range ticketRequests {
-		if ticketRequest.IsHandled {
+	for _, ticketOrder := range ticketOrders {
+		if ticketOrder.IsHandled {
 			tx.Rollback()
-			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Ticket request %d has been handled", ticketRequest.ID)}
+			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Ticket request %d has been handled", ticketOrder.ID)}
 		}
 
-		err := ticketRequest.Delete(tx, "Deleted by manager")
+		err := ticketOrder.Delete(tx, "Deleted by manager")
 
 		if err != nil {
 			tx.Rollback()
-			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to delete ticket request %d", ticketRequest.ID)}
+			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to delete ticket request %d", ticketOrder.ID)}
 		}
 	}
 
@@ -53,10 +53,10 @@ func (trc *ManagerTicketRequestService) DeleteTicketRequests(ticketRequestIDs []
 	return nil
 }
 
-// UndeleteTicketRequest is a method that undeletes a ticket request.
-func (trc *ManagerTicketRequestService) UndeleteTicketRequests(ticketRequestIDs []int) *types.ErrorResponse {
-	var ticketRequests []models.TicketRequest
-	err := trc.DB.Unscoped().Where("id IN (?) AND deleted_at IS NOT NULL", ticketRequestIDs).Find(&ticketRequests).Error
+// UndeleteticketOrder is a method that undeletes a ticket request.
+func (trc ManagerTicketOrderService) UndeleteTicketOrders(ticketOrderIds []int) *types.ErrorResponse {
+	var ticketOrders []models.TicketOrder
+	err := trc.DB.Unscoped().Where("id IN (?) AND deleted_at IS NOT NULL", ticketOrderIds).Find(&ticketOrders).Error
 	if err != nil {
 		return &types.ErrorResponse{StatusCode: 400, Message: "Ticket request not found"}
 	}
@@ -68,22 +68,22 @@ func (trc *ManagerTicketRequestService) UndeleteTicketRequests(ticketRequestIDs 
 		}
 	}()
 
-	for _, ticketRequest := range ticketRequests {
-		if ticketRequest.IsHandled {
+	for _, ticketOrder := range ticketOrders {
+		if ticketOrder.IsHandled {
 			tx.Rollback()
-			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Ticket request %d has been handled", ticketRequest.ID)}
+			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Ticket request %d has been handled", ticketOrder.ID)}
 		}
 
-		err = tx.Unscoped().Model(&ticketRequest).Update("deleted_at", nil).Error
+		err = tx.Unscoped().Model(&ticketOrder).Update("deleted_at", nil).Error
 		if err != nil {
 			tx.Rollback()
-			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to undelete ticket request %d", ticketRequest.ID)}
+			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to undelete ticket request %d", ticketOrder.ID)}
 		}
 
-		err = tx.Model(&ticketRequest).Unscoped().UpdateColumn("deleted_reason", "").Error
+		err = tx.Model(&ticketOrder).Unscoped().UpdateColumn("deleted_reason", "").Error
 		if err != nil {
 			tx.Rollback()
-			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to undelete ticket request %d", ticketRequest.ID)}
+			return &types.ErrorResponse{StatusCode: 400, Message: fmt.Sprintf("Failed to undelete ticket request %d", ticketOrder.ID)}
 		}
 	}
 

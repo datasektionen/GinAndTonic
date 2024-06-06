@@ -28,8 +28,8 @@ type Order struct {
 	UserUGKthID     string `json:"user_ug_kth_id"`
 	PaymentPageLink string `json:"paymentPageLink"`
 
-	Details OrderDetails `json:"details" gorm:"foreignKey:OrderID"`
-	Tickets []Ticket     `json:"tickets" gorm:"foreignKey:OrderID"`
+	Details       OrderDetails `json:"details" gorm:"foreignKey:OrderID"`
+	TicketOrderID *uint        `json:"ticket_order_id" gorm:"default:null"`
 
 	WebhookEvents []OrderWebhookEvent `json:"webhook_events" gorm:"foreignKey:OrderID"`
 }
@@ -131,7 +131,12 @@ func (o *Order) PaymentCompleted(db *gorm.DB, data surfboard_types.OrderWebhookD
 		return err
 	}
 
-	for _, ticket := range o.Tickets {
+	var tickets []Ticket
+	if err := db.Where("order_id = ?", o.OrderID).Find(&tickets).Error; err != nil {
+		return err
+	}
+
+	for _, ticket := range tickets {
 		ticket.IsPaid = true
 		if err := db.Save(&ticket).Error; err != nil {
 			return err

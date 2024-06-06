@@ -76,7 +76,7 @@ func (tc *TicketController) UpdateTicket(c *gin.Context) {
 	id := c.Param("ticketID")
 	var ticket models.Ticket
 	if err := tc.DB.
-		Preload("TicketRequest.TicketRelease.Event").
+		Preload("ticketOrder.TicketRelease.Event").
 		First(&ticket, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Ticket not found"})
 		return
@@ -96,7 +96,7 @@ func (tc *TicketController) UsersList(c *gin.Context) {
 
 	UGKthId, _ := c.Get("user_id")
 
-	ticketRequests, err := tc.Service.GetTicketForUser(UGKthId.(string))
+	ticketOrders, err := tc.Service.GetTicketForUser(UGKthId.(string))
 
 	if err != nil {
 		c.JSON(err.StatusCode, gin.H{"error": err.Message})
@@ -105,7 +105,7 @@ func (tc *TicketController) UsersList(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"data":    gin.H{"tickets": ticketRequests},
+		"data":    gin.H{"tickets": ticketOrders},
 		"message": "Tickets retrieved successfully",
 	})
 }

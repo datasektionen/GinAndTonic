@@ -21,7 +21,7 @@ type TicketOrder struct {
 	TicketReleaseID uint            `json:"ticket_release_id" gorm:"index;constraint:OnDelete:CASCADE;"`
 	TicketRelease   TicketRelease   `json:"ticket_release"`
 	IsHandled       bool            `json:"is_handled" gorm:"default:false"`
-	Tickets         []Ticket        `gorm:"foreignKey:TicketOrderID" json:"requests"`
+	Tickets         []Ticket        `json:"tickets" gorm:"foreignKey:TicketOrderID"`
 	NumTickets      int             `json:"num_tickets"`
 	TotalAmount     float64         `json:"total_amount"`
 	IsPaid          bool            `json:"is_paid" gorm:"default:false"`
@@ -98,8 +98,8 @@ func GetAllValidUsersTicketOrder(db *gorm.DB, userUGKthID string, ids *[]int) ([
 		Preload("TicketRelease.AddOns").
 		Preload("TicketRelease.PaymentDeadline").
 		Preload("TicketRelease.TicketReleaseMethodDetail").
-		Preload("Ticket.EventFormReponses").
-		Preload("Ticket.TicketAddOns.AddOn").
+		Preload("Tickets.EventFormReponses").
+		Preload("Tickets.TicketAddOns.AddOn").
 		Where("user_ug_kth_id = ?", userUGKthID).
 		Find(&ticketOrder)
 

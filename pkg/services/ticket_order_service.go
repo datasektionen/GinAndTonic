@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -19,7 +20,7 @@ func NewTicketOrderService(db *gorm.DB) *TicketOrderService {
 	return &TicketOrderService{DB: db}
 }
 
-func (trs *TicketOrderService) CreateTicketOrder(ticketOrder models.TicketOrder,
+func (trs *TicketOrderService) CreateTicketOrder(req models.TicketOrder,
 	selectedAddOns *[]types.SelectedAddOns) (*models.TicketOrder, *types.ErrorResponse) {
 	// Start transaction
 	trx := trs.DB.Begin()
@@ -30,7 +31,7 @@ func (trs *TicketOrderService) CreateTicketOrder(ticketOrder models.TicketOrder,
 	}()
 
 	var ticketRelease models.TicketRelease
-	if err := trx.Preload("TicketReleaseMethodDetail").Where("id = ?", ticketOrder.TicketReleaseID).First(&ticketRelease).Error; err != nil {
+	if err := trx.Preload("TicketReleaseMethodDetail").Where("id = ?", req.TicketReleaseID).First(&ticketRelease).Error; err != nil {
 		trx.Rollback()
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket release"}
 	}
@@ -41,17 +42,17 @@ func (trs *TicketOrderService) CreateTicketOrder(ticketOrder models.TicketOrder,
 		return nil, addonErr
 	}
 
-	if len(ticketOrder.Tickets) > int(ticketRelease.TicketReleaseMethodDetail.MaxTicketsPerUser) {
+	if len(req.Tickets) > int(ticketRelease.TicketReleaseMethodDetail.MaxTicketsPerUser) {
 		trx.Rollback()
 		return nil, &types.ErrorResponse{StatusCode: http.StatusBadRequest, Message: "Too many tickets requested"}
 	}
 
 	modelTicketOrder := models.TicketOrder{
-		TicketReleaseID: ticketOrder.TicketReleaseID,
-		UserUGKthID:     ticketOrder.UserUGKthID,
+		TicketReleaseID: req.TicketReleaseID,
+		UserUGKthID:     req.UserUGKthID,
 		IsHandled:       false,
 		Type:            models.TicketOrderRequest,
-		NumTickets:      len(ticketOrder.Tickets),
+		NumTickets:      len(req.Tickets),
 	}
 
 	if err := trx.Create(&modelTicketOrder).Error; err != nil {
@@ -59,7 +60,7 @@ func (trs *TicketOrderService) CreateTicketOrder(ticketOrder models.TicketOrder,
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket order"}
 	}
 
-	for _, ticket := range ticketOrder.Tickets {
+	for _, ticket := range req.Tickets {
 		tr, err := trs.CreateticketOrder(trx, &modelTicketOrder, &ticket)
 		if err != nil {
 			trx.Rollback()
@@ -77,7 +78,6 @@ func (trs *TicketOrderService) CreateTicketOrder(ticketOrder models.TicketOrder,
 				return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error creating ticket add-on"}
 			}
 		}
-
 	}
 
 	trx.Commit()
@@ -96,7 +96,7 @@ func (trs *TicketOrderService) CreateticketOrder(
 	ticket *models.Ticket,
 ) (mTicket *models.Ticket, err *types.ErrorResponse) {
 	var user models.User
-	if err := transaction.Where("id = ?", ticket.UserUGKthID).First(&user).Error; err != nil {
+	if err := transaction.Where("id = ?", ticketOrder.UserUGKthID).First(&user).Error; err != nil {
 		return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting user"}
 	}
 
@@ -173,9 +173,10 @@ func (trs *TicketOrderService) CreateticketOrder(
 		if err := transaction.
 			Model(&models.Ticket{}).
 			Joins("JOIN ticket_orders ON ticket_orders.id = tickets.ticket_order_id").
-			Where("tickets.ticket_release_id = ? AND ticket_orders.handled_at IS NOT NULL", ticketRelease.ID).
+			Where("ticket_orders.ticket_release_id = ? AND ticket_orders.handled_at IS NOT NULL", ticketRelease.ID).
 			Count(&ticketCount).Error; err != nil {
 			transaction.Rollback()
+			fmt.Println(err.Error())
 			return nil, &types.ErrorResponse{StatusCode: http.StatusInternalServerError, Message: "Error getting ticket count"}
 		}
 

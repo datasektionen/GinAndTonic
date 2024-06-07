@@ -426,26 +426,29 @@ func (ec *EventController) DeleteEvent(c *gin.Context) {
 func (ec *EventController) ListTickets(c *gin.Context) {
 	eventID := c.Param("eventID")
 
-	var ticketOrders []models.TicketOrder
+	var tickets []models.Ticket
 	if err := ec.DB.
 		Unscoped().
 		Preload("User.FoodPreferences").
-		Preload("Tickets.TicketType").
-		Preload("Tickets.EventFormReponses.EventFormField").
-		Preload("TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
-		Preload("Tickets.TicketAddOns.AddOn").
-		Preload("Order.Details").
+		Preload("TicketType").
+		Preload("EventFormReponses.EventFormField").
+		Preload("TicketOrder.TicketRelease.TicketReleaseMethodDetail.TicketReleaseMethod").
+		Preload("TicketAddOns.AddOn").
+		Preload("TicketOrder.Order.Details").
 		Joins("JOIN ticket_orders ON tickets.ticket_order_id = ticket_orders.id").
 		Joins("JOIN ticket_releases ON ticket_orders.ticket_release_id = ticket_releases.id").
 		Where("ticket_releases.event_id = ?", eventID).
-		Find(&ticketOrders).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "There was an error listing the requested tickets"})
+		Find(&tickets).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "There was an error retrieving the tickets",
+		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"data":    gin.H{"ticket_orders": ticketOrders},
+		"data":    gin.H{"tickets": tickets},
 		"message": "Tickets retrieved successfully",
 	})
 }

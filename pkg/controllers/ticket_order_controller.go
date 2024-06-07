@@ -25,7 +25,10 @@ func NewTicketOrderController(db *gorm.DB) *TicketOrderController {
 func (trc *TicketOrderController) UsersList(c *gin.Context) {
 	UGKthId, exists := c.Get("user_id")
 	if !exists {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing user ID"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"status":  "error",
+			"message": "User ID not found",
+		})
 		return
 	}
 
@@ -36,7 +39,10 @@ func (trc *TicketOrderController) UsersList(c *gin.Context) {
 		for _, id := range ids {
 			idInt, err := strconv.Atoi(id)
 			if err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid ticket request ID"})
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"status":  "error",
+					"message": "Invalid ID",
+				})
 				return
 			}
 			idsInt = append(idsInt, idInt)
@@ -45,11 +51,20 @@ func (trc *TicketOrderController) UsersList(c *gin.Context) {
 
 	ticketOrders, err := trc.Service.GetTicketOrdersForUser(UGKthId.(string), &idsInt)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.AbortWithStatusJSON(err.StatusCode, gin.H{
+			"status":  "error",
+			"message": fmt.Sprintf(err.Message),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ticket_orders": ticketOrders})
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"ticket_orders": ticketOrders,
+		},
+		"message": "Ticket orders fetched successfully",
+	})
 }
 
 type TicketOrderCreateRequest struct {
@@ -79,7 +94,11 @@ func (trc *TicketOrderController) Create(c *gin.Context) {
 
 	services.Notify_TicketOrderCreated(trc.Service.DB, int(ticketOrder.ID))
 
-	c.JSON(http.StatusCreated, mTicketOrder)
+	c.JSON(http.StatusCreated, gin.H{
+		"status":  "success",
+		"data":    gin.H{"ticket_order": mTicketOrder},
+		"message": "Ticket order created successfully",
+	})
 }
 
 type TicketOrderGuestCreateRequest struct {

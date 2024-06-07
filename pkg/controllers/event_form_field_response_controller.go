@@ -29,7 +29,7 @@ func (effrc *EventFormFieldResponseController) Upsert(c *gin.Context) {
 		return
 	}
 
-	ticketOrderID := c.Param("ticketOrderID")
+	ticketID := c.Param("ticketID")
 	user := c.MustGet("user").(models.User)
 	var request []types.EventFormFieldResponseCreateRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -37,7 +37,7 @@ func (effrc *EventFormFieldResponseController) Upsert(c *gin.Context) {
 		return
 	}
 
-	if err := effrc.service.Upsert(&user, ticketOrderID, request); err != nil {
+	if err := effrc.service.Upsert(&user, ticketID, request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

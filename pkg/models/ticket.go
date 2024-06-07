@@ -39,7 +39,7 @@ type Ticket struct {
 	Status          TicketStatus `json:"status" gorm:"default:'pending'"`
 	CheckedIn       bool         `json:"checked_in" default:"false"`
 	CheckedInAt     sql.NullTime `json:"checked_in_at" gorm:"default:null"`
-	QrCode          string       `json:"qr_code" gorm:"unique;not null"`
+	QrCode          string       `json:"qr_code" gorm:"default:null"`
 	PurchasableAt   sql.NullTime `json:"purchasable_at" gorm:"default:null"`
 	PaymentDeadline sql.NullTime `json:"payment_deadline" gorm:"default:null"`
 }

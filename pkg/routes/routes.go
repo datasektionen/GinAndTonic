@@ -9,9 +9,8 @@ import (
 
 	"github.com/DowLucas/gin-ticket-release/pkg/authentication"
 	"github.com/DowLucas/gin-ticket-release/pkg/controllers"
-	surfboard_controllers "github.com/DowLucas/gin-ticket-release/pkg/controllers/surfboard"
+	"github.com/DowLucas/gin-ticket-release/pkg/jobs"
 	"github.com/DowLucas/gin-ticket-release/pkg/middleware"
-	surfboard_middlware "github.com/DowLucas/gin-ticket-release/pkg/middleware/surfboard"
 	"github.com/DowLucas/gin-ticket-release/pkg/models"
 	"github.com/DowLucas/gin-ticket-release/pkg/services"
 	banking_service "github.com/DowLucas/gin-ticket-release/pkg/services/banking"
@@ -67,7 +66,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	}
 
 	if os.Getenv("ENV") == "dev" {
-		config.AllowOrigins = []string{"http://localhost:5000", "http://localhost", "http://localhost:8080"}
+		config.AllowOrigins = []string{"http://localhost:5000", "http://localhost:5001", "http://localhost", "http://localhost:8080"}
 	} else if os.Getenv("ENV") == "prod" {
 		config.AllowOrigins = []string{"https://tessera.datasektionen.se"}
 	}
@@ -134,15 +133,12 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	eventSiteVistsController := controllers.NewSitVisitsController(db)
 	bankingController := controllers.NewBankingController(bankingService)
 	guestController := controllers.NewGuestController(db)
-	surfboardPaymentController := surfboard_controllers.NewPaymentSurfboardController(db)
-	surfboardPaymentWebhookController := surfboard_controllers.NewPaymentWebhookController(db)
 
 	var rlm *RateLimiterMiddleware
 	var rlmURLParam *RateLimiterMiddleware
 	if os.Getenv("ENV") == "dev" {
 		// For development, we dont really care about the rate limit
-		// 1 request per second
-		rlm = NewRateLimiterMiddleware(rate.Limit(1), 1)
+		rlm = NewRateLimiterMiddleware(rate.Limit(0.1), 1)
 		rlmURLParam = NewRateLimiterMiddleware(2, 5)
 	} else {
 		rlm = NewRateLimiterMiddleware(rate.Limit(1.0/60.0), 1)
@@ -150,11 +146,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	}
 
 	r.GET("/ticket-release/constants", constantOptionsController.ListTicketReleaseConstants)
-	r.POST("/payments/webhook", surfboard_middlware.ValidatePaymentWebhookSignature(), surfboardPaymentWebhookController.HandlePaymentWebhook)
+	r.POST("/tickets/payment-webhook", paymentsController.PaymentWebhook)
 
 	r.GET("/view/events/:refID", authentication.ValidateTokenMiddleware(false), middleware.UpdateSiteVisits(db), eventController.GetEvent)
 	r.GET("/view/events/:refID/landing-page", eventController.GetUsersView)
-	r.GET("/timestamp", eventController.GetTimestamp)
 	r.GET("/guest-customer/:ugkthid/activate-promo-code/:eventID", ticketReleasePromoCodeController.GuestCreate)
 	r.GET("/guest-customer/:ugkthid/tickets/:ticketID/create-payment-intent", paymentsController.GuestCreatePaymentIntent)
 	r.GET("/guest-customer/:ugkthid", guestController.Get)
@@ -181,13 +176,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		}))
 
 	r.GET("/test", authentication.RequireRole(models.RoleSuperAdmin, db), func(c *gin.Context) {
-		var network models.Network
-		if err := db.Preload("Organizations.Store").Preload("Merchant").Preload("Details").First(&network).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"message": "Terminal created"})
+		jobs.StartEventSiteVisitsJob(db)
+		c.JSON(http.StatusOK, gin.H{"message": "Job started"})
 	})
 
 	r.GET("/events/:eventID/manage/secret-token",
@@ -216,12 +206,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.POST("/events/:eventID/ticket-release/:ticketReleaseID/manually-allocate-reserve-tickets",
 		middleware.AuthorizeEventAccess(db, models.OrganizationMember),
 		ticketReleaseController.ManuallyTryToAllocateReserveTickets)
-
-	r.PUT("/templates/ticket-release/:ticketReleaseID/unsave", ticketReleaseController.UnsaveTemplate)
-	r.GET("/templates/ticket-release", ticketReleaseController.GetTemplateTicketReleases)
-
-	r.PUT("/templates/ticket-types/:ticketTypeID/unsave", ticketTypeController.UnsaveTemplate)
-	r.GET("/templates/ticket-types", ticketTypeController.GetTemplateTicketTypes)
 
 	// Site vists
 	r.GET("/events/:eventID/overview", middleware.AuthorizeEventAccess(db, models.OrganizationMember), eventSiteVistsController.Get)
@@ -279,12 +263,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r.GET("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.GetTicket)
 	r.PUT("/events/:eventID/tickets/:ticketID", middleware.AuthorizeEventAccess(db, models.OrganizationMember), ticketsController.UpdateTicket)
 	r.GET("/tickets/:ticketID/create-payment-intent", paymentsController.CreatePaymentIntent)
-
-	// All routes that have with payments
-
-	// Route for creating an order for a list of tickets
-	r.POST("/payments/events/:referenceID/order/create", surfboardPaymentController.CreateOrder)
-	r.POST("/payments/events/:referenceID/order/:orderID/status", surfboardPaymentController.GetOrderStatus)
 
 	r.GET("/organizations", organizationController.ListOrganizations)
 	r.GET("my-organizations", organizationController.ListMyOrganizations)

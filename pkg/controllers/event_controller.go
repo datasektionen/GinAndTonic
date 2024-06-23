@@ -369,8 +369,12 @@ func (ec *EventController) UpdateEvent(c *gin.Context) {
 	event.Location = eventRequest.Location
 	event.Date = eventRequest.Date
 	if eventRequest.EndDate != nil {
-		endDate := time.Unix(*eventRequest.EndDate, 0)
-		event.EndDate = &endDate
+		ed, err := time.Parse("2006-01-02T15:04:05Z", *eventRequest.EndDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end date format"})
+			return
+		}
+		event.EndDate = &ed
 	}
 	event.OrganizationID = eventRequest.OrganizationID
 	event.IsPrivate = eventRequest.IsPrivate

@@ -84,7 +84,12 @@ func (es *CompleteEventWorkflowService) CreateEvent(data types.EventFullWorkflow
 	}
 
 	if data.Event.EndDate != nil {
-		ed := time.Unix(*data.Event.EndDate, 0)
+		ed, err := time.Parse("2006-01-02T15:04", *data.Event.EndDate)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("could not parse end date: %w", err)
+		}
+
 		event.EndDate = &ed
 	}
 
